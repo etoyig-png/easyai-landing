@@ -135,11 +135,6 @@ export default function HomePage() {
               <a
                 href="#how-easy-ai-works"
                 className="btn-ghost-white text-base px-7 py-3.5"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const el = document.getElementById('how-easy-ai-works');
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
               >
                 See How Easy AI Works
               </a>
