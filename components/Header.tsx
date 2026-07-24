@@ -24,8 +24,9 @@ export default function Header() {
             alt="Easy AI — Business AI Advisory"
             width={200}
             height={54}
-            className="h-10 w-auto object-contain"
+            className="h-[52px] w-auto object-contain"
             priority
+            style={{ mixBlendMode: 'screen' }}
           />
         </Link>
 
@@ -44,7 +45,7 @@ export default function Header() {
 
         {/* Desktop CTA */}
         <div className="hidden md:block">
-          <Link href="/assessment" className="btn-ivory text-sm px-5 py-2.5">
+          <Link href="/assessment" className="btn-green text-sm px-5 py-2.5">
             Start Your Free Assessment
           </Link>
         </div>
@@ -85,7 +86,7 @@ export default function Header() {
             <Link
               href="/assessment"
               onClick={() => setOpen(false)}
-              className="btn-ivory w-full text-center py-3 block"
+              className="btn-green w-full text-center py-3 block"
             >
               Start Your Free Assessment
             </Link>
