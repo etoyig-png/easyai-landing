@@ -1,184 +1,392 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
+import HeroVideo from '@/components/HeroVideo';
 
 export const metadata: Metadata = {
-  title: 'EasyAI — Find the AI Tools Your Business Actually Needs',
+  title: 'Easy AI | Practical AI Guidance for Small and Midsize Businesses',
+  description: 'Easy AI helps business owners find trustworthy AI tools, software, and workflows that reduce busywork, improve operations, and help them buy back their time.',
 };
 
-const outcomes = [
-  { icon: '⏱', title: 'Save Time', body: 'Identify repetitive work that can be handled by AI or automation — without disrupting how your team already operates.' },
-  { icon: '💰', title: 'Reduce Expenses', body: 'Find where you\'re overpaying for software, paying employees for manual work, or losing money to slow follow-up.' },
-  { icon: '📈', title: 'Improve Productivity', body: 'Move faster on the work that matters. Let the right tools handle the administrative overhead.' },
-  { icon: '🏆', title: 'Increase Profitability', body: 'Better follow-up, faster delivery, lower operating costs, and more consistent customer experiences add up.' },
+/* ── Inline SVG icons ─────────────────────────────────────────────────────── */
+const IconClock = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+const IconTrending = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+  </svg>
+);
+const IconLayers = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <polygon points="12 2 22 8.5 12 15 2 8.5" />
+    <polyline points="22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
+  </svg>
+);
+const IconFlow = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
+  </svg>
+);
+const IconSearch = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+const IconChart = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+    <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+  </svg>
+);
+const IconList = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+    <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+    <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+  </svg>
+);
+const IconDoc = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+  </svg>
+);
+const IconShield = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" />
+  </svg>
+);
+const IconUser = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+  </svg>
+);
+const IconBubble = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+const IconHand = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+    <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+    <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2" />
+    <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
+    <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+  </svg>
+);
+
+/* ── Data ─────────────────────────────────────────────────────────────────── */
+const problems = [
+  { icon: <IconClock />,    title: 'Wasted Time',          body: 'Reduce repetitive administrative work and unnecessary manual steps.' },
+  { icon: <IconTrending />, title: 'Missed Revenue',        body: 'Improve slow follow-up, inconsistent sales activity, and overlooked opportunities.' },
+  { icon: <IconLayers />,   title: 'Software Waste',        body: 'Identify overlapping, underused, or overpriced tools.' },
+  { icon: <IconFlow />,     title: 'Operational Friction',  body: 'Create simpler workflows that help your team work faster and more consistently.' },
 ];
 
 const steps = [
-  { num: '01', title: 'You take the assessment or book a call', body: 'Tell us about your business, your current tools, and where your time goes. This takes about 10 minutes.' },
-  { num: '02', title: 'We conduct a structured consultation', body: 'A focused 45-minute conversation about how your business actually works — before we recommend anything.' },
-  { num: '03', title: 'We analyze your consultation transcript', body: 'We use AI to extract bottlenecks, repetitive tasks, and cost problems from the conversation. Then a human reviews every finding.' },
-  { num: '04', title: 'You receive a prioritized recommendation set', body: 'Not a giant software list — a focused set of tools, changes, or automations with honest cost, effort, and value estimates.' },
-  { num: '05', title: 'You decide what to implement', body: 'Self-implement or hire EasyAI to set it up, connect it, test it, and train your team.' },
+  { num: '01', icon: <IconSearch />, label: 'Discover',           body: 'We learn how your business operates, where work piles up, which tasks drain your time, and what you have already tried.' },
+  { num: '02', icon: <IconChart />,  label: 'Analyze',            body: 'We examine your workflows and research AI tools and software matched to your actual problems, not generic recommendations.' },
+  { num: '03', icon: <IconList />,   label: 'Prioritize',         body: 'We compare each solution by potential impact, effort, cost, and fit, then focus on the strongest quick wins.' },
+  { num: '04', icon: <IconDoc />,    label: 'Present Your Plan',  body: 'You receive clear recommendations, expected business impact, and practical next steps. If you want additional support, Easy AI can help with implementation.' },
 ];
 
-const notList = [
-  'A generic chatbot setup shop',
-  'A CRM reseller or CRM-first consulting firm',
-  'A marketing agency that happens to use AI',
-  'A company that automates broken processes without first understanding them',
-  'A promise that every business needs AI or automation',
+const deliverables = [
+  { title: 'Business Findings',       body: 'A clear summary of the workflow problems, inefficiencies, and opportunities we identified.' },
+  { title: 'Matched Solutions',        body: 'AI tools and software researched specifically for your business needs, budget, and current workflow.' },
+  { title: 'Priority Recommendations', body: 'The strongest opportunities ranked by value, cost, effort, and ease of adoption.' },
+  { title: 'Next Steps',              body: 'A practical path forward, including what to address first, what can wait, and where implementation support may help.' },
 ];
 
+const trustItems = [
+  { icon: <IconShield />, title: 'Independent Guidance',   body: 'We recommend solutions based on your needs, not vendor pressure.' },
+  { icon: <IconUser />,   title: 'Human Oversight',        body: 'Important decisions remain in human hands.' },
+  { icon: <IconBubble />, title: 'Clear Reasoning',        body: 'We explain why a solution was recommended, what it may improve, and where its limitations are.' },
+  { icon: <IconHand />,   title: 'Responsible Adoption',   body: 'We consider security, privacy, employee impact, and customer trust before recommending implementation.' },
+];
+
+const assessmentItems = [
+  'A clearer view of your biggest operational challenges',
+  'Areas where AI or better software may create value',
+  'A focused starting point for your consultation',
+];
+
+/* ── Page ─────────────────────────────────────────────────────────────────── */
 export default function HomePage() {
   return (
     <>
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-brand-950 via-brand-800 to-teal-600 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, white 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-24 md:py-32">
-          <p className="section-label text-teal-300 mb-4">AI Product Consulting · Tampa, FL</p>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight max-w-3xl mb-6">
-            Find the AI and software tools your business actually needs.
-          </h1>
-          <p className="text-lg md:text-xl text-brand-100 max-w-2xl mb-4 leading-relaxed">
-            EasyAI helps businesses save time, reduce expenses, improve productivity, and increase profitability through practical AI product consulting and implementation.
-          </p>
-          <p className="text-sm text-brand-200 mb-10">
-            Every recommendation is reviewed for business fit, data access, customer trust, and human control before implementation.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Link href="/assessment" className="btn-white text-base px-8 py-4">Take the AI Opportunity Assessment</Link>
-            <Link href="/book-consultation" className="btn-secondary border-white text-white hover:bg-white/10 text-base px-8 py-4">Book a Consultation</Link>
+      {/* ── S1 HERO ──────────────────────────────────────────────────────── */}
+      <section className="bg-navy-900 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-20 flex flex-col md:flex-row md:items-center gap-10 md:gap-16">
+
+          {/* Left: copy */}
+          <div className="md:w-[46%] flex-shrink-0">
+            <p className="eyebrow-silver mb-4">INDEPENDENT AI ADVISORY</p>
+            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-6">
+              Find the AI tools your business can actually trust and truly needs.
+            </h1>
+            <p className="text-silver-light text-lg leading-relaxed mb-8 font-sans">
+              Easy AI identifies where your business is losing time and money, then recommends the right AI tools, software, and workflows without the hype, guesswork, or unnecessary technology.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <Link href="/assessment" className="btn-ivory text-base px-7 py-3.5">
+                Start Your Free Business Assessment
+              </Link>
+              <a
+                href="#how-easy-ai-works"
+                className="btn-ghost-white text-base px-7 py-3.5"
+                onClick={(e) => {
+                  e.preventDefault();
+                  const el = document.getElementById('how-easy-ai-works');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              >
+                See How Easy AI Works
+              </a>
+            </div>
+            <p className="text-silver-dark text-xs font-sans">
+              Independent recommendations&nbsp;&nbsp;•&nbsp;&nbsp;Human-reviewed&nbsp;&nbsp;•&nbsp;&nbsp;Built around your business
+            </p>
           </div>
-          <p className="text-xs text-brand-300 mt-4">No sales pressure. We learn how your business works before recommending anything.</p>
+
+          {/* Right: video */}
+          <div className="md:w-[54%] flex-shrink-0">
+            <HeroVideo />
+          </div>
+
         </div>
       </section>
 
-      {/* Outcomes */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-14">
-            <p className="section-label mb-3">What we help you achieve</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Real business outcomes. Not AI hype.</h2>
-            <p className="text-slate-500 mt-4 max-w-xl mx-auto">We measure success in time, money, and results — not in the number of AI tools we install.</p>
+      {/* ── S2 BUSINESS PROBLEMS ─────────────────────────────────────────── */}
+      <section className="bg-ivory py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="mb-10">
+            <p className="eyebrow mb-3">WHERE EASY AI CREATES VALUE</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-4">
+              Your business does not need more software. It needs fewer problems.
+            </h2>
+            <p className="text-slate-600 font-sans text-lg max-w-2xl leading-relaxed">
+              Most businesses already have too many tools and too little clarity. Easy AI finds where work is slowing down, money is leaking, and better technology can make a measurable difference.
+            </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {outcomes.map(o => (
-              <div key={o.title} className="card hover:shadow-md transition-shadow">
-                <div className="text-3xl mb-3">{o.icon}</div>
-                <h3 className="font-semibold text-slate-900 mb-2">{o.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{o.body}</p>
+
+          {/* EA 2.png */}
+          <div className="mb-12">
+            <Image
+              src="/easy-ai-work-smarter-hvac.png"
+              alt="HVAC professional using AI-assisted scheduling, documents, email, and task management."
+              width={2048}
+              height={1143}
+              className="w-full h-auto object-contain"
+              sizes="(max-width: 768px) 100vw, 90vw"
+              loading="lazy"
+            />
+          </div>
+
+          {/* 4 value items */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {problems.map(p => (
+              <div key={p.title} className="flex flex-col gap-3">
+                <div className="text-silver">{p.icon}</div>
+                <h3 className="font-serif font-semibold text-navy-900 text-lg">{p.title}</h3>
+                <p className="font-sans text-sm text-slate-600 leading-relaxed">{p.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How it works — summary */}
-      <section className="py-20 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-14">
-            <p className="section-label mb-3">The process</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Diagnose before prescribing.</h2>
-            <p className="text-slate-500 mt-4 max-w-xl mx-auto">We understand how your business works before we recommend a single tool or automation.</p>
-          </div>
-          <div className="relative">
-            <div className="hidden md:block absolute left-8 top-8 bottom-8 w-0.5 bg-brand-100" />
-            <div className="space-y-6">
-              {steps.map(s => (
-                <div key={s.num} className="relative flex gap-6 items-start">
-                  <div className="flex-shrink-0 w-16 h-16 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-sm z-10">{s.num}</div>
-                  <div className="card flex-1 hover:shadow-md transition-shadow">
-                    <h3 className="font-semibold text-slate-900 mb-1">{s.title}</h3>
-                    <p className="text-sm text-slate-500">{s.body}</p>
-                  </div>
-                </div>
+      {/* ── S3 ASSESSMENT ────────────────────────────────────────────────── */}
+      <section className="bg-white py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-start gap-14 md:gap-20">
+
+          {/* Left: copy */}
+          <div className="md:w-[56%]">
+            <p className="eyebrow mb-4">START WITH CLARITY</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-6">
+              Before we recommend anything, we learn how your business actually works.
+            </h2>
+            <p className="font-sans text-slate-600 leading-relaxed mb-8">
+              Our free Business AI Assessment identifies where your company may be losing time, money, and efficiency. Your answers help us prepare a more focused discovery conversation without forcing generic technology into your business.
+            </p>
+            <p className="font-sans font-semibold text-navy-900 text-sm mb-4">What you receive:</p>
+            <ul className="space-y-3 mb-10">
+              {assessmentItems.map(item => (
+                <li key={item} className="flex items-start gap-3 font-sans text-slate-700 text-sm">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal/10 text-teal flex items-center justify-center mt-0.5" aria-hidden="true">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  {item}
+                </li>
               ))}
-            </div>
+            </ul>
+            <Link href="/assessment" className="btn-primary text-sm px-7 py-3.5 inline-flex">
+              Start Your Free Business Assessment
+            </Link>
+            <p className="font-sans text-xs text-slate-400 mt-4 leading-relaxed max-w-sm">
+              No generic tool lists. No automatic sales pitch. Every recommendation starts with your business.
+            </p>
           </div>
-          <div className="text-center mt-10">
-            <Link href="/how-it-works" className="btn-primary">See the full process →</Link>
+
+          {/* Right: EAI 1.png (vertical) */}
+          <div className="md:w-[44%] bg-navy-900 flex items-center justify-center p-6 md:p-8">
+            <Image
+              src="/easy-ai-business-electrician.png"
+              alt="Electrician using a smartphone while AI organizes scheduling, follow-up, and business tasks."
+              width={941}
+              height={1672}
+              className="w-full max-w-xs md:max-w-sm h-auto object-contain"
+              sizes="(max-width: 768px) 80vw, 40vw"
+              loading="lazy"
+            />
           </div>
+
         </div>
       </section>
 
-      {/* Custom agents callout */}
-      <section className="py-20 bg-gradient-to-r from-brand-700 to-teal-600 text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:flex items-center justify-between gap-12">
-          <div className="mb-8 md:mb-0">
-            <p className="section-label text-teal-200 mb-3">When off-the-shelf tools aren't enough</p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">We can build a custom AI agent for your workflow.</h2>
-            <p className="text-brand-100 max-w-xl leading-relaxed">
-              If existing AI products, SaaS tools, or automations can't adequately solve the problem, EasyAI can design, build, test, and deploy a custom agent — with clear permissions, human approval points, and documentation.
-            </p>
+      {/* ── S4 HOW IT WORKS ──────────────────────────────────────────────── */}
+      <section id="how-easy-ai-works" className="bg-ivory py-20 md:py-28" style={{ scrollMarginTop: '64px' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-14">
+            <p className="eyebrow mb-3">A CLEAR PATH FORWARD</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-4">
+              From business problem to practical recommendations.
+            </h2>
           </div>
-          <div className="flex-shrink-0">
-            <Link href="/implementation" className="btn-white text-base px-8 py-4 whitespace-nowrap">Learn about custom agents →</Link>
-          </div>
-        </div>
-      </section>
 
-      {/* Philosophy */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:grid md:grid-cols-2 gap-16 items-center">
-          <div>
-            <p className="section-label mb-3">Our approach</p>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">Audit → Optimize → Automate</h2>
-            <p className="text-slate-600 mb-4 leading-relaxed">
-              We learn the current process first. Then we fix what's broken. Then we apply the right technology — which may be AI, ordinary software, a process change, or nothing at all.
-            </p>
-            <p className="text-slate-600 mb-6 leading-relaxed">
-              The simplest effective solution wins. We don't recommend a $500/month AI platform when a $10 SaaS tool and a better workflow would solve the problem.
-            </p>
-            <Link href="/how-it-works" className="btn-primary">See how the process works →</Link>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {steps.map(s => (
+              <div key={s.num} className="flex flex-col">
+                <div className="text-silver mb-4" aria-hidden="true">{s.icon}</div>
+                <p className="font-sans text-xs font-semibold text-silver tracking-widest mb-2">{s.num}</p>
+                <h3 className="font-serif font-semibold text-navy-900 text-lg mb-3">{s.label}</h3>
+                <p className="font-sans text-sm text-slate-600 leading-relaxed">{s.body}</p>
+              </div>
+            ))}
           </div>
-          <div className="mt-10 md:mt-0">
-            <div className="bg-slate-50 rounded-2xl p-8">
-              <h3 className="font-semibold text-slate-900 mb-4">EasyAI is <em>not</em>:</h3>
-              <ul className="space-y-3">
-                {notList.map(item => (
-                  <li key={item} className="flex items-start gap-3 text-sm text-slate-600">
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs font-bold mt-0.5">✕</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Trust signal */}
-      <section className="py-16 bg-slate-50 border-y border-slate-100">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="section-label mb-3">AI Trust & Human Control</p>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4">Every recommendation is reviewed by a human before it reaches you.</h2>
-          <p className="text-slate-500 max-w-2xl mx-auto mb-6 leading-relaxed">
-            EasyAI uses AI to analyze your consultation and research products — then a human checks every recommendation for real-world fit, data access, customer-facing risk, and responsible implementation before you see anything.
+          <p className="font-sans text-xs text-silver-dark text-center mt-12">
+            Every recommendation is researched, human-reviewed, and selected for your business.
           </p>
-          <Link href="/ai-trust" className="btn-primary">How we handle AI responsibly →</Link>
         </div>
       </section>
 
-      {/* CTAs */}
-      <section className="py-24 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="section-label mb-3">Ready to start?</p>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Two ways to get started</h2>
-          <p className="text-slate-500 mb-10">Either way, we learn how your business works before recommending anything.</p>
-          <div className="grid sm:grid-cols-2 gap-6">
-            <div className="card text-left border-brand-100 hover:shadow-md transition-shadow">
-              <div className="text-2xl mb-3">📋</div>
-              <h3 className="font-semibold text-slate-900 mb-2">Take the AI Opportunity Assessment</h3>
-              <p className="text-sm text-slate-500 mb-4 leading-relaxed">Answer a few questions about your business, your current tools, and where your time goes. Takes about 10 minutes. We'll follow up with next steps.</p>
-              <Link href="/assessment" className="btn-primary w-full text-center">Start the Assessment →</Link>
-            </div>
-            <div className="card text-left border-brand-100 hover:shadow-md transition-shadow">
-              <div className="text-2xl mb-3">📞</div>
-              <h3 className="font-semibold text-slate-900 mb-2">Book a Consultation</h3>
-              <p className="text-sm text-slate-500 mb-4 leading-relaxed">Schedule a focused 45-minute conversation about how your business works. Come with your biggest operational frustration and leave with clarity.</p>
-              <Link href="/book-consultation" className="btn-secondary w-full text-center">Book a Consultation →</Link>
-            </div>
+      {/* ── S5 WHAT YOU RECEIVE ──────────────────────────────────────────── */}
+      <section className="bg-white py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="mb-10">
+            <p className="eyebrow mb-3">PRACTICAL GUIDANCE, NOT ANOTHER GENERIC REPORT</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-4">
+              Clear recommendations you can actually use.
+            </h2>
           </div>
+
+          {/* EA 3.png */}
+          <div className="mb-2">
+            <Image
+              src="/easy-ai-buy-back-time-construction.png"
+              alt="Construction business owner reviewing an illustrative AI productivity dashboard on a job site."
+              width={2048}
+              height={1143}
+              className="w-full h-auto object-contain"
+              sizes="(max-width: 768px) 100vw, 90vw"
+              loading="lazy"
+            />
+          </div>
+          <p className="font-sans text-xs text-slate-400 mb-12 leading-relaxed">
+            Illustrative example. Actual recommendations and results depend on each business.
+          </p>
+
+          {/* 4 deliverables */}
+          <div className="grid sm:grid-cols-2 gap-x-16 gap-y-8">
+            {deliverables.map(d => (
+              <div key={d.title} className="border-l-2 border-teal pl-5">
+                <h3 className="font-serif font-semibold text-navy-900 text-lg mb-2">{d.title}</h3>
+                <p className="font-sans text-sm text-slate-600 leading-relaxed">{d.body}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="font-sans text-xs text-slate-400 mt-10">
+            You keep control of every decision. We explain the options; you decide what moves forward.
+          </p>
+        </div>
+      </section>
+
+      {/* ── S6 AI TRUST ──────────────────────────────────────────────────── */}
+      <section className="bg-navy-900 py-20 md:py-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="mb-12 max-w-2xl">
+            <p className="eyebrow-silver mb-3">TECHNOLOGY WITH ACCOUNTABILITY</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-4">
+              AI should support your business, not control it.
+            </h2>
+            <p className="font-sans text-silver-light leading-relaxed">
+              Every Easy AI recommendation is reviewed by a human and evaluated for business fit, reliability, cost, privacy, and risk.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {trustItems.map(t => (
+              <div key={t.title} className="flex flex-col gap-3">
+                <div className="text-silver" aria-hidden="true">{t.icon}</div>
+                <h3 className="font-serif font-semibold text-white text-lg">{t.title}</h3>
+                <p className="font-sans text-sm text-silver-light leading-relaxed">{t.body}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="font-sans text-xs text-silver-dark mt-12">
+            If a tool is not right for your business, we will tell you, even if that means recommending nothing.
+          </p>
+        </div>
+      </section>
+
+      {/* ── S7 FOUNDER ───────────────────────────────────────────────────── */}
+      <section className="bg-ivory py-20 md:py-28">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <p className="eyebrow mb-4">EXPERIENCE BEFORE TECHNOLOGY</p>
+          <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-6">
+            Helping business owners buy back their most valuable resource, their time.
+          </h2>
+          <p className="font-sans text-slate-600 leading-relaxed mb-4 text-lg">
+            I am Etoyi, with over 30 years of experience in sales and entrepreneurship. My growing frustration with spending more time doing busywork than actually working or enjoying time with my family led me to create Easy AI.
+          </p>
+          <p className="font-sans text-slate-600 leading-relaxed mb-10 text-lg">
+            I understand that time is the one finite resource you can never get back. That is why I made it my mission to help business owners use the right AI tools, software, and workflows to reclaim their time and focus on the work and people that matter most.
+          </p>
+
+          <blockquote className="border-l-4 border-teal pl-6 mb-10">
+            <p className="font-serif text-xl md:text-2xl text-navy-900 italic leading-relaxed">
+              "You can always make more money. You cannot make more time. My goal is to help you buy some of yours back."
+            </p>
+            <footer className="font-sans text-sm text-slate-500 mt-3">Etoyi, Founder of Easy AI</footer>
+          </blockquote>
+
+          <Link href="/about" className="btn-primary text-sm px-7 py-3.5 inline-flex">
+            Meet Etoyi
+          </Link>
+        </div>
+      </section>
+
+      {/* ── S8 FINAL CTA ─────────────────────────────────────────────────── */}
+      <section className="bg-navy-900 py-20 md:py-28">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <p className="eyebrow-silver mb-4">YOUR TIME IS TOO VALUABLE FOR BUSYWORK</p>
+          <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-6">
+            Find the right AI tools to help you buy back your time.
+          </h2>
+          <p className="font-sans text-silver-light text-lg leading-relaxed mb-10">
+            Start with our free Business AI Assessment. We will learn where your time is going, identify repetitive work, and explore tools that fit how your business actually operates.
+          </p>
+          <Link href="/assessment" className="btn-ivory text-base px-8 py-4 inline-flex">
+            Start Your Free Business Assessment
+          </Link>
+          <p className="font-sans text-xs text-silver-dark mt-6">
+            No generic tool lists. No pressure. Just practical guidance built around your business.
+          </p>
         </div>
       </section>
     </>
