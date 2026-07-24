@@ -4,12 +4,12 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: { default: 'EasyAI — AI Product Consulting & Implementation', template: '%s | EasyAI' },
-  description: 'EasyAI helps businesses find and implement AI tools, software, automations, and custom agents that save time, reduce expenses, and increase profitability. Tampa, FL.',
-  keywords: ['AI consulting', 'AI implementation', 'business automation', 'Tampa', 'AI tools', 'custom agents'],
+  title: { default: 'Easy AI | Practical AI Guidance for Small and Midsize Businesses', template: '%s | Easy AI' },
+  description: 'Easy AI helps business owners find trustworthy AI tools, software, and workflows that reduce busywork, improve operations, and help them buy back their time.',
+  keywords: ['AI consulting', 'AI advisory', 'business automation', 'AI tools', 'small business AI'],
   openGraph: {
-    title: 'EasyAI — AI Product Consulting & Implementation',
-    description: 'Find the AI and software tools your business actually needs. Consultation-first. Human-reviewed. Tampa, FL.',
+    title: 'Easy AI | Practical AI Guidance for Small and Midsize Businesses',
+    description: 'Easy AI helps business owners find trustworthy AI tools, software, and workflows that reduce busywork, improve operations, and help them buy back their time.',
     type: 'website',
   },
 };
