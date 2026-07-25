@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: 'Easy AI helps business owners find trustworthy AI tools, software, and workflows that reduce busywork, improve operations, and help them buy back their time.',
 };
 
-/* ── Inline SVG icons ─────────────────────────────────────────────────────── */
+/* ── Inline SVG icons ───────────────────────────────────────────────────────── */
 const IconClock = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -76,9 +76,9 @@ const IconHand = () => (
   </svg>
 );
 
-/* ── Data ─────────────────────────────────────────────────────────────────── */
+/* ── Data ───────────────────────────────────────────────────────────────────── */
 const problems = [
-  { icon: <IconClock />,    title: 'Wasted Time',          body: 'Reduce repetitive administrative work and unnecessary manual steps.' },
+  { icon: <IconClock />,    title: 'Wasted Time',           body: 'Reduce repetitive administrative work and unnecessary manual steps.' },
   { icon: <IconTrending />, title: 'Missed Revenue',        body: 'Improve slow follow-up, inconsistent sales activity, and overlooked opportunities.' },
   { icon: <IconLayers />,   title: 'Software Waste',        body: 'Identify overlapping, underused, or overpriced tools.' },
   { icon: <IconFlow />,     title: 'Operational Friction',  body: 'Create simpler workflows that help your team work faster and more consistently.' },
@@ -116,11 +116,11 @@ export default function HomePage() {
   return (
     <>
       {/* ── S1 HERO ──────────────────────────────────────────────────────── */}
-      <section className="bg-navy-900 overflow-hidden">
+      <section className="bg-navy-900 overflow-hidden border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-20 flex flex-col md:flex-row md:items-center gap-10 md:gap-16">
 
           {/* Left: copy */}
-          <div className="md:w-[46%] flex-shrink-0">
+          <div className="md:w-[65%] flex-shrink-0">
             <p className="eyebrow-silver mb-4">INDEPENDENT AI ADVISORY</p>
             <h1 className="text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-6">
               Find the AI tools your business can actually trust and truly needs.
@@ -129,23 +129,20 @@ export default function HomePage() {
               Easy AI identifies where your business is losing time and money, then recommends the right AI tools, software, and workflows without the hype, guesswork, or unnecessary technology.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <Link href="/assessment" className="btn-ivory text-base px-7 py-3.5">
+              <Link href="/assessment" className="btn-green text-base px-7 py-3.5">
                 Start Your Free Business Assessment
               </Link>
-              <a
-                href="#how-easy-ai-works"
-                className="btn-ghost-white text-base px-7 py-3.5"
-              >
+              <a href="#how-easy-ai-works" className="btn-ghost-white text-base px-7 py-3.5">
                 See How Easy AI Works
               </a>
             </div>
             <p className="text-silver-dark text-xs font-sans">
-              Independent recommendations&nbsp;&nbsp;•&nbsp;&nbsp;Human-reviewed&nbsp;&nbsp;•&nbsp;&nbsp;Built around your business
+              Independent recommendations&nbsp;&nbsp;·&nbsp;&nbsp;Human-reviewed&nbsp;&nbsp;·&nbsp;&nbsp;Built around your business
             </p>
           </div>
 
-          {/* Right: video */}
-          <div className="md:w-[54%] flex-shrink-0">
+          {/* Right: video – 25% width */}
+          <div className="md:w-[35%] flex-shrink-0">
             <HeroVideo />
           </div>
 
@@ -153,27 +150,27 @@ export default function HomePage() {
       </section>
 
       {/* ── S2 BUSINESS PROBLEMS ─────────────────────────────────────────── */}
-      <section className="bg-ivory py-20 md:py-28">
+      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-10">
-            <p className="eyebrow mb-3">WHERE EASY AI CREATES VALUE</p>
-            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-4">
+            <p className="eyebrow-silver mb-3">WHERE EASY AI CREATES VALUE</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-4">
               Your business does not need more software. It needs fewer problems.
             </h2>
-            <p className="text-slate-600 font-sans text-lg max-w-2xl leading-relaxed">
+            <p className="text-silver-light font-sans text-lg max-w-2xl leading-relaxed">
               Most businesses already have too many tools and too little clarity. Easy AI finds where work is slowing down, money is leaking, and better technology can make a measurable difference.
             </p>
           </div>
 
-          {/* EA 2.png */}
-          <div className="mb-12">
+          {/* HVAC image – 25% size */}
+          <div className="mb-12 flex justify-center">
             <Image
               src="/easy-ai-work-smarter-hvac.png"
               alt="HVAC professional using AI-assisted scheduling, documents, email, and task management."
               width={2048}
               height={1143}
-              className="w-full h-auto object-contain"
-              sizes="(max-width: 768px) 100vw, 90vw"
+              className="w-1/4 h-auto object-contain"
+              sizes="(max-width: 768px) 50vw, 25vw"
               loading="lazy"
             />
           </div>
@@ -183,8 +180,8 @@ export default function HomePage() {
             {problems.map(p => (
               <div key={p.title} className="flex flex-col gap-3">
                 <div className="text-silver">{p.icon}</div>
-                <h3 className="font-serif font-semibold text-navy-900 text-lg">{p.title}</h3>
-                <p className="font-sans text-sm text-slate-600 leading-relaxed">{p.body}</p>
+                <h3 className="font-serif font-semibold text-white text-lg">{p.title}</h3>
+                <p className="font-sans text-sm text-silver-light leading-relaxed">{p.body}</p>
               </div>
             ))}
           </div>
@@ -192,23 +189,23 @@ export default function HomePage() {
       </section>
 
       {/* ── S3 ASSESSMENT ────────────────────────────────────────────────── */}
-      <section className="bg-white py-20 md:py-28">
+      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-start gap-14 md:gap-20">
 
           {/* Left: copy */}
-          <div className="md:w-[56%]">
-            <p className="eyebrow mb-4">START WITH CLARITY</p>
-            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-6">
+          <div className="md:w-[65%]">
+            <p className="eyebrow-silver mb-4">START WITH CLARITY</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-6">
               Before we recommend anything, we learn how your business actually works.
             </h2>
-            <p className="font-sans text-slate-600 leading-relaxed mb-8">
+            <p className="font-sans text-silver-light leading-relaxed mb-8">
               Our free Business AI Assessment identifies where your company may be losing time, money, and efficiency. Your answers help us prepare a more focused discovery conversation without forcing generic technology into your business.
             </p>
-            <p className="font-sans font-semibold text-navy-900 text-sm mb-4">What you receive:</p>
+            <p className="font-sans font-semibold text-white text-sm mb-4">What you receive:</p>
             <ul className="space-y-3 mb-10">
               {assessmentItems.map(item => (
-                <li key={item} className="flex items-start gap-3 font-sans text-slate-700 text-sm">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal/10 text-teal flex items-center justify-center mt-0.5" aria-hidden="true">
+                <li key={item} className="flex items-start gap-3 font-sans text-silver-light text-sm">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-teal/20 text-teal flex items-center justify-center mt-0.5" aria-hidden="true">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
@@ -217,23 +214,23 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
-            <Link href="/assessment" className="btn-primary text-sm px-7 py-3.5 inline-flex">
+            <Link href="/assessment" className="btn-green text-sm px-7 py-3.5 inline-flex">
               Start Your Free Business Assessment
             </Link>
-            <p className="font-sans text-xs text-slate-400 mt-4 leading-relaxed max-w-sm">
+            <p className="font-sans text-xs text-silver-dark mt-4 leading-relaxed max-w-sm">
               No generic tool lists. No automatic sales pitch. Every recommendation starts with your business.
             </p>
           </div>
 
-          {/* Right: EAI 1.png (vertical) */}
-          <div className="md:w-[44%] bg-navy-900 flex items-center justify-center p-6 md:p-8">
+          {/* Right: electrician image – 25% size */}
+          <div className="md:w-[35%] flex items-center justify-center">
             <Image
               src="/easy-ai-business-electrician.png"
               alt="Electrician using a smartphone while AI organizes scheduling, follow-up, and business tasks."
               width={941}
               height={1672}
-              className="w-full max-w-xs md:max-w-sm h-auto object-contain"
-              sizes="(max-width: 768px) 80vw, 40vw"
+              className="w-1/4 md:w-1/2 h-auto object-contain mx-auto"
+              sizes="(max-width: 768px) 25vw, 15vw"
               loading="lazy"
             />
           </div>
@@ -242,11 +239,11 @@ export default function HomePage() {
       </section>
 
       {/* ── S4 HOW IT WORKS ──────────────────────────────────────────────── */}
-      <section id="how-easy-ai-works" className="bg-ivory py-20 md:py-28" style={{ scrollMarginTop: '64px' }}>
+      <section id="how-easy-ai-works" className="bg-navy-900 py-20 md:py-28 border-b border-navy-800" style={{ scrollMarginTop: '64px' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <p className="eyebrow mb-3">A CLEAR PATH FORWARD</p>
-            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-4">
+            <p className="eyebrow-silver mb-3">A CLEAR PATH FORWARD</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-4">
               From business problem to practical recommendations.
             </h2>
           </div>
@@ -256,8 +253,8 @@ export default function HomePage() {
               <div key={s.num} className="flex flex-col">
                 <div className="text-silver mb-4" aria-hidden="true">{s.icon}</div>
                 <p className="font-sans text-xs font-semibold text-silver tracking-widest mb-2">{s.num}</p>
-                <h3 className="font-serif font-semibold text-navy-900 text-lg mb-3">{s.label}</h3>
-                <p className="font-sans text-sm text-slate-600 leading-relaxed">{s.body}</p>
+                <h3 className="font-serif font-semibold text-white text-lg mb-3">{s.label}</h3>
+                <p className="font-sans text-sm text-silver-light leading-relaxed">{s.body}</p>
               </div>
             ))}
           </div>
@@ -269,28 +266,28 @@ export default function HomePage() {
       </section>
 
       {/* ── S5 WHAT YOU RECEIVE ──────────────────────────────────────────── */}
-      <section className="bg-white py-20 md:py-28">
+      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-10">
-            <p className="eyebrow mb-3">PRACTICAL GUIDANCE, NOT ANOTHER GENERIC REPORT</p>
-            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-4">
+            <p className="eyebrow-silver mb-3">PRACTICAL GUIDANCE, NOT ANOTHER GENERIC REPORT</p>
+            <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-4">
               Clear recommendations you can actually use.
             </h2>
           </div>
 
-          {/* EA 3.png */}
-          <div className="mb-2">
+          {/* Construction image – 25% size */}
+          <div className="mb-2 flex justify-center">
             <Image
               src="/easy-ai-buy-back-time-construction.png"
               alt="Construction business owner reviewing an illustrative AI productivity dashboard on a job site."
               width={2048}
               height={1143}
-              className="w-full h-auto object-contain"
-              sizes="(max-width: 768px) 100vw, 90vw"
+              className="w-1/4 h-auto object-contain"
+              sizes="(max-width: 768px) 50vw, 25vw"
               loading="lazy"
             />
           </div>
-          <p className="font-sans text-xs text-slate-400 mb-12 leading-relaxed">
+          <p className="font-sans text-xs text-silver-dark mb-12 leading-relaxed text-center">
             Illustrative example. Actual recommendations and results depend on each business.
           </p>
 
@@ -298,20 +295,20 @@ export default function HomePage() {
           <div className="grid sm:grid-cols-2 gap-x-16 gap-y-8">
             {deliverables.map(d => (
               <div key={d.title} className="border-l-2 border-teal pl-5">
-                <h3 className="font-serif font-semibold text-navy-900 text-lg mb-2">{d.title}</h3>
-                <p className="font-sans text-sm text-slate-600 leading-relaxed">{d.body}</p>
+                <h3 className="font-serif font-semibold text-white text-lg mb-2">{d.title}</h3>
+                <p className="font-sans text-sm text-silver-light leading-relaxed">{d.body}</p>
               </div>
             ))}
           </div>
 
-          <p className="font-sans text-xs text-slate-400 mt-10">
+          <p className="font-sans text-xs text-silver-dark mt-10">
             You keep control of every decision. We explain the options; you decide what moves forward.
           </p>
         </div>
       </section>
 
       {/* ── S6 AI TRUST ──────────────────────────────────────────────────── */}
-      <section className="bg-navy-900 py-20 md:py-28">
+      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-12 max-w-2xl">
             <p className="eyebrow-silver mb-3">TECHNOLOGY WITH ACCOUNTABILITY</p>
@@ -340,27 +337,27 @@ export default function HomePage() {
       </section>
 
       {/* ── S7 FOUNDER ───────────────────────────────────────────────────── */}
-      <section className="bg-ivory py-20 md:py-28">
+      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="eyebrow mb-4">EXPERIENCE BEFORE TECHNOLOGY</p>
-          <h2 className="text-3xl md:text-4xl font-serif font-semibold text-navy-900 mb-6">
+          <p className="eyebrow-silver mb-4">EXPERIENCE BEFORE TECHNOLOGY</p>
+          <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-6">
             Helping business owners buy back their most valuable resource, their time.
           </h2>
-          <p className="font-sans text-slate-600 leading-relaxed mb-4 text-lg">
+          <p className="font-sans text-silver-light leading-relaxed mb-4 text-lg">
             I am Etoyi, with over 30 years of experience in sales and entrepreneurship. My growing frustration with spending more time doing busywork than actually working or enjoying time with my family led me to create Easy AI.
           </p>
-          <p className="font-sans text-slate-600 leading-relaxed mb-10 text-lg">
+          <p className="font-sans text-silver-light leading-relaxed mb-10 text-lg">
             I understand that time is the one finite resource you can never get back. That is why I made it my mission to help business owners use the right AI tools, software, and workflows to reclaim their time and focus on the work and people that matter most.
           </p>
 
           <blockquote className="border-l-4 border-teal pl-6 mb-10">
-            <p className="font-serif text-xl md:text-2xl text-navy-900 italic leading-relaxed">
+            <p className="font-serif text-xl md:text-2xl text-white italic leading-relaxed">
               "You can always make more money. You cannot make more time. My goal is to help you buy some of yours back."
             </p>
-            <footer className="font-sans text-sm text-slate-500 mt-3">Etoyi, Founder of Easy AI</footer>
+            <footer className="font-sans text-sm text-silver-dark mt-3">Etoyi, Founder of Easy AI</footer>
           </blockquote>
 
-          <Link href="/about" className="btn-primary text-sm px-7 py-3.5 inline-flex">
+          <Link href="/about" className="btn-green text-sm px-7 py-3.5 inline-flex">
             Meet Etoyi
           </Link>
         </div>
@@ -376,7 +373,7 @@ export default function HomePage() {
           <p className="font-sans text-silver-light text-lg leading-relaxed mb-10">
             Start with our free Business AI Assessment. We will learn where your time is going, identify repetitive work, and explore tools that fit how your business actually operates.
           </p>
-          <Link href="/assessment" className="btn-ivory text-base px-8 py-4 inline-flex">
+          <Link href="/assessment" className="btn-green text-base px-8 py-4 inline-flex">
             Start Your Free Business Assessment
           </Link>
           <p className="font-sans text-xs text-silver-dark mt-6">
