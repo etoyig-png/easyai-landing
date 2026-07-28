@@ -47,7 +47,7 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
     )
     .join('');
 
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: NOTIFICATION_FROM,
     to: NOTIFICATION_TO,
     subject: `New assessment: ${submission.businessName}`,
@@ -65,13 +65,17 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
       </div>
     `,
   });
+  // The Resend SDK resolves with { data, error } rather than throwing on API-level
+  // rejections (e.g. unverified sending domain) — without this, a rejected send
+  // would silently look like success to every caller.
+  if (error) throw new Error(`Resend internal notification failed: ${error.message}`);
 }
 
 /** Sends the personalized AI Action Plan to the lead. resultHtml is the Claude-generated body content. */
 export async function sendResultEmail(params: { to: string; firstName: string; businessName: string; resultHtml: string }) {
   const { to, firstName, businessName, resultHtml } = params;
 
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: RESULT_FROM,
     to,
     ...(RESULT_REPLY_TO ? { replyTo: RESULT_REPLY_TO } : {}),
@@ -93,4 +97,5 @@ export async function sendResultEmail(params: { to: string; firstName: string; b
       </div>
     `,
   });
+  if (error) throw new Error(`Resend result email failed: ${error.message}`);
 }
