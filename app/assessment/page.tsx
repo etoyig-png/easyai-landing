@@ -1,105 +1,428 @@
 'use client';
-import { useState } from 'react';
 
-const fields = [
-  { section: 'Company Information', items: [
-    { id: 'company_name', label: 'Business name', type: 'text', required: true },
-    { id: 'website', label: 'Business website (if any)', type: 'url', required: false },
-    { id: 'industry', label: 'Industry or type of business', type: 'text', required: true },
-    { id: 'location', label: 'City / State / Service area', type: 'text', required: true },
-    { id: 'team_size', label: 'Approximate team size', type: 'select', options: ['Just me', '2–5', '6–20', '21–50', '50+'], required: true },
-    { id: 'contact_name', label: 'Your name', type: 'text', required: true },
-    { id: 'role', label: 'Your role', type: 'text', required: true },
-    { id: 'email', label: 'Email address', type: 'email', required: true },
-    { id: 'phone', label: 'Phone number (optional)', type: 'tel', required: false },
-  ]},
-  { section: 'Current Tools', items: [
-    { id: 'main_tools', label: 'Main software and tools you use today', type: 'textarea', required: true },
-    { id: 'crm', label: 'How do you track leads or customers? (CRM, spreadsheet, email, etc.)', type: 'textarea', required: false },
-    { id: 'ai_used', label: "Any AI tools you currently use? What works? What doesn't?", type: 'textarea', required: false },
-  ]},
-  { section: 'Repetitive Work & Time Drains', items: [
-    { id: 'repetitive_tasks', label: 'What tasks repeat daily or weekly that someone (or something) has to handle manually?', type: 'textarea', required: true },
-    { id: 'time_drain', label: 'What is your single biggest time drain right now?', type: 'textarea', required: true },
-    { id: 'manual_hours', label: 'Roughly how many hours per week go to manual/repetitive work?', type: 'select', options: ['Less than 2 hrs', '2–5 hrs', '5–10 hrs', '10–20 hrs', 'More than 20 hrs'], required: false },
-  ]},
-  { section: 'Business Goals', items: [
-    { id: 'most_important', label: 'What outcome matters most to you right now?', type: 'select', options: ['Save employee time', 'Reduce operating expenses', 'Improve customer experience', 'Increase revenue', 'Fix a specific broken process', 'Other'], required: true },
-    { id: 'success_looks_like', label: 'What would success look like in 90 days?', type: 'textarea', required: true },
-    { id: 'urgency', label: 'How urgent is this problem?', type: 'select', options: ["It's costing us now", 'Important but not urgent', 'Just exploring options'], required: true },
-  ]},
-  { section: 'Boundaries', items: [
-    { id: 'off_limits', label: 'Is there anything AI or automation should never access, change, send, or decide without a human?', type: 'textarea', required: false },
-    { id: 'sensitive_data', label: 'Does your business handle sensitive customer data (health, financial, legal, etc.)?', type: 'select', options: ['Yes', 'No', 'Unsure'], required: false },
-  ]},
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  WORK_SITUATION_OPTIONS,
+  USING_AI_TOOLS_OPTIONS,
+  AI_CHALLENGE_OPTIONS,
+  DESIRED_OUTCOME_OPTIONS,
+  TIME_DRAIN_OPTIONS,
+  PRIVACY_CONCERN_OPTIONS,
+  INDUSTRY_OPTIONS,
+  SPORTS_OPTIONS,
+} from '@/lib/quizQuestions';
+
+type AnswerKey =
+  | 'workSituation'
+  | 'usingAiTools'
+  | 'aiChallenge'
+  | 'desiredOutcome'
+  | 'timeDrain'
+  | 'privacyConcern'
+  | 'industry'
+  | 'sportsFan';
+
+interface Answers {
+  workSituation: string;
+  usingAiTools: string;
+  aiChallenge: string;
+  desiredOutcome: string;
+  timeDrain: string;
+  privacyConcern: string;
+  industry: string;
+  industryOther: string;
+  sportsFan: string;
+  firstName: string;
+  lastName: string;
+  businessName: string;
+  email: string;
+}
+
+const EMPTY_ANSWERS: Answers = {
+  workSituation: '',
+  usingAiTools: '',
+  aiChallenge: '',
+  desiredOutcome: '',
+  timeDrain: '',
+  privacyConcern: '',
+  industry: '',
+  industryOther: '',
+  sportsFan: '',
+  firstName: '',
+  lastName: '',
+  businessName: '',
+  email: '',
+};
+
+const QUESTIONS: { key: AnswerKey; title: string; options: readonly string[]; allowOther?: boolean }[] = [
+  { key: 'workSituation', title: 'What best describes your work situation?', options: WORK_SITUATION_OPTIONS },
+  { key: 'usingAiTools', title: 'Are you regularly using AI tools in your business?', options: USING_AI_TOOLS_OPTIONS },
+  { key: 'aiChallenge', title: "What's your #1 AI challenge right now?", options: AI_CHALLENGE_OPTIONS },
+  { key: 'desiredOutcome', title: "What's the #1 outcome you're hoping AI can help you achieve?", options: DESIRED_OUTCOME_OPTIONS },
+  { key: 'timeDrain', title: 'Which area of your business eats up the most of your time?', options: TIME_DRAIN_OPTIONS },
+  {
+    key: 'privacyConcern',
+    title: "When you think about using AI in your business, how worried are you about your and your customers' data privacy and security?",
+    options: PRIVACY_CONCERN_OPTIONS,
+  },
+  { key: 'industry', title: 'What kind of business do you run?', options: INDUSTRY_OPTIONS, allowOther: true },
+  { key: 'sportsFan', title: 'Are you a sports fan? If so, which do you like more?', options: SPORTS_OPTIONS },
 ];
 
-export default function AssessmentPage() {
-  const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState<Record<string, string>>({});
-  function handleChange(id: string, value: string) { setForm(prev => ({ ...prev, [id]: value })); }
-  function handleSubmit(e: React.FormEvent) { e.preventDefault(); setSubmitted(true); }
+const TOTAL_STEPS = QUESTIONS.length + 1; // + contact info step
+const CONTACT_STEP = QUESTIONS.length;
+const CONFIRM_STEP = CONTACT_STEP + 1;
+const BUILDING_STEP = CONFIRM_STEP + 1;
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-lg text-center card p-12">
-          <div className="text-5xl mb-4">✅</div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-3">Assessment received.</h1>
-          <p className="text-slate-500 mb-4 leading-relaxed">Thank you for taking the time to complete this. We will review your responses and follow up within one business day with next steps.</p>
-          <p className="text-sm text-slate-400">This is a pre-consultation overview, not the full Easy AI consulting process. Your advisor will review your responses and discuss next steps on your discovery call.</p>
-        </div>
-      </div>
-    );
+function emailLooksValid(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export default function AssessmentPage() {
+  const router = useRouter();
+  const [formLoadedAt] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState('');
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
+  const [otherDraft, setOtherDraft] = useState('');
+  const [consent, setConsent] = useState(false);
+  const [emailDraft, setEmailDraft] = useState('');
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [contactErrors, setContactErrors] = useState<Partial<Record<keyof Answers, string>>>({});
+
+  const progressPct = useMemo(() => {
+    const step1Indexed = Math.min(step + 1, TOTAL_STEPS);
+    return Math.round((step1Indexed / TOTAL_STEPS) * 100);
+  }, [step]);
+
+  function selectOption(key: AnswerKey, value: string) {
+    setAnswers((prev) => ({ ...prev, [key]: value }));
+    if (value === 'Something else') {
+      setOtherDraft(answers.industryOther);
+      return; // wait for free-text continue
+    }
+    setStep((s) => s + 1);
+  }
+
+  function continueWithOther() {
+    if (!otherDraft.trim()) return;
+    setAnswers((prev) => ({ ...prev, industryOther: otherDraft.trim() }));
+    setStep((s) => s + 1);
+  }
+
+  function goBack() {
+    setStep((s) => Math.max(0, s - 1));
+  }
+
+  function validateContactStep(): boolean {
+    const errs: Partial<Record<keyof Answers, string>> = {};
+    if (!answers.firstName.trim()) errs.firstName = 'Required';
+    if (!answers.lastName.trim()) errs.lastName = 'Required';
+    if (!answers.businessName.trim()) errs.businessName = 'Required';
+    if (!emailLooksValid(answers.email)) errs.email = 'Enter a valid email';
+    setContactErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function continueFromContact() {
+    if (!validateContactStep()) return;
+    setEmailDraft(answers.email);
+    setStep((s) => s + 1);
+  }
+
+  function saveEmailEdit() {
+    if (!emailLooksValid(emailDraft)) return;
+    setAnswers((prev) => ({ ...prev, email: emailDraft }));
+    setEditingEmail(false);
+  }
+
+  async function confirmAndSend() {
+    if (!consent || submitting) return;
+    setSubmitError('');
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/assessment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workSituation: answers.workSituation,
+          usingAiTools: answers.usingAiTools,
+          aiChallenge: answers.aiChallenge,
+          desiredOutcome: answers.desiredOutcome,
+          timeDrain: answers.timeDrain,
+          privacyConcern: answers.privacyConcern,
+          industry: answers.industry,
+          industryOther: answers.industryOther || undefined,
+          sportsFan: answers.sportsFan,
+          firstName: answers.firstName,
+          lastName: answers.lastName,
+          businessName: answers.businessName,
+          email: answers.email,
+          consent: true,
+          companyUrl: honeypot,
+          formLoadedAt,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Something went wrong. Please try again.');
+      }
+
+      setStep(BUILDING_STEP);
+      setTimeout(() => router.push('/assessment/complete'), 2200);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setSubmitting(false);
+    }
   }
 
   return (
-    <>
-      <section className="bg-gradient-to-br from-brand-950 to-brand-700 text-white py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="section-label text-teal-300 mb-3">Business AI Assessment</p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">AI Opportunity Assessment</h1>
-          <p className="text-brand-100 text-lg max-w-2xl">Answer these questions so we can understand your business before we talk. This takes about 10 minutes.</p>
-        </div>
-      </section>
-      <section className="py-16 bg-slate-50">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6">
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 text-sm text-amber-800">
-            <strong>Privacy notice:</strong> Your responses are used only to prepare for your consultation. We do not sell your information or add you to marketing lists without your permission.
+    <section className="min-h-screen bg-slate-50 py-16">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6">
+        {/* Honeypot — invisible to real visitors, catches basic bots */}
+        <input
+          type="text"
+          name="companyUrl"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+        />
+
+        {step < BUILDING_STEP && (
+          <div className="mb-8">
+            <div className="flex justify-between text-xs text-slate-500 mb-2">
+              <span className="section-label !text-teal-600">Business AI Assessment</span>
+              <span>
+                {Math.min(step + 1, TOTAL_STEPS)} of {TOTAL_STEPS}
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-teal-500 transition-all duration-300" style={{ width: `${progressPct}%` }} />
+            </div>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-10">
-            {fields.map(section => (
-              <div key={section.section}>
-                <h2 className="text-lg font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-200">{section.section}</h2>
-                <div className="space-y-4">
-                  {section.items.map(field => (
-                    <div key={field.id}>
-                      <label htmlFor={field.id} className="label">{field.label} {field.required && <span className="text-red-500">*</span>}</label>
-                      {field.type === 'textarea' ? (
-                        <textarea id={field.id} required={field.required} rows={3} className="input resize-y" value={form[field.id] || ''} onChange={e => handleChange(field.id, e.target.value)} />
-                      ) : field.type === 'select' ? (
-                        <select id={field.id} required={field.required} className="select" value={form[field.id] || ''} onChange={e => handleChange(field.id, e.target.value)}>
-                          <option value="">Select one...</option>
-                          {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                      ) : (
-                        <input type={field.type} id={field.id} required={field.required} className="input" value={form[field.id] || ''} onChange={e => handleChange(field.id, e.target.value)} />
-                      )}
-                    </div>
-                  ))}
+        )}
+
+        <div className="card p-8 sm:p-10">
+          {step < QUESTIONS.length && (
+            <QuestionStep
+              question={QUESTIONS[step]}
+              selected={answers[QUESTIONS[step].key]}
+              otherDraft={otherDraft}
+              onOtherDraftChange={setOtherDraft}
+              onSelect={(value) => selectOption(QUESTIONS[step].key, value)}
+              onContinueWithOther={continueWithOther}
+              onBack={step > 0 ? goBack : undefined}
+            />
+          )}
+
+          {step === CONTACT_STEP && (
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Almost there — where should we send your plan?</h1>
+              <p className="text-sm text-slate-500 mb-6">Question 9 of 9</p>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">First name</label>
+                    <input
+                      className="input"
+                      value={answers.firstName}
+                      onChange={(e) => setAnswers((p) => ({ ...p, firstName: e.target.value }))}
+                    />
+                    {contactErrors.firstName && <p className="text-xs text-red-600 mt-1">{contactErrors.firstName}</p>}
+                  </div>
+                  <div>
+                    <label className="label">Last name</label>
+                    <input
+                      className="input"
+                      value={answers.lastName}
+                      onChange={(e) => setAnswers((p) => ({ ...p, lastName: e.target.value }))}
+                    />
+                    {contactErrors.lastName && <p className="text-xs text-red-600 mt-1">{contactErrors.lastName}</p>}
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Business name</label>
+                  <input
+                    className="input"
+                    value={answers.businessName}
+                    onChange={(e) => setAnswers((p) => ({ ...p, businessName: e.target.value }))}
+                  />
+                  {contactErrors.businessName && <p className="text-xs text-red-600 mt-1">{contactErrors.businessName}</p>}
+                </div>
+                <div>
+                  <label className="label">Email address</label>
+                  <input
+                    type="email"
+                    className="input"
+                    value={answers.email}
+                    onChange={(e) => setAnswers((p) => ({ ...p, email: e.target.value }))}
+                  />
+                  {contactErrors.email && <p className="text-xs text-red-600 mt-1">{contactErrors.email}</p>}
                 </div>
               </div>
-            ))}
-            <div className="bg-slate-100 rounded-xl p-4 text-sm text-slate-600">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" required className="mt-1 accent-brand-600" />
-                <span>I understand this is a pre-consultation assessment. I consent to EasyAI contacting me about my responses and next steps.</span>
-              </label>
+              <div className="flex items-center justify-between mt-8">
+                <button onClick={goBack} className="text-sm text-slate-500 hover:text-slate-700">
+                  ← Back
+                </button>
+                <button onClick={continueFromContact} className="btn-primary px-8 py-3">
+                  Continue →
+                </button>
+              </div>
             </div>
-            <button type="submit" className="btn-primary w-full py-4 text-base">Submit Assessment →</button>
-          </form>
+          )}
+
+          {step === CONFIRM_STEP && (
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 mb-4">One more thing</h1>
+              <div className="bg-slate-100 rounded-xl p-5 mb-6">
+                <p className="text-sm text-slate-600 mb-3">We&rsquo;ll send your personalized AI Action Plan to:</p>
+                {editingEmail ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      className="input"
+                      value={emailDraft}
+                      onChange={(e) => setEmailDraft(e.target.value)}
+                      autoFocus
+                    />
+                    <button onClick={saveEmailEdit} className="btn-primary px-4 whitespace-nowrap">
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-semibold text-slate-900 break-all">{answers.email}</span>
+                    <button
+                      onClick={() => {
+                        setEmailDraft(answers.email);
+                        setEditingEmail(true);
+                      }}
+                      className="text-sm text-brand-600 underline whitespace-nowrap"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <label className="flex items-start gap-3 cursor-pointer mb-6">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-1 accent-brand-600"
+                />
+                <span className="text-sm text-slate-600">
+                  I consent to Easy AI Consulting contacting me by email about my results and next steps. We don&rsquo;t sell your
+                  information or add you to unrelated marketing lists.
+                </span>
+              </label>
+
+              {submitError && <p className="text-sm text-red-600 mb-4">{submitError}</p>}
+
+              <div className="flex items-center justify-between">
+                <button onClick={goBack} className="text-sm text-slate-500 hover:text-slate-700">
+                  ← Back
+                </button>
+                <button
+                  onClick={confirmAndSend}
+                  disabled={!consent || editingEmail || submitting}
+                  className="btn-green px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Sending…' : 'Confirm & Send →'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === BUILDING_STEP && (
+            <div className="text-center py-6">
+              <div className="text-5xl mb-4">⚙️</div>
+              <h1 className="text-2xl font-bold text-slate-900 mb-3">Thanks, {answers.firstName}!</h1>
+              <p className="text-slate-600 leading-relaxed">
+                We&rsquo;re building your personalized AI Action Plan for <strong>{answers.businessName}</strong> right now. This
+                usually takes 15+ minutes — we&rsquo;ll email it to you at <strong>{answers.email}</strong> the moment it&rsquo;s
+                ready.
+              </p>
+            </div>
+          )}
         </div>
-      </section>
-    </>
+      </div>
+    </section>
+  );
+}
+
+function QuestionStep({
+  question,
+  selected,
+  otherDraft,
+  onOtherDraftChange,
+  onSelect,
+  onContinueWithOther,
+  onBack,
+}: {
+  question: { key: AnswerKey; title: string; options: readonly string[]; allowOther?: boolean };
+  selected: string;
+  otherDraft: string;
+  onOtherDraftChange: (v: string) => void;
+  onSelect: (value: string) => void;
+  onContinueWithOther: () => void;
+  onBack?: () => void;
+}) {
+  const showOtherInput = question.allowOther && selected === 'Something else';
+
+  return (
+    <div>
+      <h1 className="text-xl font-bold text-slate-900 mb-6">{question.title}</h1>
+      <div className="space-y-3">
+        {question.options.map((option) => {
+          const isSelected = selected === option;
+          return (
+            <button
+              key={option}
+              onClick={() => onSelect(option)}
+              className={`w-full text-left px-5 py-4 rounded-xl border transition-colors ${
+                isSelected
+                  ? 'border-navy-700 bg-navy-50 text-navy-900 font-medium'
+                  : 'border-slate-200 hover:border-navy-300 hover:bg-slate-50 text-slate-700'
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+
+      {showOtherInput && (
+        <div className="mt-4">
+          <label className="label">Tell us what kind of business you run</label>
+          <div className="flex gap-2">
+            <input
+              className="input"
+              value={otherDraft}
+              onChange={(e) => onOtherDraftChange(e.target.value)}
+              autoFocus
+              placeholder="e.g. Landscaping company"
+            />
+            <button onClick={onContinueWithOther} disabled={!otherDraft.trim()} className="btn-primary px-6 whitespace-nowrap disabled:opacity-50">
+              Continue →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {onBack && (
+        <button onClick={onBack} className="mt-6 text-sm text-slate-500 hover:text-slate-700">
+          ← Back
+        </button>
+      )}
+    </div>
   );
 }

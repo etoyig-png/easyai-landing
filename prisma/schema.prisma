@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum SubmissionStatus {
+  pending
+  completed
+  failed
+}
+
+model Submission {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  status       SubmissionStatus @default(pending)
+  ipAddress    String?
+  errorMessage String?          @db.Text
+
+  // Q1 — work situation
+  workSituation String
+
+  // Q2 — using AI tools regularly
+  usingAiTools String
+
+  // Q3 — #1 AI challenge
+  aiChallenge String
+
+  // Q4 — desired outcome
+  desiredOutcome String
+
+  // Q5 — biggest time drain
+  timeDrain String
+
+  // Q6 — data privacy/security worry
+  privacyConcern String
+
+  // Q7 — industry
+  industry      String
+  industryOther String?
+
+  // Q8 — sports fan
+  sportsFan String
+
+  // Q9 — contact info
+  firstName    String
+  lastName     String
+  businessName String
+  email        String
+
+  // Generated result
+  resultHtml String? @db.Text
+
+  @@index([ipAddress, createdAt])
+  @@index([email])
+}
