@@ -89,11 +89,13 @@ Before writing, use web search to look up "${submission.businessName}" to see if
     throw new Error('Claude declined to generate the assessment result');
   }
 
-  const html = response.content
-    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
-    .trim();
+  // With the server-side web_search tool, Claude's response can include an early
+  // narration text block ("I'll search for X first...") before the tool call,
+  // followed by the actual email as a separate text block after the search
+  // results come back. Only the last text block is the finished answer — joining
+  // every text block would leak that narration into the customer-facing email.
+  const textBlocks = response.content.filter((block): block is Anthropic.TextBlock => block.type === 'text');
+  const html = textBlocks[textBlocks.length - 1]?.text.trim();
 
   if (!html) {
     throw new Error('Claude returned no text content for the assessment result');
