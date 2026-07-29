@@ -63,7 +63,7 @@ const QUESTIONS: { key: AnswerKey; title: string; options: readonly string[]; al
   { key: 'timeDrain', title: 'Which area of your business eats up the most of your time?', options: TIME_DRAIN_OPTIONS },
   {
     key: 'privacyConcern',
-    title: "When you think about using AI in your business, how worried are you about your and your customers' data privacy and security?",
+    title: "When you think about using AI in your business, how worried are you about you and your customers' data privacy and security?",
     options: PRIVACY_CONCERN_OPTIONS,
   },
   { key: 'industry', title: 'What kind of business do you run?', options: INDUSTRY_OPTIONS, allowOther: true },
