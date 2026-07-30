@@ -352,7 +352,7 @@ export default function HomePage() {
 
           <blockquote className="border-l-4 border-teal pl-6 mb-10">
             <p className="font-serif text-xl md:text-2xl text-white italic leading-relaxed">
-              "You can always make more money. You cannot make more time. My goal is to help you buy some of yours back."
+              &ldquo;You can always make more money. You cannot make more time. My goal is to help you buy some of yours back.&rdquo;
             </p>
             <footer className="font-sans text-sm text-silver-dark mt-3">Etoyi, Founder of Easy AI</footer>
           </blockquote>

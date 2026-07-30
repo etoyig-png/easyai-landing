@@ -2,26 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  WORK_SITUATION_OPTIONS,
-  USING_AI_TOOLS_OPTIONS,
-  AI_CHALLENGE_OPTIONS,
-  DESIRED_OUTCOME_OPTIONS,
-  TIME_DRAIN_OPTIONS,
-  PRIVACY_CONCERN_OPTIONS,
-  INDUSTRY_OPTIONS,
-  SPORTS_OPTIONS,
-} from '@/lib/quizQuestions';
+import { buildQuestions, type QuestionDef, type QuestionKey } from '@/lib/quizQuestions';
 
-type AnswerKey =
-  | 'workSituation'
-  | 'usingAiTools'
-  | 'aiChallenge'
-  | 'desiredOutcome'
-  | 'timeDrain'
-  | 'privacyConcern'
-  | 'industry'
-  | 'sportsFan';
+type AnswerKey = QuestionKey;
 
 interface Answers {
   workSituation: string;
@@ -55,25 +38,14 @@ const EMPTY_ANSWERS: Answers = {
   email: '',
 };
 
-const QUESTIONS: { key: AnswerKey; title: string; options: readonly string[]; allowOther?: boolean }[] = [
-  { key: 'workSituation', title: 'What best describes your work situation?', options: WORK_SITUATION_OPTIONS },
-  { key: 'usingAiTools', title: 'Are you regularly using AI tools in your business?', options: USING_AI_TOOLS_OPTIONS },
-  { key: 'aiChallenge', title: "What's your #1 AI challenge right now?", options: AI_CHALLENGE_OPTIONS },
-  { key: 'desiredOutcome', title: "What's the #1 outcome you're hoping AI can help you achieve?", options: DESIRED_OUTCOME_OPTIONS },
-  { key: 'timeDrain', title: 'Which area of your business eats up the most of your time?', options: TIME_DRAIN_OPTIONS },
-  {
-    key: 'privacyConcern',
-    title: "When you think about using AI in your business, how worried are you about you and your customers' data privacy and security?",
-    options: PRIVACY_CONCERN_OPTIONS,
-  },
-  { key: 'industry', title: 'What kind of business do you run?', options: INDUSTRY_OPTIONS, allowOther: true },
-  { key: 'sportsFan', title: 'Are you a sports fan? If so, which do you like more?', options: SPORTS_OPTIONS },
-];
-
-const TOTAL_STEPS = QUESTIONS.length + 1; // + contact info step
-const CONTACT_STEP = QUESTIONS.length;
-const CONFIRM_STEP = CONTACT_STEP + 1;
-const BUILDING_STEP = CONFIRM_STEP + 1;
+const QUESTIONS_COUNT = 8;
+const INTRO_STEP = 0;
+const FIRST_QUESTION_STEP = 1;
+const LAST_QUESTION_STEP = FIRST_QUESTION_STEP + QUESTIONS_COUNT - 1; // 8
+const CONTACT_STEP = LAST_QUESTION_STEP + 1; // 9 — final contact: last name + email
+const CONFIRM_STEP = CONTACT_STEP + 1; // 10
+const BUILDING_STEP = CONFIRM_STEP + 1; // 11
+const TOTAL_NUMBERED_STEPS = QUESTIONS_COUNT + 2; // intro + 8 questions + final contact = 10
 
 function emailLooksValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -93,9 +65,11 @@ export default function AssessmentPage() {
   const [submitError, setSubmitError] = useState('');
   const [contactErrors, setContactErrors] = useState<Partial<Record<keyof Answers, string>>>({});
 
+  const questions: QuestionDef[] = useMemo(() => buildQuestions(answers.businessName), [answers.businessName]);
+
   const progressPct = useMemo(() => {
-    const step1Indexed = Math.min(step + 1, TOTAL_STEPS);
-    return Math.round((step1Indexed / TOTAL_STEPS) * 100);
+    const step1Indexed = Math.min(step + 1, TOTAL_NUMBERED_STEPS);
+    return Math.round((step1Indexed / TOTAL_NUMBERED_STEPS) * 100);
   }, [step]);
 
   function selectOption(key: AnswerKey, value: string) {
@@ -117,11 +91,22 @@ export default function AssessmentPage() {
     setStep((s) => Math.max(0, s - 1));
   }
 
-  function validateContactStep(): boolean {
+  function validateIntroStep(): boolean {
     const errs: Partial<Record<keyof Answers, string>> = {};
     if (!answers.firstName.trim()) errs.firstName = 'Required';
-    if (!answers.lastName.trim()) errs.lastName = 'Required';
     if (!answers.businessName.trim()) errs.businessName = 'Required';
+    setContactErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function continueFromIntro() {
+    if (!validateIntroStep()) return;
+    setStep(FIRST_QUESTION_STEP);
+  }
+
+  function validateContactStep(): boolean {
+    const errs: Partial<Record<keyof Answers, string>> = {};
+    if (!answers.lastName.trim()) errs.lastName = 'Required';
     if (!emailLooksValid(answers.email)) errs.email = 'Enter a valid email';
     setContactErrors(errs);
     return Object.keys(errs).length === 0;
@@ -195,12 +180,12 @@ export default function AssessmentPage() {
           style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
         />
 
-        {step < BUILDING_STEP && (
+        {step < CONFIRM_STEP && (
           <div className="mb-8">
             <div className="flex justify-between text-xs text-slate-500 mb-2">
               <span className="section-label !text-teal-600">Business AI Assessment</span>
               <span>
-                {Math.min(step + 1, TOTAL_STEPS)} of {TOTAL_STEPS}
+                {Math.min(step + 1, TOTAL_NUMBERED_STEPS)} of {TOTAL_NUMBERED_STEPS}
               </span>
             </div>
             <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
@@ -210,42 +195,20 @@ export default function AssessmentPage() {
         )}
 
         <div className="card p-8 sm:p-10">
-          {step < QUESTIONS.length && (
-            <QuestionStep
-              question={QUESTIONS[step]}
-              selected={answers[QUESTIONS[step].key]}
-              otherDraft={otherDraft}
-              onOtherDraftChange={setOtherDraft}
-              onSelect={(value) => selectOption(QUESTIONS[step].key, value)}
-              onContinueWithOther={continueWithOther}
-              onBack={step > 0 ? goBack : undefined}
-            />
-          )}
-
-          {step === CONTACT_STEP && (
+          {step === INTRO_STEP && (
             <div>
-              <h1 className="text-xl font-bold text-slate-900 mb-1">Almost there — where should we send your plan?</h1>
-              <p className="text-sm text-slate-500 mb-6">Question 9 of 9</p>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Let&rsquo;s personalize this for your business</h1>
+              <p className="text-sm text-slate-500 mb-6">Just two quick things before we start.</p>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">First name</label>
-                    <input
-                      className="input"
-                      value={answers.firstName}
-                      onChange={(e) => setAnswers((p) => ({ ...p, firstName: e.target.value }))}
-                    />
-                    {contactErrors.firstName && <p className="text-xs text-red-600 mt-1">{contactErrors.firstName}</p>}
-                  </div>
-                  <div>
-                    <label className="label">Last name</label>
-                    <input
-                      className="input"
-                      value={answers.lastName}
-                      onChange={(e) => setAnswers((p) => ({ ...p, lastName: e.target.value }))}
-                    />
-                    {contactErrors.lastName && <p className="text-xs text-red-600 mt-1">{contactErrors.lastName}</p>}
-                  </div>
+                <div>
+                  <label className="label">First name</label>
+                  <input
+                    className="input"
+                    value={answers.firstName}
+                    onChange={(e) => setAnswers((p) => ({ ...p, firstName: e.target.value }))}
+                    autoFocus
+                  />
+                  {contactErrors.firstName && <p className="text-xs text-red-600 mt-1">{contactErrors.firstName}</p>}
                 </div>
                 <div>
                   <label className="label">Business name</label>
@@ -255,6 +218,40 @@ export default function AssessmentPage() {
                     onChange={(e) => setAnswers((p) => ({ ...p, businessName: e.target.value }))}
                   />
                   {contactErrors.businessName && <p className="text-xs text-red-600 mt-1">{contactErrors.businessName}</p>}
+                </div>
+              </div>
+              <div className="flex items-center justify-end mt-8">
+                <button onClick={continueFromIntro} className="btn-primary px-8 py-3">
+                  Continue →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step >= FIRST_QUESTION_STEP && step <= LAST_QUESTION_STEP && (
+            <QuestionStep
+              question={questions[step - FIRST_QUESTION_STEP]}
+              selected={answers[questions[step - FIRST_QUESTION_STEP].key]}
+              otherDraft={otherDraft}
+              onOtherDraftChange={setOtherDraft}
+              onSelect={(value) => selectOption(questions[step - FIRST_QUESTION_STEP].key, value)}
+              onContinueWithOther={continueWithOther}
+              onBack={goBack}
+            />
+          )}
+
+          {step === CONTACT_STEP && (
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Almost there — where should we send your plan?</h1>
+              <div className="space-y-4">
+                <div>
+                  <label className="label">Last name</label>
+                  <input
+                    className="input"
+                    value={answers.lastName}
+                    onChange={(e) => setAnswers((p) => ({ ...p, lastName: e.target.value }))}
+                  />
+                  {contactErrors.lastName && <p className="text-xs text-red-600 mt-1">{contactErrors.lastName}</p>}
                 </div>
                 <div>
                   <label className="label">Email address</label>
@@ -368,7 +365,7 @@ function QuestionStep({
   onContinueWithOther,
   onBack,
 }: {
-  question: { key: AnswerKey; title: string; options: readonly string[]; allowOther?: boolean };
+  question: QuestionDef;
   selected: string;
   otherDraft: string;
   onOtherDraftChange: (v: string) => void;

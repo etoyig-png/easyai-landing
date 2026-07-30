@@ -59,3 +59,70 @@ export type TimeDrain = (typeof TIME_DRAIN_OPTIONS)[number];
 export type PrivacyConcern = (typeof PRIVACY_CONCERN_OPTIONS)[number];
 export type Industry = (typeof INDUSTRY_OPTIONS)[number];
 export type SportsAnswer = (typeof SPORTS_OPTIONS)[number];
+
+export type QuestionKey =
+  | 'workSituation'
+  | 'usingAiTools'
+  | 'aiChallenge'
+  | 'desiredOutcome'
+  | 'timeDrain'
+  | 'privacyConcern'
+  | 'industry'
+  | 'sportsFan';
+
+export interface QuestionDef {
+  key: QuestionKey;
+  title: string;
+  options: readonly string[];
+  allowOther?: boolean;
+}
+
+/**
+ * Builds the 8 quiz questions, naturally interpolating the submitted business
+ * name into Q2-Q7. Q1 (workSituation) and Q8 (sportsFan) always keep their
+ * original, unpersonalized wording. Business name is inserted as plain text —
+ * safe against HTML/script injection because callers render `title` as JSX
+ * text content (React auto-escapes), never via dangerouslySetInnerHTML.
+ */
+export function buildQuestions(businessName: string): QuestionDef[] {
+  const name = businessName.trim();
+  return [
+    { key: 'workSituation', title: 'What best describes your work situation?', options: WORK_SITUATION_OPTIONS },
+    {
+      key: 'usingAiTools',
+      title: name ? `Are you regularly using AI tools at ${name}?` : 'Are you regularly using AI tools in your business?',
+      options: USING_AI_TOOLS_OPTIONS,
+    },
+    {
+      key: 'aiChallenge',
+      title: name ? `What's ${name}'s #1 AI challenge right now?` : "What's your #1 AI challenge right now?",
+      options: AI_CHALLENGE_OPTIONS,
+    },
+    {
+      key: 'desiredOutcome',
+      title: name
+        ? `What's the #1 outcome you're hoping AI can help ${name} achieve?`
+        : "What's the #1 outcome you're hoping AI can help you achieve?",
+      options: DESIRED_OUTCOME_OPTIONS,
+    },
+    {
+      key: 'timeDrain',
+      title: name ? `Which area of ${name} eats up the most of your time?` : 'Which area of your business eats up the most of your time?',
+      options: TIME_DRAIN_OPTIONS,
+    },
+    {
+      key: 'privacyConcern',
+      title: name
+        ? `When you think about using AI at ${name}, how worried are you about you and your customers' data privacy and security?`
+        : "When you think about using AI in your business, how worried are you about you and your customers' data privacy and security?",
+      options: PRIVACY_CONCERN_OPTIONS,
+    },
+    {
+      key: 'industry',
+      title: name ? `What kind of business is ${name}?` : 'What kind of business do you run?',
+      options: INDUSTRY_OPTIONS,
+      allowOther: true,
+    },
+    { key: 'sportsFan', title: 'Are you a sports fan? If so, which do you like more?', options: SPORTS_OPTIONS },
+  ];
+}

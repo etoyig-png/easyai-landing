@@ -17,7 +17,7 @@ export default function PrivacyPage() {
 
             <div>
               <h2 className="text-2xl font-bold text-slate-900 mb-4">Privacy Policy</h2>
-              <p className="mb-4">EasyAI ("we," "us," or "our") operates easyaiconsult.com. This policy explains what information we collect, how we use it, and your rights regarding it.</p>
+              <p className="mb-4">EasyAI (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates easyaiconsult.com. This policy explains what information we collect, how we use it, and your rights regarding it.</p>
 
               <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-2">Information we collect</h3>
               <p className="mb-2">We collect information you provide directly, including:</p>
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
 
             <div>
               <h2 className="text-2xl font-bold text-slate-900 mb-4">Terms of Service</h2>
-              <p className="mb-4 text-sm">By using this website and engaging EasyAI's services, you agree to the following terms.</p>
+              <p className="mb-4 text-sm">By using this website and engaging EasyAI&apos;s services, you agree to the following terms.</p>
 
               <h3 className="text-lg font-semibold text-slate-900 mt-6 mb-2">Services</h3>
               <p className="text-sm mb-4">EasyAI provides AI product consulting and implementation services. Service scope, deliverables, and pricing are defined in individual agreements between EasyAI and each client. These terms apply to use of this website and initial engagement activities (assessment, consultation booking).</p>

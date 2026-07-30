@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import type { AssessmentSubmission } from './validation';
+import { escapeHtml } from './htmlEscape';
 
 // Constructed lazily (not at module load) so the API route can still be built
 // and imported without RESEND_API_KEY set — the key is only required at send time.
@@ -9,19 +10,17 @@ function getResend(): Resend {
   return resendClient;
 }
 
+// The bare domain (easyaiconsult.com) 308-redirects to www with a text/plain body on
+// the redirect response itself — some email image proxies don't reliably follow that
+// redirect to fetch the actual PNG, which was why the logo previously failed to render.
+// www.easyaiconsult.com/easy-ai-logo.png returns a direct 200 image/png with no hop.
+export const RESULT_EMAIL_LOGO_URL = 'https://www.easyaiconsult.com/easy-ai-logo.png';
+
 const NOTIFICATION_FROM = process.env.NOTIFICATION_EMAIL_FROM ?? 'Easy AI Assessments <assessments@mail.easyaiconsult.com>';
 const RESULT_FROM = process.env.RESULT_EMAIL_FROM ?? 'Easy AI <hello@mail.easyaiconsult.com>';
 const NOTIFICATION_TO = process.env.ASSESSMENT_NOTIFICATION_EMAIL;
 // mail.easyaiconsult.com is a sending-only subdomain — route lead replies to a real, monitored inbox instead.
 const RESULT_REPLY_TO = process.env.RESULT_EMAIL_REPLY_TO;
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 /** Internal notification to the Easy AI team — a new assessment came in. */
 export async function sendInternalNotification(submission: AssessmentSubmission & { id: string }) {
@@ -71,19 +70,12 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
   if (error) throw new Error(`Resend internal notification failed: ${error.message}`);
 }
 
-/** Sends the personalized AI Action Plan to the lead. resultHtml is the Claude-generated body content. */
-export async function sendResultEmail(params: { to: string; firstName: string; businessName: string; resultHtml: string }) {
-  const { to, firstName, businessName, resultHtml } = params;
-
-  const { error } = await getResend().emails.send({
-    from: RESULT_FROM,
-    to,
-    ...(RESULT_REPLY_TO ? { replyTo: RESULT_REPLY_TO } : {}),
-    subject: `${firstName}, your AI Action Plan for ${businessName} is ready`,
-    html: `
+/** Builds the full result-email HTML (logo header + Claude-generated body + CTA + footer). Pure — no network call — so it's independently testable and reusable for QA sample generation. */
+export function buildResultEmailHtml(resultHtml: string): string {
+  return `
       <div style="font-family:Georgia,'Playfair Display',serif;max-width:640px;margin:0 auto;background:#ffffff;">
-        <div style="background:#0b1d3a;padding:28px 32px;">
-          <span style="color:#ffffff;font-size:20px;letter-spacing:0.04em;">Easy AI</span>
+        <div style="background:#0b1d3a;padding:28px 32px;text-align:center;">
+          <img src="${RESULT_EMAIL_LOGO_URL}" width="220" height="124" alt="Easy AI logo" style="display:block;margin:0 auto;max-width:220px;width:100%;height:auto;" />
         </div>
         <div style="padding:32px;font-family:Arial,Helvetica,sans-serif;color:#0b1d3a;line-height:1.6;">
           ${resultHtml}
@@ -95,7 +87,19 @@ export async function sendResultEmail(params: { to: string; firstName: string; b
           You're receiving this because you completed the Easy AI assessment. Easy AI Consulting.
         </div>
       </div>
-    `,
+    `;
+}
+
+/** Sends the personalized AI Action Plan to the lead. resultHtml is the Claude-generated body content. */
+export async function sendResultEmail(params: { to: string; firstName: string; businessName: string; resultHtml: string }) {
+  const { to, firstName, businessName, resultHtml } = params;
+
+  const { error } = await getResend().emails.send({
+    from: RESULT_FROM,
+    to,
+    ...(RESULT_REPLY_TO ? { replyTo: RESULT_REPLY_TO } : {}),
+    subject: `${firstName}, your AI Action Plan for ${businessName} is ready`,
+    html: buildResultEmailHtml(resultHtml),
   });
   if (error) throw new Error(`Resend result email failed: ${error.message}`);
 }
