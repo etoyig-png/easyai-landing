@@ -27,6 +27,10 @@ export const assessmentSubmissionSchema = z
     businessName: z.string().trim().min(1, 'Business name is required').max(200),
     email: z.string().trim().email('Enter a valid email').max(320),
 
+    // Set only when this submission arrived via a Gary handoff — correlates this submission
+    // back to the originating PublicChatSession without exposing chat contents here.
+    funnelCorrelationId: z.string().trim().max(200).optional(),
+
     consent: z.literal(true, {
       errorMap: () => ({ message: 'You must agree to be contacted to continue' }),
     }),

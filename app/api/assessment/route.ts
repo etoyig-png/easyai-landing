@@ -6,6 +6,7 @@ import { getClientIp, isRateLimited, looksLikeSpam } from '@/lib/rateLimit';
 import { sendInternalNotification, sendResultEmail } from '@/lib/resend';
 import { generateAssessmentResult, buildFallbackResultHtml } from '@/lib/anthropic';
 import { notifyCommandCenter } from '@/lib/commandCenter';
+import { syncCompleteAssessmentToCommandCenter } from '@/lib/gary/assessmentSync';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       lastName: data.lastName,
       businessName: data.businessName,
       email: data.email,
+      funnelCorrelationId: data.funnelCorrelationId,
       ipAddress,
     },
   });
@@ -85,6 +87,15 @@ export async function POST(req: NextRequest) {
         data: { status: 'completed', resultHtml },
       });
       await notifyCommandCenter({ status: 'assessment_completed', submissionId: submission.id });
+      // Additive: the complete assessment (every Q&A, generated result, IDs) — the existing
+      // status-only notifyCommandCenter() call above is untouched.
+      await syncCompleteAssessmentToCommandCenter({
+        submissionId: submission.id,
+        submission: data,
+        resultHtml,
+        status: 'completed',
+        emailDeliveryStatus: 'sent',
+      });
     } catch (err) {
       console.error('Failed to send result email', err);
       await prisma.submission.update({
@@ -92,6 +103,13 @@ export async function POST(req: NextRequest) {
         data: { status: 'failed', errorMessage: err instanceof Error ? err.message : 'Unknown error' },
       });
       await notifyCommandCenter({ status: 'assessment_failed', submissionId: submission.id });
+      await syncCompleteAssessmentToCommandCenter({
+        submissionId: submission.id,
+        submission: data,
+        resultHtml,
+        status: 'failed',
+        emailDeliveryStatus: 'failed',
+      });
     }
   })());
 

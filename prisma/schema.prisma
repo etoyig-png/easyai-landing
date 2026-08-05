@@ -95,6 +95,7 @@ model PublicChatSession {
   status GaryChatSessionStatus @default(active)
 
   anonymousId String
+  ipAddress   String?
 
   startedAt      DateTime @default(now())
   lastActivityAt DateTime @updatedAt

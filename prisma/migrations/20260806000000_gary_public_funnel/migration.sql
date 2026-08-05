@@ -42,6 +42,7 @@ CREATE TABLE "PublicChatSession" (
     "id" TEXT NOT NULL,
     "status" "GaryChatSessionStatus" NOT NULL DEFAULT 'active',
     "anonymousId" TEXT NOT NULL,
+    "ipAddress" TEXT,
     "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "lastActivityAt" TIMESTAMP(3) NOT NULL,
     "visitorTurnCount" INTEGER NOT NULL DEFAULT 0,
