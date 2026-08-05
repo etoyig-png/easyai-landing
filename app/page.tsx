@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import type { Metadata } from 'next';
 import HeroVideo from '@/components/HeroVideo';
+import ResponsiveImage from '@/components/ResponsiveImage';
 
 export const metadata: Metadata = {
   title: 'Easy AI | Practical AI Guidance for Small and Midsize Businesses',
@@ -162,15 +162,15 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* HVAC image – 25% size */}
+          {/* HVAC image — fluid width via .responsive-media--landscape, see globals.css */}
           <div className="mb-12 flex justify-center">
-            <Image
+            <ResponsiveImage
+              orientation="landscape"
               src="/easy-ai-work-smarter-hvac.png"
               alt="HVAC professional using AI-assisted scheduling, documents, email, and task management."
               width={2048}
               height={1143}
-              className="w-1/4 h-auto object-contain"
-              sizes="(max-width: 768px) 50vw, 25vw"
+              sizes="(max-width: 768px) 70vw, 560px"
               loading="lazy"
             />
           </div>
@@ -222,15 +222,15 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Right: electrician image – 25% size */}
+          {/* Right: electrician image — fluid width via .responsive-media--portrait, see globals.css */}
           <div className="md:w-[35%] flex items-center justify-center">
-            <Image
+            <ResponsiveImage
+              orientation="portrait"
               src="/easy-ai-business-electrician.png"
               alt="Electrician using a smartphone while AI organizes scheduling, follow-up, and business tasks."
               width={941}
               height={1672}
-              className="w-1/4 md:w-1/2 h-auto object-contain mx-auto"
-              sizes="(max-width: 768px) 25vw, 15vw"
+              sizes="(max-width: 768px) 70vw, 340px"
               loading="lazy"
             />
           </div>
@@ -275,15 +275,15 @@ export default function HomePage() {
             </h2>
           </div>
 
-          {/* Construction image – 25% size */}
+          {/* Construction image — fluid width via .responsive-media--landscape, see globals.css */}
           <div className="mb-2 flex justify-center">
-            <Image
+            <ResponsiveImage
+              orientation="landscape"
               src="/easy-ai-buy-back-time-construction.png"
               alt="Construction business owner reviewing an illustrative AI productivity dashboard on a job site."
               width={2048}
               height={1143}
-              className="w-1/4 h-auto object-contain"
-              sizes="(max-width: 768px) 50vw, 25vw"
+              sizes="(max-width: 768px) 70vw, 560px"
               loading="lazy"
             />
           </div>

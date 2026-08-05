@@ -156,3 +156,319 @@ test.describe('Gary widget', () => {
     expect(seriousOrWorse, JSON.stringify(seriousOrWorse, null, 2)).toEqual([]);
   });
 });
+
+// Cumulative elapsed time (ms) from mount at which each locked-routine step starts, matching
+// GaryLauncher.tsx's ROUTINE_STEPS exactly — used only to size how long to sample for below, not
+// to jump to an exact instant (see samplePoseSequence's own comment for why).
+const LAUNCH_DELAY_MS = 5000;
+const ROUTINE_TOTAL_MS =
+  LAUNCH_DELAY_MS + 700 + 1600 + 2600 + 1400 + 600 + 700 + 2800 + 600; // = 16000
+const ROUTINE_START = {
+  sign: LAUNCH_DELAY_MS + 700 + 1600 + 2600 + 1400 + 600 + 700
+};
+
+// A plain snapshot read via page.evaluate() rather than a Locator's auto-waiting getAttribute():
+// Playwright's fake clock (page.clock.install()) also virtualizes requestAnimationFrame, which
+// the auto-waiting/polling machinery behind Locator assertions relies on — once the clock stops
+// advancing, that polling can stall for the assertion's full timeout waiting on a frame that
+// never comes. A direct synchronous DOM read has no such dependency and is exactly what's
+// needed here anyway, since every call site already advanced the clock to the precise instant
+// it wants to inspect.
+async function currentGaryPose(page: Page): Promise<string | null> {
+  return page.evaluate(() => document.querySelector('.gary-character')?.getAttribute('data-gary-pose') ?? null);
+}
+
+async function isSignTextVisible(page: Page): Promise<boolean> {
+  return page.evaluate(() => document.querySelector('.gary-sign-text')?.classList.contains('is-visible') ?? false);
+}
+
+// Samples data-gary-pose at a fixed virtual-time cadence across the routine and returns the
+// deduplicated sequence of poses actually observed, in order. Deliberately doesn't try to land
+// on one exact instant per pose (page.clock.fastForward() is a real CDP round trip whose
+// resolution timing relative to the React commit it triggers isn't precise enough to reliably
+// hit a single specific millisecond) — sampling densely enough to catch every pose at least
+// once, then asserting on relative order, is far more robust than pinning exact timestamps.
+async function samplePoseSequence(page: Page, totalMs: number, stepMs = 150): Promise<string[]> {
+  const observed: string[] = [];
+  let remaining = totalMs;
+  while (remaining > 0) {
+    const step = Math.min(stepMs, remaining);
+    await page.clock.fastForward(step);
+    await page.waitForTimeout(10);
+    const pose = await currentGaryPose(page);
+    if (pose && observed[observed.length - 1] !== pose) observed.push(pose);
+    remaining -= step;
+  }
+  return observed;
+}
+
+/** Index of the first occurrence of `pose` in `sequence`, or -1. Used to assert relative order
+ * without requiring every single pose to have been caught by a sample. */
+function firstIndexOf(sequence: string[], pose: string): number {
+  return sequence.indexOf(pose);
+}
+
+test.describe('Gary character — appearance', () => {
+  test('renders as a human illustrated character, not a robot/emoji/orb', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+    const svg = page.locator('.gary-character');
+    await expect(svg).toBeVisible();
+    // Human-figure markers actually present in the illustration.
+    await expect(page.locator('.gary-head-shape')).toHaveCount(1);
+    await expect(page.locator('.gary-glasses-lens')).toHaveCount(2);
+    await expect(page.locator('.gary-shirt')).toHaveCount(1);
+    await expect(page.locator('.gary-tie')).toHaveCount(1);
+    // The old generic launcher's 🤖 emoji must be gone.
+    const launcherText = await page.locator('.fixed').last().innerText();
+    expect(launcherText).not.toContain('🤖');
+  });
+
+  test('"Gary from Accounting" is visibly displayed in the resting launcher, as real text', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(ROUTINE_TOTAL_MS + 200);
+    await page.waitForTimeout(20);
+    await expect(page.getByText('Gary from Accounting', { exact: true })).toBeVisible();
+  });
+
+  test('Gary appears beneath the chat button in the DOM/visual stack', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+    const button = page.getByRole('button', { name: 'Chat with Gary from Accounting' });
+    const character = page.locator('.gary-character-wrap');
+    const buttonBox = await button.boundingBox();
+    const characterBox = await character.boundingBox();
+    expect(buttonBox).not.toBeNull();
+    expect(characterBox).not.toBeNull();
+    expect(characterBox!.y).toBeGreaterThan(buttonBox!.y);
+  });
+});
+
+test.describe('Gary character — locked animation routine', () => {
+  test('plays jump -> wave -> point -> frustrated -> idea -> sign -> seated in that order, once per session', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/');
+    const sequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
+
+    for (const pose of ['jump', 'wave', 'point', 'frustrated', 'idea', 'sign']) {
+      expect(sequence, `sequence: ${sequence.join(' -> ')}`).toContain(pose);
+    }
+    // Strictly increasing indices proves the order, not just presence.
+    const indices = ['jump', 'wave', 'point', 'frustrated', 'idea', 'sign'].map((p) => firstIndexOf(sequence, p));
+    for (let i = 1; i < indices.length; i += 1) {
+      expect(indices[i], `sequence: ${sequence.join(' -> ')}`).toBeGreaterThan(indices[i - 1]);
+    }
+    // Ends on seated, not stuck on lowering or any other transient pose.
+    expect(sequence[sequence.length - 1]).toBe('seated');
+  });
+
+  test('the sign reads exactly "The button. Up there." while held', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/');
+    let sawSign = false;
+    let remaining = ROUTINE_START.sign + 500;
+    while (remaining > 0 && !sawSign) {
+      const step = Math.min(150, remaining);
+      await page.clock.fastForward(step);
+      await page.waitForTimeout(10);
+      if ((await currentGaryPose(page)) === 'sign') sawSign = true;
+      remaining -= step;
+    }
+    expect(sawSign, 'never observed the sign pose').toBe(true);
+    expect(await isSignTextVisible(page)).toBe(true);
+    const signTextContent = await page.evaluate(
+      () => document.querySelector('.gary-sign-text')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+    );
+    expect(signTextContent).toBe('The button. Up there.');
+  });
+
+  test('the full routine runs only once per session — a later page load goes straight to seated', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/');
+    const firstLoadSequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
+    expect(firstLoadSequence).toContain('jump'); // confirms it actually played the first time
+
+    // A second page load within the same session (sessionStorage persists across page.goto in
+    // the same tab/context) must never replay jump/wave/frustrated/sign — straight to seated.
+    await page.goto('/how-it-works');
+    const secondLoadSequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
+    expect(secondLoadSequence, `sequence: ${secondLoadSequence.join(' -> ')}`).toEqual(['seated']);
+  });
+
+  test('opening the chat mid-routine interrupts it and settles on seated', async ({ page }) => {
+    await mockGaryConversation(page);
+    await page.clock.install();
+    await page.goto('/');
+    // Advance partway into the routine (well before it would naturally reach seated on its own).
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 1500);
+    await page.waitForTimeout(20);
+    expect(await currentGaryPose(page)).not.toBe('seated');
+
+    await page.getByRole('button', { name: 'Chat with Gary from Accounting' }).click();
+    // A plain evaluate-based poll (not an auto-waiting Locator assertion) for the same reason
+    // currentGaryPose() is one — see its comment. The fake clock isn't being advanced across
+    // this click, so anything relying on requestAnimationFrame-driven polling can stall here.
+    await expect
+      .poll(() => page.evaluate(() => document.querySelector('[role="dialog"]') !== null))
+      .toBe(true);
+    // GaryCharacter isn't rendered at all while the panel is open (see GaryLauncher.tsx's
+    // {!open && ...} guard) — currentGaryPose() would just see it doesn't exist. The interrupt
+    // is really proven by what happens once the panel closes: pose lands on seated, not
+    // whatever pose the routine was mid-way through.
+
+    // The interrupted routine's remaining timers must actually be cancelled, not just visually
+    // overridden — fast-forwarding well past when frustrated/sign would have fired must not
+    // resurrect them once the panel is closed.
+    await page.getByRole('button', { name: 'Close chat' }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.querySelector('.gary-character') !== null))
+      .toBe(true);
+    await page.clock.fastForward(ROUTINE_TOTAL_MS);
+    await page.waitForTimeout(20);
+    expect(await currentGaryPose(page)).toBe('seated');
+  });
+
+  test('reduced motion shows a stable seated Gary with no jump/frustration/sign', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.clock.install();
+    await page.goto('/');
+    const sequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
+    // Reduced motion must never enter jump/wave/frustrated/idea/sign at all — seated the whole way.
+    expect(sequence, `sequence: ${sequence.join(' -> ')}`).toEqual(['seated']);
+    await expect(page.getByText('Gary from Accounting', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chat with Gary from Accounting' })).toBeVisible();
+  });
+
+  test('idle glance loop is disabled while reduced motion is on', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 100);
+    await page.waitForTimeout(20);
+    await expect(page.locator('.gary-character')).toHaveAttribute('data-gary-idle', 'false');
+  });
+});
+
+test.describe('Gary character — mobile viewport usability', () => {
+  const MOBILE_VIEWPORTS = [
+    { width: 360, height: 800 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 }
+  ];
+
+  for (const viewport of MOBILE_VIEWPORTS) {
+    test(`launcher stays within the viewport and the chat button opens the panel at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await mockGaryConversation(page);
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+
+      const launcherRoot = page.locator('.fixed').last();
+      const box = await launcherRoot.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width + 1);
+
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
+
+      await page.getByRole('button', { name: 'Chat with Gary from Accounting' }).click();
+      await expect(page.getByRole('dialog', { name: 'Chat with Gary from Accounting' })).toBeVisible();
+    });
+  }
+
+  test('the sign text stays legible (not shrunk illegibly small) at the narrowest required viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.clock.install();
+    await page.goto('/');
+    let sawSign = false;
+    let remaining = ROUTINE_START.sign + 500;
+    while (remaining > 0 && !sawSign) {
+      const step = Math.min(150, remaining);
+      await page.clock.fastForward(step);
+      await page.waitForTimeout(10);
+      if ((await currentGaryPose(page)) === 'sign') sawSign = true;
+      remaining -= step;
+    }
+    expect(sawSign, 'never observed the sign pose').toBe(true);
+    expect(await isSignTextVisible(page)).toBe(true);
+    const signText = page.locator('.gary-sign-text');
+    const fontSize = await signText.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(fontSize).toBeGreaterThanOrEqual(10);
+    const box = await signText.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(361);
+  });
+});
+
+test.describe('Homepage responsive images', () => {
+  const REQUIRED_VIEWPORTS = [
+    { width: 360, height: 800, label: '360x800' },
+    { width: 390, height: 844, label: '390x844' },
+    { width: 412, height: 915, label: '412x915' },
+    { width: 768, height: 1024, label: '768x1024 (tablet portrait)' },
+    { width: 1024, height: 768, label: '1024x768 (tablet landscape)' },
+    { width: 1280, height: 720, label: '1280x720 (desktop)' },
+    { width: 1440, height: 900, label: '1440x900 (wide desktop)' }
+  ];
+
+  const IMAGE_ALT_TEXTS = [
+    'HVAC professional using AI-assisted scheduling, documents, email, and task management.',
+    'Electrician using a smartphone while AI organizes scheduling, follow-up, and business tasks.',
+    'Construction business owner reviewing an illustrative AI productivity dashboard on a job site.'
+  ];
+
+  for (const viewport of REQUIRED_VIEWPORTS) {
+    test(`no horizontal overflow and every image renders above its floor size at ${viewport.label}`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.goto('/');
+
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(scrollWidth, `horizontal overflow at ${viewport.label}`).toBeLessThanOrEqual(viewport.width + 1);
+
+      for (const alt of IMAGE_ALT_TEXTS) {
+        const image = page.getByAltText(alt);
+        await image.scrollIntoViewIfNeeded();
+        const box = await image.boundingBox();
+        expect(box, `${alt} has no box at ${viewport.label}`).not.toBeNull();
+        // Every image (landscape or portrait) must clear the smallest configured floor —
+        // proves it never collapses to a "tiny thumbnail," the original reported bug.
+        expect(box!.width, `${alt} width at ${viewport.label}`).toBeGreaterThanOrEqual(199);
+        expect(box!.x + box!.width, `${alt} right edge at ${viewport.label}`).toBeLessThanOrEqual(viewport.width + 1);
+      }
+    });
+  }
+
+  test('the landscape and portrait images preserve their true aspect ratio (no stretching)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto('/');
+
+    const hvac = page.getByAltText(IMAGE_ALT_TEXTS[0]);
+    await hvac.scrollIntoViewIfNeeded();
+    const hvacBox = await hvac.boundingBox();
+    // Intrinsic 2048x1143 ≈ 1.792:1.
+    expect(hvacBox!.width / hvacBox!.height).toBeCloseTo(2048 / 1143, 1);
+
+    const electrician = page.getByAltText(IMAGE_ALT_TEXTS[1]);
+    await electrician.scrollIntoViewIfNeeded();
+    const electricianBox = await electrician.boundingBox();
+    // Intrinsic 941x1672 ≈ 0.563:1.
+    expect(electricianBox!.width / electricianBox!.height).toBeCloseTo(941 / 1672, 1);
+  });
+
+  test('landscape images use a meaningfully larger width than the old fixed 25% sizing (not a tiny thumbnail) on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/');
+    const hvac = page.getByAltText(IMAGE_ALT_TEXTS[0]);
+    await hvac.scrollIntoViewIfNeeded();
+    const box = await hvac.boundingBox();
+    // The old `w-1/4` sizing rendered this around ~90px at this viewport; the fix must clear
+    // that by a wide margin.
+    expect(box!.width).toBeGreaterThan(150);
+  });
+});
