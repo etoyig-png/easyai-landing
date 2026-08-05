@@ -53,10 +53,164 @@ model Submission {
   lastName     String
   businessName String
   email        String
+  phone        String?
+
+  // Gary funnel correlation — set only when this submission originated from a Gary handoff
+  funnelCorrelationId String?
 
   // Generated result
   resultHtml String? @db.Text
 
   @@index([ipAddress, createdAt])
   @@index([email])
+  @@index([funnelCorrelationId])
+}
+
+// ---------------------------------------------------------------------------
+// Gary Wigglesworth public chat — Phases 1-3 (shell, live chat, assessment
+// handoff). No scheduling/video/SMS models here; those phases are out of
+// scope for this pass (see the Gary implementation plan).
+// ---------------------------------------------------------------------------
+
+enum GaryChatSessionStatus {
+  active
+  minimized
+  handed_off_to_assessment
+  ended
+}
+
+enum GaryChatMessageRole {
+  visitor
+  gary
+  system
+}
+
+enum GarySafetyClass {
+  none
+  sensitive
+}
+
+model PublicChatSession {
+  id     String                @id @default(cuid())
+  status GaryChatSessionStatus @default(active)
+
+  anonymousId String
+  ipAddress   String?
+
+  startedAt      DateTime @default(now())
+  lastActivityAt DateTime @updatedAt
+
+  // Analytics-only counters — never used as a hard gate for the assessment offer.
+  visitorTurnCount     Int @default(0)
+  assessmentOfferCount Int @default(0)
+
+  currentPage String?
+  referrer    String?
+  utm         Json?
+
+  identifiedContactId String?
+  contact             PublicContact? @relation(fields: [identifiedContactId], references: [id])
+
+  handedOffAt DateTime?
+
+  messages PublicChatMessage[]
+  handoff  AssessmentHandoff?
+
+  @@index([anonymousId])
+  @@index([status, lastActivityAt])
+}
+
+model PublicChatMessage {
+  id String @id @default(cuid())
+
+  sessionId String
+  session   PublicChatSession @relation(fields: [sessionId], references: [id])
+
+  role         GaryChatMessageRole
+  content      String              @db.Text
+  optionPayload Json?
+  safetyClass  GarySafetyClass     @default(none)
+
+  // Which model actually produced this message (gary-role rows only) — the primary model, the
+  // fallback (if it were ever invoked), or "fallback" for the deterministic safe reply.
+  model String?
+
+  responseValidationResult Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+}
+
+model PublicContact {
+  id String @id @default(cuid())
+
+  firstName    String?
+  businessName String?
+
+  phoneNormalized String?
+  emailNormalized String?
+
+  preferredContactTime String?
+
+  consentGivenAt DateTime?
+  consentText    String?   @db.Text
+
+  sourceSessionId String?
+
+  sessions PublicChatSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([emailNormalized])
+  @@index([phoneNormalized])
+}
+
+model AssessmentHandoff {
+  id String @id @default(cuid())
+
+  sessionId String            @unique
+  session   PublicChatSession @relation(fields: [sessionId], references: [id])
+
+  // Only a hash of the signed token is stored — a DB read alone can never mint a valid handoff.
+  signedTokenHash      String
+  allowedPrefillFields Json
+
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  submissionId String?
+
+  createdAt DateTime @default(now())
+}
+
+// Durable, retryable delivery of funnel events to the Command Center's public-funnel endpoint.
+// Retry metadata (attempts/nextAttemptAt/lastError) is real and exercised by
+// lib/gary/funnelEvents.ts's drainFunnelEventOutbox(), both opportunistically and via a
+// dedicated route — see that module for exactly what "retry" does and doesn't cover yet.
+model FunnelEventOutbox {
+  id             String    @id @default(cuid())
+  eventType      String
+  eventVersion   Int       @default(1)
+  payload        Json
+  idempotencyKey String    @unique
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime  @default(now())
+  deliveredAt    DateTime?
+  lastError      String?   @db.Text
+  createdAt      DateTime  @default(now())
+
+  @@index([deliveredAt, nextAttemptAt])
+}
+
+// A pending event for a future CRR system — not built yet, but contact-capture moments are
+// recorded now so nothing is lost once CRR exists to consume them.
+model CrrOutboxEvent {
+  id              String    @id @default(cuid())
+  eventType       String    @default("contact.captured")
+  contactSnapshot Json
+  status          String    @default("pending")
+  createdAt       DateTime  @default(now())
+  deliveredAt     DateTime?
 }

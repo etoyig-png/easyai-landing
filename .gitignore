@@ -8,6 +8,11 @@
 
 # testing
 /coverage
+.playwright-browsers/
+.playwright-runtime*/
+.playwright-tmp/
+test-results/
+playwright-report/
 
 # next.js
 /.next/

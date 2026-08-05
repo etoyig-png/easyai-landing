@@ -30,3 +30,18 @@ export function looksLikeSpam(honeypot: string | undefined, formLoadedAt: number
   if (Date.now() - formLoadedAt < MIN_FILL_TIME_MS) return true;
   return false;
 }
+
+const GARY_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const GARY_MAX_MESSAGES_PER_WINDOW = 60;
+
+/** Separate rate limit for Gary's chat — a real conversation sends many more requests than the one-shot assessment form, so it needs its own, higher ceiling rather than sharing isRateLimited's budget. */
+export async function isGaryRateLimited(ipAddress: string): Promise<boolean> {
+  if (!ipAddress || ipAddress === 'unknown') return false;
+
+  const since = new Date(Date.now() - GARY_WINDOW_MS);
+  const count = await prisma.publicChatMessage.count({
+    where: { createdAt: { gte: since }, role: 'visitor', session: { ipAddress } },
+  });
+
+  return count >= GARY_MAX_MESSAGES_PER_WINDOW;
+}

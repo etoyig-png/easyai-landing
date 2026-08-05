@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { buildQuestions, type QuestionDef, type QuestionKey } from '@/lib/quizQuestions';
 
 type AnswerKey = QuestionKey;
@@ -52,11 +52,48 @@ function emailLooksValid(email: string) {
 }
 
 export default function AssessmentPage() {
+  return (
+    <Suspense fallback={null}>
+      <AssessmentPageInner />
+    </Suspense>
+  );
+}
+
+// useSearchParams() (used only to read an optional Gary handoff ?token=) requires a Suspense
+// boundary above it in the App Router — split into an outer wrapper + this inner component
+// rather than adding Suspense deeper, since the whole page is one client-rendered form anyway.
+function AssessmentPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formLoadedAt] = useState(() => Date.now());
   const [honeypot, setHoneypot] = useState('');
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
+  const [funnelCorrelationId, setFunnelCorrelationId] = useState<string | undefined>(undefined);
+
+  // Prefill from a Gary handoff token, if present — additive to manual entry; visitors who
+  // arrive without a token see the form exactly as before. The signed token is verified
+  // server-side (the signing secret never reaches the client); only the allow-listed fields
+  // it resolves to come back.
+  useEffect(() => {
+    const token = searchParams?.get('token');
+    if (!token) return;
+    const correlationId = searchParams?.get('funnelCorrelationId');
+    if (correlationId) setFunnelCorrelationId(correlationId);
+    fetch('/api/gary/handoff/consume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { prefill?: Partial<Answers> } | null) => {
+        if (data?.prefill) setAnswers((prev) => ({ ...prev, ...data.prefill }));
+      })
+      .catch(() => {
+        /* prefill is a convenience, not required — visitor can still fill the form manually */
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [otherDraft, setOtherDraft] = useState('');
   const [consent, setConsent] = useState(false);
   const [emailDraft, setEmailDraft] = useState('');
@@ -146,6 +183,7 @@ export default function AssessmentPage() {
           lastName: answers.lastName,
           businessName: answers.businessName,
           email: answers.email,
+          funnelCorrelationId,
           consent: true,
           companyUrl: honeypot,
           formLoadedAt,
