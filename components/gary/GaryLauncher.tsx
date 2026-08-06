@@ -21,11 +21,13 @@ const LAUNCH_DELAY_MS = 5000;
 const ROUTINE_STEPS: Array<{ pose: GaryPose; holdMs: number }> = [
   { pose: 'jump', holdMs: 700 },
   { pose: 'wave', holdMs: 1600 },
-  { pose: 'point', holdMs: 2600 },
+  { pose: 'point', holdMs: 1200 },
+  { pose: 'wait', holdMs: 1400 },
   { pose: 'frustrated', holdMs: 1400 },
   { pose: 'seated', holdMs: 600 },
   { pose: 'idea', holdMs: 700 },
-  { pose: 'sign', holdMs: 2800 },
+  { pose: 'sign', holdMs: 1400 },
+  { pose: 'signPoint', holdMs: 1400 },
   { pose: 'lowering', holdMs: 600 },
 ];
 
@@ -115,6 +117,7 @@ export default function GaryLauncher() {
   useEffect(() => {
     if (!open) return;
     clearScheduledTimers();
+    setEntering(false);
     setPose('seated');
     setRoutineFinished(true);
   }, [open]);
@@ -138,39 +141,44 @@ export default function GaryLauncher() {
         bottom: 'max(1rem, env(safe-area-inset-bottom))',
       }}
     >
-      {/* Name label sits BESIDE the button, not stacked below the character — keeps the
+      {/* Speech bubble sits BESIDE the button, not stacked below the character — keeps the
           launcher's total vertical footprint small enough that it doesn't sit on top of page
           content on short mobile viewports (measured and fixed: a stacked label added enough
           height to overlap the hero's own CTA button on a 375x812 viewport). */}
       <div className="flex items-center gap-2">
         {!open && (
-          <span
-            className="pointer-events-none whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-navy-900 shadow-sm"
-          >
-            Gary from Accounting
-          </span>
+          <div className="gary-speech-bubble" data-testid="gary-speech-bubble">
+            Hi! I&apos;m Gary from Accounting
+          </div>
         )}
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Chat with Gary from Accounting"
-          className="flex flex-shrink-0 items-center justify-center rounded-full bg-navy-900 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
-          style={{ width: 'clamp(44px, 9vw, 56px)', height: 'clamp(44px, 9vw, 56px)' }}
+          className="gary-chat-button flex flex-shrink-0 items-center justify-center rounded-full bg-navy-900 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
+          style={{ width: 'clamp(56px, 11vw, 64px)', height: 'clamp(56px, 11vw, 64px)' }}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" aria-hidden="true">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8" aria-hidden="true">
+            <path d="M4.5 3h15A2.5 2.5 0 0 1 22 5.5v10a2.5 2.5 0 0 1-2.5 2.5H9l-5.8 4.1a.75.75 0 0 1-1.18-.61V5.5A2.5 2.5 0 0 1 4.5 3Zm2.75 6.25a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm4.75 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm4.75 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z" />
           </svg>
         </button>
       </div>
 
       {!open && (
         <div className="gary-decorative-cluster relative">
-          <p
-            className={`gary-sign-text absolute right-0 top-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-navy-900 shadow-lg ${pose === 'sign' ? 'is-visible' : ''}`}
+          {(pose === 'sign' || pose === 'signPoint' || pose === 'lowering') && (
+            <div
+              className={`gary-sign-board${pose === 'lowering' ? ' is-lowering' : ''}`}
+              aria-hidden={pose === 'lowering' ? 'true' : undefined}
+            >
+              <span className="gary-sign-copy">The button. Up there.</span>
+            </div>
+          )}
+          <div
+            className={`gary-character-wrap${entering ? ' gary-entering' : ''}`}
+            aria-hidden="true"
+            onAnimationEnd={() => setEntering(false)}
           >
-            The button. Up there.
-          </p>
-          <div className={`gary-character-wrap${entering ? ' gary-entering' : ''}`} aria-hidden="true">
             <GaryCharacter pose={pose} idleGlanceActive={idleGlanceActive} />
           </div>
         </div>

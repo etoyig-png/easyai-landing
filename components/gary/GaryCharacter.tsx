@@ -3,9 +3,11 @@ export type GaryPose =
   | 'jump'
   | 'wave'
   | 'point'
+  | 'wait'
   | 'frustrated'
   | 'idea'
   | 'sign'
+  | 'signPoint'
   | 'lowering';
 
 type GaryCharacterProps = {
@@ -38,15 +40,6 @@ export default function GaryCharacter({ pose, idleGlanceActive }: GaryCharacterP
     >
       {/* Desk edge — reads as "seated behind a counter," grounds the bust-only figure */}
       <rect x="0" y="178" width="160" height="22" rx="4" className="gary-desk" />
-
-      {/* Sign board — a small blank card Gary's hand appears to hold during the "sign" pose.
-          The actual readable text is a separate HTML element (GaryLauncher.tsx's .gary-sign-text)
-          sized independently in real px, not scaled down with this whole illustration — at the
-          character's compact launcher size, text embedded in the SVG itself would shrink to a
-          few px and become illegible. */}
-      <g className="gary-sign-group">
-        <rect x="86" y="18" width="72" height="40" rx="6" className="gary-sign-card" />
-      </g>
 
       {/* Right arm (viewer's right / Gary's left) — the wave / point / sign-holding arm */}
       <g className="gary-arm gary-arm-right">
