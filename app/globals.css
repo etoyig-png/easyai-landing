@@ -76,6 +76,32 @@
     width: clamp(200px, 68%, 340px);
   }
 
+  /* Hero video — full width at md+ (overridden there by the md:w-[35%]/md:mx-0 utility classes
+     in page.tsx; Tailwind's utilities layer always wins over this @layer components rule, so no
+     max-width media query is needed to "turn this off" on desktop/tablet). Below md, the hero
+     stacks and this video is the last element in the column — at full width its 4:3 box is tall
+     enough that its on-screen position falls inside Gary's fixed launcher zone at the bottom of
+     short mobile viewports (measured: 390x844 put the video's bottom edge behind Gary's speech
+     bubble and chat button; the CTA buttons above it were deliberately left untouched, since
+     their own clearance from Gary is already measured and covered by a separate, existing fix —
+     see "mobile CTA overlap" below). Capping the video's width — not its aspect ratio — keeps its
+     true framing intact; it just renders smaller on mobile, the same tradeoff already used for
+     every other homepage illustration via .responsive-media above. */
+  .hero-video-wrap {
+    width: clamp(110px, 34%, 260px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* The shortest phones (measured: 360x800) don't have enough vertical room even for the capped
+     width above — same class of problem as Gary's own compact-mode layout below, so it's scoped
+     to the identical viewport range. */
+  @media (max-height: 820px) and (max-width: 480px) {
+    .hero-video-wrap {
+      width: clamp(58px, 22%, 150px);
+    }
+  }
+
   /* ============================================================================
      Gary from Accounting — character + locked animation routine.
      One SVG (components/gary/GaryCharacter.tsx), pose-driven via the [data-gary-pose]

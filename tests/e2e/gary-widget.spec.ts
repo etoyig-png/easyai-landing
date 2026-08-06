@@ -547,6 +547,76 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
   });
 });
 
+test.describe('Gary launcher — hero video overlap', () => {
+  // The widths this fix was scoped against: ~390 mobile, 768 tablet, 1024 laptop, 1440 desktop.
+  const REQUIRED_WIDTHS = [
+    { width: 390, height: 844 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+    { width: 1440, height: 900 }
+  ];
+
+  for (const viewport of REQUIRED_WIDTHS) {
+    test(`the hero video is not covered by the Gary launcher at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+      await page.waitForTimeout(20);
+
+      const video = page.locator('video').first();
+      const videoBox = await video.boundingBox();
+      const launcherBox = await page.locator('.gary-launcher').boundingBox();
+      expect(videoBox, 'hero video not found').not.toBeNull();
+      expect(launcherBox, 'launcher not found').not.toBeNull();
+
+      const xOverlap = Math.max(
+        0,
+        Math.min(videoBox!.x + videoBox!.width, launcherBox!.x + launcherBox!.width) - Math.max(videoBox!.x, launcherBox!.x)
+      );
+      const yOverlap = Math.max(
+        0,
+        Math.min(videoBox!.y + videoBox!.height, launcherBox!.y + launcherBox!.height) - Math.max(videoBox!.y, launcherBox!.y)
+      );
+      expect(xOverlap * yOverlap, `video box: ${JSON.stringify(videoBox)}, launcher box: ${JSON.stringify(launcherBox)}`).toBe(0);
+    });
+  }
+
+  test('the hero video keeps its 4:3 aspect ratio and stays visible (not clipped) at 390x844', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    const video = page.locator('video').first();
+    await expect(video).toBeVisible();
+    const box = await video.boundingBox();
+    expect(box!.width).toBeGreaterThan(0);
+    expect(box!.height).toBeGreaterThan(0);
+    // aspect-ratio: 4/3 is set inline on the video's wrapper — allow a small rounding tolerance.
+    expect(Math.abs(box!.width / box!.height - 4 / 3)).toBeLessThan(0.05);
+  });
+
+  test('the homepage CTA still clears the Gary launcher at 390x844 after the hero video fix', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+    await page.waitForTimeout(20);
+
+    const cta = page.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+    await cta.scrollIntoViewIfNeeded();
+    const ctaBox = await cta.boundingBox();
+    const launcherBox = await page.locator('.gary-launcher').boundingBox();
+    const xOverlap = Math.max(
+      0,
+      Math.min(ctaBox!.x + ctaBox!.width, launcherBox!.x + launcherBox!.width) - Math.max(ctaBox!.x, launcherBox!.x)
+    );
+    const yOverlap = Math.max(
+      0,
+      Math.min(ctaBox!.y + ctaBox!.height, launcherBox!.y + launcherBox!.height) - Math.max(ctaBox!.y, launcherBox!.y)
+    );
+    expect(xOverlap * yOverlap, `CTA box: ${JSON.stringify(ctaBox)}, launcher box: ${JSON.stringify(launcherBox)}`).toBe(0);
+  });
+});
+
 test.describe('Homepage responsive images', () => {
   const REQUIRED_VIEWPORTS = [
     { width: 360, height: 800, label: '360x800' },

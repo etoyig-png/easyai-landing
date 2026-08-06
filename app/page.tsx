@@ -117,18 +117,18 @@ export default function HomePage() {
     <>
       {/* ── S1 HERO ──────────────────────────────────────────────────────── */}
       <section className="bg-navy-900 overflow-hidden border-b border-navy-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-20 flex flex-col md:flex-row md:items-center gap-10 md:gap-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 md:py-20 flex flex-col md:flex-row md:items-center gap-2 md:gap-16">
 
           {/* Left: copy */}
           <div className="md:w-[65%] flex-shrink-0">
-            <p className="eyebrow-silver mb-4">INDEPENDENT AI ADVISORY</p>
-            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-6">
+            <p className="eyebrow-silver mb-1">INDEPENDENT AI ADVISORY</p>
+            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-2">
               Find the AI tools your business can actually trust and truly needs.
             </h1>
-            <p className="text-silver-light text-lg leading-relaxed mb-8 font-sans">
+            <p className="text-silver-light text-lg leading-relaxed mb-3 font-sans">
               Easy AI identifies where your business is losing time and money, then recommends the right AI tools, software, and workflows without the hype, guesswork, or unnecessary technology.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-4 mb-2">
               <Link href="/assessment" className="btn-green text-base px-7 py-3.5">
                 Start Your Free Business Assessment
               </Link>
@@ -141,8 +141,15 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Right: video – 25% width */}
-          <div className="md:w-[35%] flex-shrink-0">
+          {/* Right: video — full width alongside the copy on desktop (35% column, unchanged).
+              Below md the hero stacks (flex-col) and the video renders after the CTA/disclaimer,
+              same source order as before — Gary's existing compact-mode CTA clearance (globals.css,
+              the "mobile CTA overlap" fix) was measured and tuned against the CTA sitting at its
+              current position, so the video must not move ahead of it and push it down again.
+              hero-video-wrap instead caps the video's own width (see globals.css) on short mobile
+              viewports only, so its rendered height clears Gary's fixed launcher zone below it —
+              the video shrinks, nothing above it moves, and Gary is untouched. */}
+          <div className="hero-video-wrap md:w-[35%] md:mx-0 flex-shrink-0">
             <HeroVideo />
           </div>
 
