@@ -88,8 +88,65 @@
     width: clamp(52px, 14vw, 104px);
     aspect-ratio: 160 / 200;
     overflow: visible;
+    /* Purely decorative (aria-hidden in the DOM too) — must never intercept a click meant for
+       page content behind/around it. The chat button is a separate sibling element and is
+       unaffected (pointer-events isn't set on any ancestor it inherits from). */
+    pointer-events: none;
+  }
+
+  /* Wraps the sign bubble + character together — also decorative-only, so empty space inside
+     this box (the two children don't fill it edge-to-edge) can't capture a click either. */
+  .gary-decorative-cluster {
+    pointer-events: none;
   }
   .gary-character { overflow: visible; display: block; }
+
+  /* Base launcher layout — a vertical stack (button above, Gary below), matching the locked
+     routine's own "chat button is visible above Gary" step. Defined here (not as Tailwind
+     flex-col/items-end utility classes on the element) specifically so the compact-mode media
+     query below can override flex-direction: Tailwind's utilities layer always wins over
+     @layer components regardless of selector specificity or source order, so a .gary-launcher
+     rule in this layer could never beat a flex-col utility class on the same element — moving
+     the whole layout here sidesteps that fight entirely. */
+  .gary-launcher {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.375rem;
+  }
+
+  /* See the JSX comment where this class is applied — only while the chat panel is closed, so
+     it can never affect GaryPanel's own controls when open. The button is the one thing inside
+     this container that must stay clickable; everything else is decorative. */
+  .gary-launcher--idle {
+    pointer-events: none;
+  }
+  .gary-launcher--idle button {
+    pointer-events: auto;
+  }
+
+  /* Collision-aware compact layout — short mobile viewports only (measured: 360x800 has just
+     ~65px of clearance below the homepage hero's own CTA button before the safe-area bottom
+     margin; the normal stacked layout needs ~115px+). Switches the launcher from a vertical
+     stack (button above, Gary below) to a single horizontal row, and shrinks the character
+     further within that row, so the whole cluster fits inside the available clearance with a
+     real margin rather than a pixel-perfect edge case. Gated on BOTH short height and narrow
+     width so a merely-short desktop window never triggers it — this is specifically the mobile-
+     portrait case. 390x844 and 412x915 already have zero overlap in the normal stacked layout
+     (measured), so they're intentionally left alone.
+     Bounds worked backward from the 360x800 measurement: character width floor 34px keeps a
+     recognizable head/glasses/shirt/tie silhouette (not a single-pixel blob) while landing the
+     whole row comfortably under the ~65px budget. */
+  @media (max-height: 820px) and (max-width: 480px) {
+    .gary-launcher {
+      flex-direction: row-reverse;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+    .gary-launcher .gary-character-wrap {
+      width: clamp(34px, 10vw, 44px);
+    }
+  }
 
   /* Palette — reuses the site's own navy/teal/ivory tokens so Gary feels native to the brand
      rather than a bolted-on generic mascot. */

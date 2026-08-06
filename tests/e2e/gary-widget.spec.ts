@@ -406,6 +406,147 @@ test.describe('Gary character — mobile viewport usability', () => {
   });
 });
 
+// The hero's own "See How Easy AI Works" ghost button — the CTA the launcher was measured
+// overlapping on the shortest required viewport before the compact-mode fix.
+const HOMEPAGE_CTA_TEXT = 'See How Easy AI Works';
+
+test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
+  const REQUIRED_MOBILE_VIEWPORTS = [
+    { width: 360, height: 800 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 }
+  ];
+
+  for (const viewport of REQUIRED_MOBILE_VIEWPORTS) {
+    test(`the homepage CTA is not covered by the Gary launcher at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+      await page.waitForTimeout(20);
+
+      const cta = page.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      await cta.scrollIntoViewIfNeeded();
+      const ctaBox = await cta.boundingBox();
+      const launcherBox = await page.locator('.gary-launcher').boundingBox();
+      expect(ctaBox, 'CTA not found').not.toBeNull();
+      expect(launcherBox, 'launcher not found').not.toBeNull();
+
+      const xOverlap = Math.max(
+        0,
+        Math.min(ctaBox!.x + ctaBox!.width, launcherBox!.x + launcherBox!.width) - Math.max(ctaBox!.x, launcherBox!.x)
+      );
+      const yOverlap = Math.max(
+        0,
+        Math.min(ctaBox!.y + ctaBox!.height, launcherBox!.y + launcherBox!.height) - Math.max(ctaBox!.y, launcherBox!.y)
+      );
+      // Zero tolerance — a partially-covered CTA is not a pass, per the requirement.
+      expect(xOverlap * yOverlap, `CTA box: ${JSON.stringify(ctaBox)}, launcher box: ${JSON.stringify(launcherBox)}`).toBe(0);
+    });
+
+    test(`the homepage CTA is fully clickable (not just visually clear) at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+      await page.waitForTimeout(20);
+
+      const cta = page.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      await cta.scrollIntoViewIfNeeded();
+      // elementFromPoint at the CTA's own center must resolve to the CTA itself, not the
+      // launcher (or anything else) sitting on top of it — the strict version of "clickable".
+      const ctaBox = await cta.boundingBox();
+      const resolvesToCta = await page.evaluate(
+        ([x, y]) => {
+          const el = document.elementFromPoint(x, y);
+          const link = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('See How Easy AI Works'));
+          return el === link || (link ? link.contains(el) : false);
+        },
+        [ctaBox!.x + ctaBox!.width / 2, ctaBox!.y + ctaBox!.height / 2]
+      );
+      expect(resolvesToCta).toBe(true);
+
+      // And an actual click works end-to-end — it's an in-page anchor link to #how-easy-ai-works.
+      await cta.click();
+      await expect(page).toHaveURL(/#how-easy-ai-works$/);
+    });
+
+    test(`decorative Gary elements do not intercept pointer events at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+      await page.waitForTimeout(20);
+
+      const result = await page.evaluate(() => {
+        const charWrap = document.querySelector('.gary-character-wrap');
+        const label = document.querySelector('.gary-launcher span');
+        const cluster = document.querySelector('.gary-decorative-cluster');
+        const points: Array<{ name: string; el: Element | null }> = [
+          { name: 'character', el: charWrap },
+          { name: 'label', el: label },
+          { name: 'cluster', el: cluster }
+        ];
+        return points.map(({ name, el }) => {
+          if (!el) return { name, found: false, blocksClicks: null };
+          const rect = el.getBoundingClientRect();
+          const x = rect.left + rect.width / 2;
+          const y = rect.top + rect.height / 2;
+          const hit = document.elementFromPoint(x, y);
+          // Passes if the click either falls through entirely past this element (hit !== el and
+          // el doesn't contain hit) or the element is simply zero-sized/off-screen.
+          const blocksClicks = hit === el || el.contains(hit);
+          return { name, found: true, blocksClicks, computedPointerEvents: getComputedStyle(el).pointerEvents };
+        });
+      });
+
+      for (const point of result) {
+        if (!point.found) continue;
+        expect(point.blocksClicks, `${point.name}: ${JSON.stringify(point)}`).toBe(false);
+      }
+    });
+  }
+
+  test('the chat button remains clickable and opens the panel even with the idle pointer-events guard active', async ({ page }) => {
+    await mockGaryConversation(page);
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+    await page.waitForTimeout(20);
+
+    const button = page.getByRole('button', { name: 'Chat with Gary from Accounting' });
+    const buttonBox = await button.boundingBox();
+    const resolvesToButton = await page.evaluate(
+      ([x, y]) => {
+        const el = document.elementFromPoint(x, y);
+        const btn = document.querySelector('button[aria-label="Chat with Gary from Accounting"]');
+        return el === btn || (btn ? btn.contains(el) : false);
+      },
+      [buttonBox!.x + buttonBox!.width / 2, buttonBox!.y + buttonBox!.height / 2]
+    );
+    expect(resolvesToButton).toBe(true);
+
+    await button.click();
+    await expect(page.getByRole('dialog', { name: 'Chat with Gary from Accounting' })).toBeVisible();
+  });
+
+  test('GaryPanel controls remain fully interactive once open (idle pointer-events guard does not leak in)', async ({ page }) => {
+    await mockGaryConversation(page);
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+    await page.getByRole('button', { name: 'Chat with Gary from Accounting' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Chat with Gary from Accounting' });
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByPlaceholder('Type a message...').fill('a real message');
+    await dialog.getByRole('button', { name: 'Send' }).click();
+    await expect(dialog.getByText('a real message')).toBeVisible();
+  });
+});
+
 test.describe('Homepage responsive images', () => {
   const REQUIRED_VIEWPORTS = [
     { width: 360, height: 800, label: '360x800' },

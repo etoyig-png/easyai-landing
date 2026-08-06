@@ -125,7 +125,14 @@ export default function GaryLauncher() {
 
   return (
     <div
-      className="fixed z-50 flex flex-col items-end gap-1.5"
+      // gary-launcher--idle disables pointer-events on the whole container (re-enabled only on
+      // the button, see globals.css) so an empty area of this box — which extends over both the
+      // button and the purely decorative character/sign — never swallows a click meant for page
+      // content behind/around it. Applied only while the panel is closed: GaryPanel (a DOM child
+      // of this same container while open) is a fully interactive modal, and pointer-events is
+      // inherited, so unconditionally disabling it here would silently break every control
+      // inside the open chat panel.
+      className={`gary-launcher fixed z-50${!open ? ' gary-launcher--idle' : ''}`}
       style={{
         right: 'max(1rem, env(safe-area-inset-right))',
         bottom: 'max(1rem, env(safe-area-inset-bottom))',
@@ -137,7 +144,9 @@ export default function GaryLauncher() {
           height to overlap the hero's own CTA button on a 375x812 viewport). */}
       <div className="flex items-center gap-2">
         {!open && (
-          <span className="whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-navy-900 shadow-sm">
+          <span
+            className="pointer-events-none whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-navy-900 shadow-sm"
+          >
             Gary from Accounting
           </span>
         )}
@@ -155,7 +164,7 @@ export default function GaryLauncher() {
       </div>
 
       {!open && (
-        <div className="relative">
+        <div className="gary-decorative-cluster relative">
           <p
             className={`gary-sign-text absolute right-0 top-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-navy-900 shadow-lg ${pose === 'sign' ? 'is-visible' : ''}`}
           >
