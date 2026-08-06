@@ -81,24 +81,28 @@
      max-width media query is needed to "turn this off" on desktop/tablet). Below md, the hero
      stacks and this video is the last element in the column — at full width its 4:3 box is tall
      enough that its on-screen position falls inside Gary's fixed launcher zone at the bottom of
-     short mobile viewports (measured: 390x844 put the video's bottom edge behind Gary's speech
-     bubble and chat button; the CTA buttons above it were deliberately left untouched, since
-     their own clearance from Gary is already measured and covered by a separate, existing fix —
-     see "mobile CTA overlap" below). Capping the video's width — not its aspect ratio — keeps its
-     true framing intact; it just renders smaller on mobile, the same tradeoff already used for
-     every other homepage illustration via .responsive-media above. */
+     short mobile viewports. Fixed by three things working together, all mobile-only, none of
+     them shrinking the video below a usable size: (1) tighter mobile hero spacing in page.tsx —
+     most of it via a max-[380px]: tier reserved for the very narrowest phones so 390px+ keeps its
+     normal, more generous rhythm; (2) capping the video's own width (not its aspect ratio, so
+     framing is never cropped) via the clamp below, floored well above a "thumbnail" size; (3) a
+     small, bounded upward nudge (see the media query below) for the couple of remaining pixels at
+     the single narrowest breakpoint, applied as a transform so it never disturbs where the next
+     section starts — kept intentionally tiny so it can't read as a stray gap. */
   .hero-video-wrap {
-    width: clamp(110px, 34%, 260px);
+    width: clamp(200px, 58%, 260px);
     margin-left: auto;
     margin-right: auto;
   }
 
-  /* The shortest phones (measured: 360x800) don't have enough vertical room even for the capped
-     width above — same class of problem as Gary's own compact-mode layout below, so it's scoped
-     to the identical viewport range. */
-  @media (max-height: 820px) and (max-width: 480px) {
+  /* The narrowest phones (measured against 360x800) need the video pinned right at the required
+     180px floor plus a few px of upward nudge — everything else in the layout is already as
+     tight as it can go without the text touching. The transform is small on purpose: it moves the
+     video, not the flow, so anything larger would show up as dead space before the next section. */
+  @media (max-width: 380px) {
     .hero-video-wrap {
-      width: clamp(58px, 22%, 150px);
+      width: 180px;
+      transform: translateY(-14px);
     }
   }
 

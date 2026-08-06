@@ -117,22 +117,22 @@ export default function HomePage() {
     <>
       {/* ── S1 HERO ──────────────────────────────────────────────────────── */}
       <section className="bg-navy-900 overflow-hidden border-b border-navy-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 md:py-20 flex flex-col md:flex-row md:items-center gap-2 md:gap-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 max-[380px]:py-0 md:py-20 flex flex-col md:flex-row md:items-center gap-3 max-[380px]:gap-0 md:gap-16">
 
           {/* Left: copy */}
           <div className="md:w-[65%] flex-shrink-0">
-            <p className="eyebrow-silver mb-1">INDEPENDENT AI ADVISORY</p>
-            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-2">
+            <p className="eyebrow-silver mb-2 max-[380px]:mb-0">INDEPENDENT AI ADVISORY</p>
+            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-3 max-[380px]:mb-0">
               Find the AI tools your business can actually trust and truly needs.
             </h1>
-            <p className="text-silver-light text-lg leading-relaxed mb-3 font-sans">
+            <p className="text-silver-light text-lg leading-relaxed mb-4 max-[380px]:mb-0 font-sans">
               Easy AI identifies where your business is losing time and money, then recommends the right AI tools, software, and workflows without the hype, guesswork, or unnecessary technology.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 mb-2">
-              <Link href="/assessment" className="btn-green text-base px-7 py-3.5">
+            <div className="flex flex-col sm:flex-row gap-4 mb-3 max-[380px]:mb-0">
+              <Link href="/assessment" className="btn-green text-base px-7 py-2.5 sm:py-3.5">
                 Start Your Free Business Assessment
               </Link>
-              <a href="#how-easy-ai-works" className="btn-ghost-white text-base px-7 py-3.5">
+              <a href="#how-easy-ai-works" className="btn-ghost-white text-base px-7 py-2.5 sm:py-3.5">
                 See How Easy AI Works
               </a>
             </div>
@@ -146,9 +146,12 @@ export default function HomePage() {
               same source order as before — Gary's existing compact-mode CTA clearance (globals.css,
               the "mobile CTA overlap" fix) was measured and tuned against the CTA sitting at its
               current position, so the video must not move ahead of it and push it down again.
-              hero-video-wrap instead caps the video's own width (see globals.css) on short mobile
-              viewports only, so its rendered height clears Gary's fixed launcher zone below it —
-              the video shrinks, nothing above it moves, and Gary is untouched. */}
+              hero-video-wrap keeps the video at a real, useful size on mobile (>=180px at 360px
+              wide, >=200px at 390px+ — see globals.css) rather than shrinking it into a thumbnail;
+              the clearance from Gary's launcher instead comes from tighter mobile hero spacing
+              above (most of it scoped to a max-[380px]: tier so 390px+ keeps its normal rhythm)
+              plus, only at the narrowest breakpoint, a small bounded upward nudge on the video
+              itself. Gary's own size/position/behavior is untouched. */}
           <div className="hero-video-wrap md:w-[35%] md:mx-0 flex-shrink-0">
             <HeroVideo />
           </div>

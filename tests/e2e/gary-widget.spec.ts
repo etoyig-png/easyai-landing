@@ -547,13 +547,25 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
   });
 });
 
+function boxOverlapArea(a: { x: number; y: number; width: number; height: number } | null, b: typeof a): number {
+  if (!a || !b) return -1;
+  const xOverlap = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+  const yOverlap = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+  return xOverlap * yOverlap;
+}
+
 test.describe('Gary launcher — hero video overlap', () => {
-  // The widths this fix was scoped against: ~390 mobile, 768 tablet, 1024 laptop, 1440 desktop.
+  // Required test matrix: narrowest phone through desktop. minUsefulWidth encodes "large enough
+  // to be useful, not merely technically visible" — 180px at 360 and 200px at 390 are the
+  // explicit floors; wider breakpoints get a floor comfortably below their actual rendered size
+  // so the test still catches a regression toward "thumbnail" without being flaky on rounding.
   const REQUIRED_WIDTHS = [
-    { width: 390, height: 844 },
-    { width: 768, height: 1024 },
-    { width: 1024, height: 768 },
-    { width: 1440, height: 900 }
+    { width: 360, height: 800, minUsefulWidth: 180 },
+    { width: 390, height: 844, minUsefulWidth: 200 },
+    { width: 430, height: 932, minUsefulWidth: 200 },
+    { width: 768, height: 1024, minUsefulWidth: 220 },
+    { width: 1024, height: 768, minUsefulWidth: 300 },
+    { width: 1440, height: 900, minUsefulWidth: 400 }
   ];
 
   for (const viewport of REQUIRED_WIDTHS) {
@@ -570,51 +582,77 @@ test.describe('Gary launcher — hero video overlap', () => {
       expect(videoBox, 'hero video not found').not.toBeNull();
       expect(launcherBox, 'launcher not found').not.toBeNull();
 
-      const xOverlap = Math.max(
-        0,
-        Math.min(videoBox!.x + videoBox!.width, launcherBox!.x + launcherBox!.width) - Math.max(videoBox!.x, launcherBox!.x)
-      );
-      const yOverlap = Math.max(
-        0,
-        Math.min(videoBox!.y + videoBox!.height, launcherBox!.y + launcherBox!.height) - Math.max(videoBox!.y, launcherBox!.y)
-      );
-      expect(xOverlap * yOverlap, `video box: ${JSON.stringify(videoBox)}, launcher box: ${JSON.stringify(launcherBox)}`).toBe(0);
+      expect(
+        boxOverlapArea(videoBox, launcherBox),
+        `video box: ${JSON.stringify(videoBox)}, launcher box: ${JSON.stringify(launcherBox)}`
+      ).toBe(0);
+    });
+
+    test(`the hero video stays large enough to be useful (not a thumbnail) at ${viewport.width}x${viewport.height}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/');
+      const video = page.locator('video').first();
+      await expect(video).toBeVisible();
+      const box = await video.boundingBox();
+      expect(box!.width, `video was only ${box!.width}px wide`).toBeGreaterThanOrEqual(viewport.minUsefulWidth);
+      // True 4:3 aspect ratio preserved — width capping must never crop or distort the frame.
+      expect(Math.abs(box!.width / box!.height - 4 / 3)).toBeLessThan(0.05);
+    });
+
+    test(`no horizontal overflow at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/');
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
     });
   }
 
-  test('the hero video keeps its 4:3 aspect ratio and stays visible (not clipped) at 390x844', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/');
-    const video = page.locator('video').first();
-    await expect(video).toBeVisible();
-    const box = await video.boundingBox();
-    expect(box!.width).toBeGreaterThan(0);
-    expect(box!.height).toBeGreaterThan(0);
-    // aspect-ratio: 4/3 is set inline on the video's wrapper — allow a small rounding tolerance.
-    expect(Math.abs(box!.width / box!.height - 4 / 3)).toBeLessThan(0.05);
-  });
+  // The two viewports the previous 58px-wide-thumbnail fix specifically failed on — checked
+  // against both CTA buttons (not just one) and both the launcher's full box and the video.
+  const FOCUS_WIDTHS = [
+    { width: 360, height: 800 },
+    { width: 390, height: 844 }
+  ];
 
-  test('the homepage CTA still clears the Gary launcher at 390x844 after the hero video fix', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.clock.install();
-    await page.goto('/');
-    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
-    await page.waitForTimeout(20);
+  for (const viewport of FOCUS_WIDTHS) {
+    test(`Gary does not overlap either CTA button at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+      await page.waitForTimeout(20);
 
-    const cta = page.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
-    await cta.scrollIntoViewIfNeeded();
-    const ctaBox = await cta.boundingBox();
-    const launcherBox = await page.locator('.gary-launcher').boundingBox();
-    const xOverlap = Math.max(
-      0,
-      Math.min(ctaBox!.x + ctaBox!.width, launcherBox!.x + launcherBox!.width) - Math.max(ctaBox!.x, launcherBox!.x)
-    );
-    const yOverlap = Math.max(
-      0,
-      Math.min(ctaBox!.y + ctaBox!.height, launcherBox!.y + launcherBox!.height) - Math.max(ctaBox!.y, launcherBox!.y)
-    );
-    expect(xOverlap * yOverlap, `CTA box: ${JSON.stringify(ctaBox)}, launcher box: ${JSON.stringify(launcherBox)}`).toBe(0);
-  });
+      const launcherBox = await page.locator('.gary-launcher').boundingBox();
+      const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
+      const greenCta = heroSection.getByRole('link', { name: 'Start Your Free Business Assessment' });
+      const ghostCta = heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      await greenCta.scrollIntoViewIfNeeded();
+      const greenBox = await greenCta.boundingBox();
+      const ghostBox = await ghostCta.boundingBox();
+
+      expect(boxOverlapArea(greenBox, launcherBox), `green CTA vs launcher: ${JSON.stringify({ greenBox, launcherBox })}`).toBe(0);
+      expect(boxOverlapArea(ghostBox, launcherBox), `ghost CTA vs launcher: ${JSON.stringify({ ghostBox, launcherBox })}`).toBe(0);
+    });
+
+    test(`the hero does not leave a large unexplained empty gap below the video at ${viewport.width}x${viewport.height}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/');
+      const gap = await page.evaluate(() => {
+        const video = document.querySelector('video');
+        const heroSection = document.querySelector('section.bg-navy-900.overflow-hidden');
+        if (!video || !heroSection) return null;
+        return heroSection.getBoundingClientRect().bottom - video.getBoundingClientRect().bottom;
+      });
+      expect(gap, 'hero section or video not found').not.toBeNull();
+      // The only mobile-only adjustment that can leave dead space is the small upward transform
+      // at the narrowest breakpoint — bounded well below anything that would read as unintentional.
+      expect(gap!).toBeLessThan(60);
+    });
+  }
 });
 
 test.describe('Homepage responsive images', () => {
