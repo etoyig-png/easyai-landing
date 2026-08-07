@@ -155,7 +155,7 @@ export default function GaryLauncher() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Chat with Gary from Accounting"
-          className="gary-chat-button flex flex-shrink-0 items-center justify-center rounded-full bg-navy-900 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
+          className="gary-chat-button flex flex-shrink-0 items-center justify-center rounded-full bg-green-600 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
           style={{ width: 'clamp(56px, 11vw, 64px)', height: 'clamp(56px, 11vw, 64px)' }}
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8" aria-hidden="true">

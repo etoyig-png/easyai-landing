@@ -173,11 +173,42 @@
     transform: rotate(45deg);
   }
 
-  @keyframes gary-chat-attention {
-    0%, 70%, 100% { box-shadow: 0 8px 20px rgb(11 29 58 / 0.28), 0 0 0 0 rgb(45 125 125 / 0.35); }
-    82% { box-shadow: 0 8px 20px rgb(11 29 58 / 0.28), 0 0 0 8px rgb(45 125 125 / 0); }
+  /* Chat button — background is set via the bg-green-600 utility class in the JSX (the exact
+     same Tailwind token the "Start Your Free Assessment" CTA uses via .btn-green above), not
+     duplicated here. The old pulsing box-shadow "attention" ring is replaced by a slow, rotating
+     silver/chrome arc around the button's edge: a ::before ring built from a conic-gradient and
+     masked down to just its border, so it's pure decorative paint — it never changes the
+     button's own box size, so it can't enlarge the button's actual clickable/hit-testable area
+     (getBoundingClientRect() on the <button> itself is unaffected). Reads as a slow, deliberate
+     "strolling" highlight rather than a flashing notification badge. */
+  .gary-chat-button {
+    position: relative;
+    box-shadow: 0 8px 20px rgb(11 29 58 / 0.28);
   }
-  .gary-chat-button { animation: gary-chat-attention 3.4s ease-out infinite; }
+  .gary-chat-button::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    padding: 2px;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0%,
+      transparent 74%,
+      rgb(139 154 170 / 0.5) 82%,
+      #ffffff 90%,
+      #d4dce6 96%,
+      transparent 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    animation: gary-ring-stroll 6s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes gary-ring-stroll {
+    to { transform: rotate(360deg); }
+  }
 
   /* Base launcher layout — a vertical stack (button above, Gary below), matching the locked
      routine's own "chat button is visible above Gary" step. Defined here (not as Tailwind
@@ -224,6 +255,15 @@
     .gary-launcher .gary-character-wrap {
       width: clamp(34px, 10vw, 44px);
     }
+    /* The bubble is a flex sibling of the button, vertically centered against the button's own
+       56px row height — at that size it reads as floating above/between Gary and the button
+       rather than "belonging" to him. Nudging it down and left (toward Gary, who sits at the
+       opposite end of this row) without touching layout keeps the button's own position and the
+       row's overlap-safe footprint exactly as measured; the tail (below) moves with it since
+       it's positioned relative to the bubble's own box. */
+    .gary-speech-bubble {
+      transform: translate(-14px, 12px);
+    }
     .gary-speech-bubble::after {
       right: auto;
       left: -9px;
@@ -231,7 +271,29 @@
       border-bottom: 1px solid rgb(203 213 225);
       border-left: 1px solid rgb(203 213 225);
     }
-    .gary-launcher .gary-sign-board { right: -96px; }
+    /* In compact mode the chat button sits to Gary's right in the same row, not above him — the
+       desktop-tuned sign position/rotation and signPoint arm angle (below) both assumed "button
+       is directly overhead" and no longer read correctly once the bubble (above) starts
+       overlapping the sign's old position. Pushing the sign further right and rotating it to
+       lean that direction, and pointing the arm up-and-right instead of near-vertical, both aim
+       the same way the button actually is. */
+    .gary-launcher .gary-sign-board {
+      right: -155px;
+      top: 2px;
+      transform: translateY(-72%) rotate(9deg);
+    }
+    /* Higher specificity than the base .gary-sign-board.is-lowering rule (three selector parts
+       here vs. two there) so the lowering fade-out keeps leaning the same direction as the sign
+       did while held, instead of snapping back to the desktop rotation for that last transition. */
+    .gary-launcher .gary-sign-board.is-lowering {
+      transform: translateY(20%) rotate(10deg) scale(0.9);
+    }
+    /* .gary-launcher prefix bumps specificity above the base [data-gary-pose='signPoint']
+       .gary-arm-right rule below (both would otherwise be equally specific, and the base rule —
+       later in source — would win regardless of this media query matching). */
+    .gary-launcher [data-gary-pose='signPoint'] .gary-arm-right {
+      transform: rotate(-100deg);
+    }
   }
 
   /* Palette — reuses the site's own navy/teal/ivory tokens so Gary feels native to the brand
@@ -383,6 +445,9 @@
      reached some other way. */
   @media (prefers-reduced-motion: reduce) {
     .gary-chat-button { animation: none !important; }
+    /* The silver ring itself stays visible (a legitimate static border), only its rotation stops
+       — "become static" per the requirement, not "disappear". */
+    .gary-chat-button::before { animation: none !important; transform: none !important; }
     [data-gary-pose] { animation: none !important; }
     [data-gary-pose] .gary-arm-left,
     [data-gary-pose] .gary-arm-right,

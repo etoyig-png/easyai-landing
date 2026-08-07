@@ -706,6 +706,163 @@ test.describe('Gary launcher — hero video overlap', () => {
   }
 });
 
+// Advances the fake clock in small steps (matching the routine's own established pattern — a
+// single large fastForward isn't precise enough to reliably land inside a specific pose's hold
+// window) until the given pose is observed, or throws if it never appears within `budgetMs`.
+async function advanceToPose(page: Page, pose: string, budgetMs: number): Promise<void> {
+  let remaining = budgetMs;
+  while (remaining > 0) {
+    const step = Math.min(150, remaining);
+    await page.clock.fastForward(step);
+    await page.waitForTimeout(10);
+    if ((await currentGaryPose(page)) === pose) return;
+    remaining -= step;
+  }
+  throw new Error(`never observed pose "${pose}" within ${budgetMs}ms`);
+}
+
+test.describe('Gary launcher — chat button color/ring and mobile sign/bubble composition', () => {
+  test('chat button uses the exact same green as the "Start Your Free Business Assessment" CTA', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+
+    const buttonBg = await page.evaluate(() => getComputedStyle(document.querySelector('.gary-chat-button')!).backgroundColor);
+    const ctaBg = await page.evaluate(() => {
+      const cta = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Start Your Free Business Assessment'));
+      return cta ? getComputedStyle(cta).backgroundColor : null;
+    });
+    expect(ctaBg, 'assessment CTA not found').not.toBeNull();
+    expect(buttonBg, `button: ${buttonBg}, CTA: ${ctaBg}`).toBe(ctaBg);
+    // Pin to the actual Tailwind green-600 value so a future change to either side that keeps
+    // them merely equal-to-each-other (but drifts off-brand) still fails loudly.
+    expect(buttonBg).toBe('rgb(22, 163, 74)');
+  });
+
+  test('chat button remains clickable', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+
+    const button = page.getByRole('button', { name: 'Chat with Gary from Accounting' });
+    const box = await button.boundingBox();
+    const resolvesToButton = await page.evaluate(
+      ([x, y]) => {
+        const el = document.elementFromPoint(x, y);
+        const btn = document.querySelector('.gary-chat-button');
+        return el === btn || (btn ? btn.contains(el) : false);
+      },
+      [box!.x + box!.width / 2, box!.y + box!.height / 2]
+    );
+    expect(resolvesToButton).toBe(true);
+
+    await button.click();
+    await expect(page.getByRole('dialog', { name: 'Chat with Gary from Accounting' })).toBeVisible();
+  });
+
+  test('prefers-reduced-motion stops the silver ring rotating, without removing it', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.clock.install();
+    await page.goto('/');
+    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+
+    const before = await page.evaluate(() => {
+      const cs = getComputedStyle(document.querySelector('.gary-chat-button')!, '::before');
+      return { animationName: cs.animationName, hasGradient: cs.backgroundImage.includes('conic-gradient') };
+    });
+    expect(before.animationName).toBe('none');
+    // Static, not stripped — the requirement is "becomes static", not "disappears".
+    expect(before.hasGradient).toBe(true);
+  });
+
+  const COMPACT_VIEWPORTS = [
+    { width: 360, height: 800 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 }
+  ];
+
+  for (const viewport of COMPACT_VIEWPORTS) {
+    test(`chat button stays to Gary's right in compact mobile mode at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+
+      const buttonBox = await page.locator('.gary-chat-button').boundingBox();
+      const characterBox = await page.locator('.gary-character-wrap').boundingBox();
+      expect(
+        buttonBox!.x,
+        `button: ${JSON.stringify(buttonBox)}, character: ${JSON.stringify(characterBox)}`
+      ).toBeGreaterThanOrEqual(characterBox!.x + characterBox!.width);
+    });
+
+    test(`mobile speech bubble stays inside the viewport and off Gary's face at ${viewport.width}x${viewport.height}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+
+      const bubbleBox = await page.locator('.gary-speech-bubble').boundingBox();
+      const faceBox = await page.locator('.gary-glasses').boundingBox();
+      expect(bubbleBox!.x).toBeGreaterThanOrEqual(-1);
+      expect(bubbleBox!.x + bubbleBox!.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(
+        boxOverlapArea(bubbleBox, faceBox),
+        `bubble: ${JSON.stringify(bubbleBox)}, face: ${JSON.stringify(faceBox)}`
+      ).toBe(0);
+    });
+
+    test(`mobile sign stays inside the viewport, off the video and both CTAs, and leads toward the chat button at ${viewport.width}x${viewport.height}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
+
+      const signBox = await page.locator('.gary-sign-board').boundingBox();
+      const videoBox = await page.locator('video').first().boundingBox();
+      const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
+      const greenCtaBox = await heroSection.getByRole('link', { name: 'Start Your Free Business Assessment' }).boundingBox();
+      const ghostCtaBox = await heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
+      const characterBox = await page.locator('.gary-character-wrap').boundingBox();
+      const buttonBox = await page.locator('.gary-chat-button').boundingBox();
+
+      expect(signBox!.x).toBeGreaterThanOrEqual(-1);
+      expect(signBox!.x + signBox!.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(boxOverlapArea(signBox, videoBox), `sign vs video: ${JSON.stringify({ signBox, videoBox })}`).toBe(0);
+      expect(boxOverlapArea(signBox, greenCtaBox), `sign vs green CTA`).toBe(0);
+      expect(boxOverlapArea(signBox, ghostCtaBox), `sign vs ghost CTA`).toBe(0);
+
+      // "Spatially between/above Gary and toward the chat button" — the sign's own horizontal
+      // center sits to the right of Gary's and to the left of the button's, i.e. genuinely on
+      // the path between them rather than floating off on its own.
+      const signCenterX = signBox!.x + signBox!.width / 2;
+      const characterCenterX = characterBox!.x + characterBox!.width / 2;
+      expect(
+        signCenterX,
+        `sign center ${signCenterX} should be right of Gary's center ${characterCenterX}`
+      ).toBeGreaterThan(characterCenterX);
+      expect(
+        signCenterX,
+        `sign center ${signCenterX} should be left of the button at ${buttonBox!.x}`
+      ).toBeLessThan(buttonBox!.x);
+    });
+
+    test(`the sign still reads exactly "The button. Up there." at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
+
+      const text = await page.locator('.gary-sign-copy').textContent();
+      expect(text?.replace(/\s+/g, ' ').trim()).toBe('The button. Up there.');
+    });
+  }
+});
+
 test.describe('Homepage responsive images', () => {
   const REQUIRED_VIEWPORTS = [
     { width: 360, height: 800, label: '360x800' },
