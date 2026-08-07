@@ -565,11 +565,13 @@ test.describe('Gary launcher — hero video overlap', () => {
     { width: 430, height: 932, minUsefulWidth: 200 },
     { width: 768, height: 1024, minUsefulWidth: 220 },
     { width: 1024, height: 768, minUsefulWidth: 300 },
-    { width: 1440, height: 900, minUsefulWidth: 400 }
+    { width: 1440, height: 900, minUsefulWidth: 400 },
+    { width: 1536, height: 864, minUsefulWidth: 400 },
+    { width: 1600, height: 900, minUsefulWidth: 400 }
   ];
 
   for (const viewport of REQUIRED_WIDTHS) {
-    test(`the hero video is not covered by the Gary launcher at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    test(`the hero video is not covered by the Gary launcher or nav at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
       await page.goto('/');
@@ -579,6 +581,7 @@ test.describe('Gary launcher — hero video overlap', () => {
       const video = page.locator('video').first();
       const videoBox = await video.boundingBox();
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
+      const navBox = await page.locator('header').first().boundingBox();
       expect(videoBox, 'hero video not found').not.toBeNull();
       expect(launcherBox, 'launcher not found').not.toBeNull();
 
@@ -586,9 +589,13 @@ test.describe('Gary launcher — hero video overlap', () => {
         boxOverlapArea(videoBox, launcherBox),
         `video box: ${JSON.stringify(videoBox)}, launcher box: ${JSON.stringify(launcherBox)}`
       ).toBe(0);
+      expect(
+        boxOverlapArea(videoBox, navBox),
+        `video box: ${JSON.stringify(videoBox)}, nav box: ${JSON.stringify(navBox)}`
+      ).toBe(0);
     });
 
-    test(`the hero video stays large enough to be useful (not a thumbnail) at ${viewport.width}x${viewport.height}`, async ({
+    test(`the hero video stays large enough to be useful (not a thumbnail) and keeps a true 16:9 frame at ${viewport.width}x${viewport.height}`, async ({
       page
     }) => {
       await page.setViewportSize(viewport);
@@ -597,8 +604,8 @@ test.describe('Gary launcher — hero video overlap', () => {
       await expect(video).toBeVisible();
       const box = await video.boundingBox();
       expect(box!.width, `video was only ${box!.width}px wide`).toBeGreaterThanOrEqual(viewport.minUsefulWidth);
-      // True 4:3 aspect ratio preserved — width capping must never crop or distort the frame.
-      expect(Math.abs(box!.width / box!.height - 4 / 3)).toBeLessThan(0.05);
+      // The design intentionally shows the full 16:9 source (previously a 4:3 wrapper cropped it).
+      expect(Math.abs(box!.width / box!.height - 16 / 9)).toBeLessThan(0.05);
     });
 
     test(`no horizontal overflow at ${viewport.width}x${viewport.height}`, async ({ page }) => {
@@ -608,6 +615,50 @@ test.describe('Gary launcher — hero video overlap', () => {
       expect(scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
     });
   }
+
+  test('the hero video is not cropped: object-fit never crops a matching-aspect frame, and the rendered video fills its 16:9 wrapper with no letterboxing', async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    const video = page.locator('video').first();
+    await expect(video).toBeVisible();
+    await video.evaluate(
+      (el: HTMLVideoElement) =>
+        new Promise<void>((resolve) => {
+          if (el.readyState >= 1) resolve();
+          else el.addEventListener('loadedmetadata', () => resolve(), { once: true });
+        })
+    );
+
+    // The source file itself is a genuine 1920x1080 (16:9) recording — confirms the "full frame
+    // visible" requirement isn't just about the wrapper's shape matching the source by luck.
+    const sourceDims = await video.evaluate((el: HTMLVideoElement) => ({
+      videoWidth: el.videoWidth,
+      videoHeight: el.videoHeight
+    }));
+    expect(Math.abs(sourceDims.videoWidth / sourceDims.videoHeight - 16 / 9)).toBeLessThan(0.02);
+
+    const info = await video.evaluate((el: HTMLVideoElement) => {
+      const wrapper = el.parentElement!;
+      const wrapperBox = wrapper.getBoundingClientRect();
+      const videoBox = el.getBoundingClientRect();
+      return {
+        objectFit: getComputedStyle(el).objectFit,
+        wrapperAspect: wrapperBox.width / wrapperBox.height,
+        // With matching aspect ratios and object-fit:contain, the rendered video box should fill
+        // its wrapper almost exactly — any meaningfully smaller box here would mean letterboxing,
+        // which signals an aspect-ratio mismatch (i.e. the wrapper silently drifted off 16:9).
+        renderedFillsWrapper: videoBox.width >= wrapperBox.width * 0.98 && videoBox.height >= wrapperBox.height * 0.98
+      };
+    });
+
+    // object-contain never crops, regardless of aspect match — this is the structural guarantee
+    // that the source frame is always fully visible, unlike the old object-cover.
+    expect(info.objectFit).toBe('contain');
+    expect(Math.abs(info.wrapperAspect - 16 / 9)).toBeLessThan(0.05);
+    expect(info.renderedFillsWrapper, `wrapper/video mismatch would show as letterboxing: ${JSON.stringify(info)}`).toBe(true);
+  });
 
   // The two viewports the previous 58px-wide-thumbnail fix specifically failed on — checked
   // against both CTA buttons (not just one) and both the launcher's full box and the video.

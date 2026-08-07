@@ -76,19 +76,20 @@
     width: clamp(200px, 68%, 340px);
   }
 
-  /* Hero video — full width at md+ (overridden there by the md:w-[35%]/md:mx-0 utility classes
-     in page.tsx; Tailwind's utilities layer always wins over this @layer components rule, so no
-     max-width media query is needed to "turn this off" on desktop/tablet). Below md, the hero
-     stacks and this video is the last element in the column — at full width its 4:3 box is tall
-     enough that its on-screen position falls inside Gary's fixed launcher zone at the bottom of
-     short mobile viewports. Fixed by three things working together, all mobile-only, none of
-     them shrinking the video below a usable size: (1) tighter mobile hero spacing in page.tsx —
-     most of it via a max-[380px]: tier reserved for the very narrowest phones so 390px+ keeps its
-     normal, more generous rhythm; (2) capping the video's own width (not its aspect ratio, so
-     framing is never cropped) via the clamp below, floored well above a "thumbnail" size; (3) a
-     small, bounded upward nudge (see the media query below) for the couple of remaining pixels at
-     the single narrowest breakpoint, applied as a transform so it never disturbs where the next
-     section starts — kept intentionally tiny so it can't read as a stray gap. */
+  /* Hero video — full width at md+ (overridden there by the md:w-full utility class in page.tsx;
+     Tailwind's utilities layer always wins over this @layer components rule, so no max-width
+     media query is needed to "turn this off" on desktop/tablet — the grid track itself, not this
+     class, controls the video's desktop width). Below md, the hero stacks and this video is the
+     last element in the column — at full width its box is tall enough that its on-screen position
+     falls inside Gary's fixed launcher zone at the bottom of short mobile viewports. Fixed by
+     three things working together, all mobile-only, none of them shrinking the video below a
+     usable size: (1) tighter mobile hero spacing in page.tsx — most of it via a max-[380px]: tier
+     reserved for the very narrowest phones so 390px+ keeps its normal, more generous rhythm; (2)
+     capping the video's own width (not its aspect ratio, so framing is never cropped) via the
+     clamp below, floored well above a "thumbnail" size; (3) a small, bounded upward nudge (see the
+     media query below) for the couple of remaining pixels at the single narrowest breakpoint,
+     applied as a transform so it never disturbs where the next section starts — kept intentionally
+     tiny so it can't read as a stray gap. */
   .hero-video-wrap {
     width: clamp(200px, 58%, 260px);
     margin-left: auto;
@@ -103,6 +104,19 @@
     .hero-video-wrap {
       width: 180px;
       transform: translateY(-14px);
+    }
+  }
+
+  /* Desktop-only: lifts the video so its top sits near the headline's upper half instead of
+     vertically centered against the full text block (which, once the hero grid uses
+     items-start, would otherwise land level with the eyebrow — still lower than wanted). A real
+     margin, not a transform: it's a grid item's own box moving within normal flow, so nothing
+     downstream needs compensating and no dead space is left behind it. Mobile is untouched (no
+     md: prefix on this rule below); the value was measured against the 1440x900 layout it's
+     scoped to. */
+  @media (min-width: 768px) {
+    .hero-video-desktop-align {
+      margin-top: -80px;
     }
   }
 

@@ -44,12 +44,12 @@ export default function HeroVideo() {
   }
 
   return (
-    <div className="relative w-full overflow-hidden bg-navy-950" style={{ aspectRatio: '4/3' }}>
+    <div className="relative w-full overflow-hidden bg-navy-950" style={{ aspectRatio: '16/9' }}>
       <video
         ref={videoRef}
         src="/easy-ai-buy-back-time-hero.mp4"
         muted loop playsInline preload="metadata"
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
         aria-label="An electrician uses AI to finish business work and return home sooner to his family."
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
