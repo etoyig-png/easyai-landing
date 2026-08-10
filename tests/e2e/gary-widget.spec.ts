@@ -188,6 +188,13 @@ async function isSignTextVisible(page: Page): Promise<boolean> {
   return page.evaluate(() => document.querySelector('.gary-sign-text')?.classList.contains('is-visible') ?? false);
 }
 
+// The intro bubble is conditionally rendered (GaryLauncher.tsx's showIntroBubble), so presence in
+// the DOM is the real signal — there's no hidden-but-present state to distinguish. Same
+// fake-clock-safe snapshot read as currentGaryPose above, for the same reason.
+async function isIntroBubbleShown(page: Page): Promise<boolean> {
+  return page.evaluate(() => !!document.querySelector('.gary-speech-bubble'));
+}
+
 // Samples data-gary-pose at a fixed virtual-time cadence across the routine and returns the
 // deduplicated sequence of poses actually observed, in order. Deliberately doesn't try to land
 // on one exact instant per pose (page.clock.fastForward() is a real CDP round trip whose
@@ -784,7 +791,8 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
   const COMPACT_VIEWPORTS = [
     { width: 360, height: 800 },
     { width: 390, height: 844 },
-    { width: 412, height: 915 }
+    { width: 412, height: 915 },
+    { width: 430, height: 932 }
   ];
 
   for (const viewport of COMPACT_VIEWPORTS) {
@@ -820,18 +828,19 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
       const position = await page.locator('.gary-speech-bubble').evaluate((el) => getComputedStyle(el).position);
       expect(position).toBe('absolute');
 
-      // Vertically above the button (not beside it at the same height) — the literal opposite
-      // of "parallel with the chat button".
+      // Does not physically collide with the button — the bubble now sits low enough to be
+      // genuinely near Gary (its box can overlap his own vertically, see the "near Gary" check
+      // below), but it must never touch the button itself.
       expect(
-        bubbleBox!.y + bubbleBox!.height,
+        boxOverlapArea(bubbleBox, buttonBox),
         `bubble: ${JSON.stringify(bubbleBox)}, button: ${JSON.stringify(buttonBox)}`
-      ).toBeLessThanOrEqual(buttonBox!.y + 1);
+      ).toBe(0);
 
-      // Spatially associated with Gary: close above his head, not floating in open space —
-      // bounded gap, not "anywhere above the row".
-      const gapAboveCharacter = characterBox!.y - (bubbleBox!.y + bubbleBox!.height);
-      expect(gapAboveCharacter, `bubble: ${JSON.stringify(bubbleBox)}, character: ${JSON.stringify(characterBox)}`).toBeGreaterThanOrEqual(0);
-      expect(gapAboveCharacter).toBeLessThan(80);
+      // Spatially associated with Gary — sits close beside/above him (a small bounded horizontal
+      // gap to his character box, not floating in open space), while never actually boxing over
+      // him (checked in the face-overlap test below, the stricter version of this).
+      const gapToCharacter = characterBox!.x - (bubbleBox!.x + bubbleBox!.width);
+      expect(gapToCharacter, `bubble: ${JSON.stringify(bubbleBox)}, character: ${JSON.stringify(characterBox)}`).toBeLessThan(60);
 
       // Substantially left of the button's own center — the core complaint being fixed.
       const bubbleCenterX = bubbleBox!.x + bubbleBox!.width / 2;
@@ -864,7 +873,7 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
       ).toBeLessThan(faceCenterX);
     });
 
-    test(`mobile sign stays inside the viewport and off the video, both CTAs, and Gary's face at ${viewport.width}x${viewport.height}`, async ({
+    test(`mobile sign stays inside the viewport, off the video/both CTAs/Gary's face, is smaller than the old mobile sign, and still readable at ${viewport.width}x${viewport.height}`, async ({
       page
     }) => {
       await page.setViewportSize(viewport);
@@ -886,6 +895,16 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
       expect(boxOverlapArea(signBox, greenCtaBox), `sign vs green CTA`).toBe(0);
       expect(boxOverlapArea(signBox, ghostCtaBox), `sign vs ghost CTA`).toBe(0);
       expect(boxOverlapArea(signBox, buttonBox), `sign vs button: ${JSON.stringify({ signBox, buttonBox })}`).toBe(0);
+
+      // Smaller than the previous mobile sign (which measured up to ~135x72 at these widths) —
+      // ceilings set comfortably above the new clamp(84px,24vw,118px)/min-height:36px values so
+      // the test isn't flaky on sub-pixel rendering, but well below what the old sign measured.
+      expect(signBox!.width, `sign was ${signBox!.width}px wide`).toBeLessThanOrEqual(125);
+      expect(signBox!.height, `sign was ${signBox!.height}px tall`).toBeLessThanOrEqual(70);
+
+      // Still legibly readable — a real floor, not just "greater than zero".
+      const fontSize = await page.locator('.gary-sign-copy').evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+      expect(fontSize).toBeGreaterThanOrEqual(9);
       expect(boxOverlapArea(signBox, faceBox), `sign vs face: ${JSON.stringify({ signBox, faceBox })}`).toBe(0);
     });
 
@@ -993,6 +1012,58 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
 
       const text = await page.locator('.gary-sign-copy').textContent();
       expect(text?.replace(/\s+/g, ' ').trim()).toBe('The button. Up there.');
+    });
+
+    test(`intro speech bubble is visible in the normal resting state at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+      // Snapshot read, not a Locator assertion — see currentGaryPose's comment: under an
+      // installed fake clock, auto-waiting assertions can stall on a rAF that never comes.
+      expect(await isIntroBubbleShown(page)).toBe(true);
+    });
+
+    test(`intro speech bubble is hidden throughout the whole sign routine (sign, signPoint, signWave, lowering) at ${viewport.width}x${viewport.height}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+
+      // Each call resumes the clock from wherever the previous one left off, so the budget per
+      // step is just that step's own hold duration (plus slack) — not the cumulative time from
+      // mount, which only the first call (reaching 'sign') actually needs.
+      const stepsInOrder: Array<{ pose: string; budgetMs: number }> = [
+        { pose: 'sign', budgetMs: ROUTINE_START.sign + 500 },
+        { pose: 'signPoint', budgetMs: 1500 + 500 },
+        { pose: 'signWave', budgetMs: 1500 + 500 },
+        { pose: 'lowering', budgetMs: 3000 + 500 }
+      ];
+      for (const step of stepsInOrder) {
+        await advanceToPose(page, step.pose, step.budgetMs);
+        expect(await isIntroBubbleShown(page), `bubble should not exist while pose is "${step.pose}"`).toBe(false);
+      }
+    });
+
+    test(`intro speech bubble returns once Gary settles back to seated after the routine, at ${viewport.width}x${viewport.height}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      // Walk to the routine's LAST pose first. Going straight for 'seated' would be ambiguous:
+      // advanceToPose stops at the first match, and 'seated' is also the pre-routine state and a
+      // brief mid-routine beat — so it could "succeed" without the sign routine ever running,
+      // making the restore assertion below vacuous. Reaching 'lowering' proves the sign routine
+      // genuinely happened; only then is the following 'seated' the real post-routine rest.
+      await advanceToPose(page, 'lowering', ROUTINE_TOTAL_MS);
+      expect(await isIntroBubbleShown(page), 'bubble should still be hidden at lowering').toBe(false);
+
+      await advanceToPose(page, 'seated', 600 + 500);
+      expect(await isIntroBubbleShown(page), 'bubble should be back once Gary is seated again').toBe(true);
+      const signExists = await page.evaluate(() => !!document.querySelector('.gary-sign-board'));
+      expect(signExists, 'sign board should be gone once back at rest').toBe(false);
     });
   }
 

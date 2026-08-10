@@ -256,8 +256,14 @@
       align-items: flex-end;
       gap: 0.5rem;
     }
+    /* Moderately bigger than the original 34-44px compact floor/ceiling — Gary was reading as a
+       tiny character beside an oversized bubble/button. Kept close enough to the button's own
+       56px box (height = width * 1.25, so a 50px-wide Gary is ~62.5px tall) that it doesn't
+       meaningfully regrow the launcher's total footprint against the CTA-clearance budget the
+       compact layout was built around — verified against the existing CTA-overlap tests, not
+       just asserted here. */
     .gary-launcher .gary-character-wrap {
-      width: clamp(34px, 10vw, 44px);
+      width: clamp(42px, 12vw, 50px);
     }
     /* The bubble is a DOM child of the same flex row as the button (see GaryLauncher.tsx) — as a
        normal flow sibling there, no amount of margin/transform nudging ever stops it reading as
@@ -265,17 +271,16 @@
        flex row. Taking it out of that flow entirely and anchoring it to the launcher's own box
        (the nearest positioned ancestor, via position:fixed) lets it sit above and to the left of
        Gary — genuinely a different visual relationship, not a bigger version of the same nudge.
-       right/bottom are measured from the button's own corner (the launcher's box ends exactly at
-       the button's edges in row-reverse mode), not the character's, because the button's size is
-       constant (56px) across the whole compact-mode width range while the character's isn't —
-       anchoring to the stable element keeps this correct at 360–430px without per-width tuning. */
+       Only rendered at all outside the sign-related poses (GaryLauncher.tsx's showIntroBubble) —
+       with the sign never visible at the same time, this can sit closer to Gary and lower/further
+       left than the earlier version had room for while it still had to dodge the sign. */
     .gary-speech-bubble {
       position: absolute;
-      right: 92px;
-      bottom: 60px;
+      right: 128px;
+      bottom: 28px;
       left: auto;
       top: auto;
-      max-width: min(50vw, 176px);
+      max-width: min(46vw, 168px);
       z-index: 3;
     }
     .gary-speech-bubble::after {
@@ -288,17 +293,24 @@
       border-right: 1px solid rgb(203 213 225);
       transform: rotate(45deg);
     }
-    /* In compact mode the chat button sits to Gary's right in the same row, not above him — the
-       desktop-tuned sign rotation and signPoint arm angle (below) both assumed "button is
-       directly overhead" and needed a rightward lean to aim correctly instead. Taking the speech
-       bubble out of this row's flex flow (above) also shrank the row itself down to just the
-       button, which pulled the character (and this sign, anchored to it) ~190px closer to the
-       button than before — character and button now sit only ~8px apart, so the lean here is
-       small on purpose; the actual "which way is he pointing" cue mostly rides on the rotation
-       and the signPoint arm angle now, not a large horizontal push. */
+    /* Smaller than the desktop/base sign — compact mobile doesn't need to compete with an intro
+       bubble anymore (it's unmounted for the whole sign routine, above), so the sign no longer
+       has to out-shout a second message element, only stay legibly readable and clear of the
+       video below it. */
     .gary-launcher .gary-sign-board {
-      right: 40px;
-      top: 2px;
+      /* right (not just width) has to track the sign's own vw-based growth: the sign's fixed
+         right-anchor combined with its 24vw-growing width means its LEFT edge crept steadily
+         further left as the viewport widened toward 480px, eventually clipping the bottom-left
+         corner of Gary's face — measured overlap growing from 0 at 360px to ~42px^2 by 430px.
+         Anchoring further right (44px vs. the original 34px) pulls the whole box's right edge
+         back clear of the face at every required compact width, verified directly against the
+         face-overlap assertion rather than just eyeballed. */
+      right: 44px;
+      top: 6px;
+      width: clamp(84px, 24vw, 118px);
+      min-height: 36px;
+      padding: 6px 8px;
+      font-size: clamp(10px, 2.6vw, 12px);
       transform: translateY(-72%) rotate(9deg);
     }
     /* Higher specificity than the base .gary-sign-board.is-lowering rule (three selector parts

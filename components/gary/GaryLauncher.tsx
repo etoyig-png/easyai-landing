@@ -30,6 +30,24 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
+// Mirrors the compact-mode breakpoint in globals.css exactly ((max-height: 940px) and
+// (max-width: 480px)) — the one place that layout switch needs to be known in JS rather than
+// CSS, since which poses hide the intro bubble is a rendering decision (see showIntroBubble
+// below), not just a style one.
+function useIsCompactMobile(): boolean {
+  const [isCompact, setIsCompact] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia('(max-height: 940px) and (max-width: 480px)');
+    setIsCompact(query.matches);
+    const handler = () => setIsCompact(query.matches);
+    query.addEventListener('change', handler);
+    return () => query.removeEventListener('change', handler);
+  }, []);
+  return isCompact;
+}
+
+const SIGN_RELATED_POSES: GaryPose[] = ['sign', 'signPoint', 'signWave', 'lowering'];
+
 export default function GaryLauncher() {
   const [visible, setVisible] = useState(false);
   const [entering, setEntering] = useState(false);
@@ -37,6 +55,7 @@ export default function GaryLauncher() {
   const [pose, setPose] = useState<GaryPose>('seated');
   const [routineFinished, setRoutineFinished] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
+  const isCompactMobile = useIsCompactMobile();
   const timers = useRef<number[]>([]);
 
   function clearScheduledTimers() {
@@ -112,6 +131,14 @@ export default function GaryLauncher() {
   if (!visible) return null;
 
   const idleGlanceActive = pose === 'seated' && routineFinished && !open && !reducedMotion;
+  // On compact mobile, showing the intro bubble and the physical sign at once is exactly the
+  // collision the mobile-cleanup pass fixed: there isn't room for two white message elements
+  // near Gary's small compact footprint without them visually fighting. Real conditional
+  // rendering (not an opacity/visibility toggle) is deliberate — it fully removes the bubble
+  // from the DOM during the sign routine rather than leaving an invisible-but-present element
+  // that could still be measured, focused, or hit-tested. Desktop/tablet (isCompactMobile false)
+  // keeps showing both, since they don't collide there.
+  const showIntroBubble = !open && !(isCompactMobile && SIGN_RELATED_POSES.includes(pose));
 
   return (
     <div
@@ -131,9 +158,11 @@ export default function GaryLauncher() {
       {/* Speech bubble sits BESIDE the button, not stacked below the character — keeps the
           launcher's total vertical footprint small enough that it doesn't sit on top of page
           content on short mobile viewports (measured and fixed: a stacked label added enough
-          height to overlap the hero's own CTA button on a 375x812 viewport). */}
+          height to overlap the hero's own CTA button on a 375x812 viewport). On compact mobile
+          it's also absolutely positioned out of this row entirely (see globals.css) — see
+          showIntroBubble's own comment for why it disappears during the sign routine there. */}
       <div className="flex items-center gap-2">
-        {!open && (
+        {showIntroBubble && (
           <div className="gary-speech-bubble" data-testid="gary-speech-bubble">
             Hi! I&apos;m Gary from Accounting
           </div>
