@@ -8,6 +8,7 @@ export type GaryPose =
   | 'idea'
   | 'sign'
   | 'signPoint'
+  | 'signWave'
   | 'lowering';
 
 type GaryCharacterProps = {

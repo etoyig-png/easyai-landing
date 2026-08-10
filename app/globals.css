@@ -241,12 +241,16 @@
      further within that row, so the whole cluster fits inside the available clearance with a
      real margin rather than a pixel-perfect edge case. Gated on BOTH short height and narrow
      width so a merely-short desktop window never triggers it — this is specifically the mobile-
-     portrait case. 390x844 and 412x915 already have zero overlap in the normal stacked layout
-     (measured), so they're intentionally left alone.
+     portrait case.
      Bounds worked backward from the 360x800 measurement: character width floor 34px keeps a
      recognizable head/glasses/shirt/tie silhouette (not a single-pixel blob) while landing the
-     whole row comfortably under the ~65px budget. */
-  @media (max-height: 920px) and (max-width: 480px) {
+     whole row comfortably under the ~65px budget.
+     The height ceiling (940px, not the 920px the original CTA-overlap fix needed) exists so all
+     four required mobile test heights — 800/844/915/932 — land on one consistent row-reverse
+     layout and share the same bubble/sign positioning math below, rather than 430x932 alone
+     falling back to the stacked desktop-style layout and needing its own bespoke coordinate
+     system for a single viewport. */
+  @media (max-height: 940px) and (max-width: 480px) {
     .gary-launcher {
       flex-direction: row-reverse;
       align-items: flex-end;
@@ -255,30 +259,45 @@
     .gary-launcher .gary-character-wrap {
       width: clamp(34px, 10vw, 44px);
     }
-    /* The bubble is a flex sibling of the button, vertically centered against the button's own
-       56px row height — at that size it reads as floating above/between Gary and the button
-       rather than "belonging" to him. Nudging it down and left (toward Gary, who sits at the
-       opposite end of this row) without touching layout keeps the button's own position and the
-       row's overlap-safe footprint exactly as measured; the tail (below) moves with it since
-       it's positioned relative to the bubble's own box. */
+    /* The bubble is a DOM child of the same flex row as the button (see GaryLauncher.tsx) — as a
+       normal flow sibling there, no amount of margin/transform nudging ever stops it reading as
+       the button's own label, since it's still literally laid out beside the button by the same
+       flex row. Taking it out of that flow entirely and anchoring it to the launcher's own box
+       (the nearest positioned ancestor, via position:fixed) lets it sit above and to the left of
+       Gary — genuinely a different visual relationship, not a bigger version of the same nudge.
+       right/bottom are measured from the button's own corner (the launcher's box ends exactly at
+       the button's edges in row-reverse mode), not the character's, because the button's size is
+       constant (56px) across the whole compact-mode width range while the character's isn't —
+       anchoring to the stable element keeps this correct at 360–430px without per-width tuning. */
     .gary-speech-bubble {
-      transform: translate(-14px, 12px);
+      position: absolute;
+      right: 92px;
+      bottom: 60px;
+      left: auto;
+      top: auto;
+      max-width: min(50vw, 176px);
+      z-index: 3;
     }
     .gary-speech-bubble::after {
-      right: auto;
-      left: -9px;
+      right: 14px;
+      bottom: -8px;
+      left: auto;
+      top: auto;
       border: 0;
       border-bottom: 1px solid rgb(203 213 225);
-      border-left: 1px solid rgb(203 213 225);
+      border-right: 1px solid rgb(203 213 225);
+      transform: rotate(45deg);
     }
     /* In compact mode the chat button sits to Gary's right in the same row, not above him — the
-       desktop-tuned sign position/rotation and signPoint arm angle (below) both assumed "button
-       is directly overhead" and no longer read correctly once the bubble (above) starts
-       overlapping the sign's old position. Pushing the sign further right and rotating it to
-       lean that direction, and pointing the arm up-and-right instead of near-vertical, both aim
-       the same way the button actually is. */
+       desktop-tuned sign rotation and signPoint arm angle (below) both assumed "button is
+       directly overhead" and needed a rightward lean to aim correctly instead. Taking the speech
+       bubble out of this row's flex flow (above) also shrank the row itself down to just the
+       button, which pulled the character (and this sign, anchored to it) ~190px closer to the
+       button than before — character and button now sit only ~8px apart, so the lean here is
+       small on purpose; the actual "which way is he pointing" cue mostly rides on the rotation
+       and the signPoint arm angle now, not a large horizontal push. */
     .gary-launcher .gary-sign-board {
-      right: -155px;
+      right: 40px;
       top: 2px;
       transform: translateY(-72%) rotate(9deg);
     }
@@ -381,6 +400,16 @@
   [data-gary-pose='sign'] .gary-arm-right { transform: rotate(-140deg); }
   [data-gary-pose='signPoint'] .gary-arm-left { transform: rotate(-140deg); }
   [data-gary-pose='signPoint'] .gary-arm-right { transform: rotate(-165deg); }
+
+  /* signWave — the sign itself is a separate, independently-positioned element (.gary-sign-board
+     below), not attached to the arm's transform, so it never moves or "jumps" regardless of what
+     the arm does here; the left arm just keeps reading as "still holding it up" while the right
+     arm reuses the same gary-wave keyframes as the routine's very first greeting wave (already
+     proven to read clearly without covering the face), looped twice to fill the full 3s hold. */
+  [data-gary-pose='signWave'] .gary-arm-left { transform: rotate(-140deg); }
+  [data-gary-pose='signWave'] .gary-arm-right {
+    animation: gary-wave 1.5s ease-in-out 2;
+  }
   .gary-sign-board {
     position: absolute;
     z-index: 2;

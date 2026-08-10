@@ -162,10 +162,16 @@ test.describe('Gary widget', () => {
 // to jump to an exact instant (see samplePoseSequence's own comment for why).
 const LAUNCH_DELAY_MS = 5000;
 const ROUTINE_TOTAL_MS =
-  LAUNCH_DELAY_MS + 700 + 1600 + 2600 + 1400 + 600 + 700 + 2800 + 600; // = 16000
+  LAUNCH_DELAY_MS + 700 + 1600 + 1200 + 1400 + 1400 + 600 + 700 + 1500 + 1500 + 3000 + 600; // = 19200
 const ROUTINE_START = {
-  sign: LAUNCH_DELAY_MS + 700 + 1600 + 2600 + 1400 + 600 + 700
+  sign: LAUNCH_DELAY_MS + 700 + 1600 + 1200 + 1400 + 1400 + 600 + 700 // = 12600
 };
+// The physical sign board itself (rendered for 'sign' | 'signPoint' | 'signWave' | 'lowering')
+// stays fully visible (not aria-hidden) for sign(1500) + signPoint(1500) + signWave(3000) = 6000ms
+// before 'lowering' starts — comfortably past the required 5000ms minimum (asserted directly
+// against the real source values in lib/gary/routineSteps.test.ts, not measured here — see the
+// "sign is still solidly visible when signWave arrives" test below for why).
+const ROUTINE_START_SIGN_POINT = ROUTINE_START.sign + 1500;
 
 // A plain snapshot read via page.evaluate() rather than a Locator's auto-waiting getAttribute():
 // Playwright's fake clock (page.clock.install()) also virtualizes requestAnimationFrame, which
@@ -796,7 +802,44 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
       ).toBeGreaterThanOrEqual(characterBox!.x + characterBox!.width);
     });
 
-    test(`mobile speech bubble stays inside the viewport and off Gary's face at ${viewport.width}x${viewport.height}`, async ({
+    test(`mobile speech bubble no longer sits parallel with the chat button — it's above Gary, not beside the button, at ${viewport.width}x${viewport.height}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+
+      const bubbleBox = await page.locator('.gary-speech-bubble').boundingBox();
+      const buttonBox = await page.locator('.gary-chat-button').boundingBox();
+      const characterBox = await page.locator('.gary-character-wrap').boundingBox();
+
+      // Taken out of the button's flex row entirely (see globals.css) — no longer a sibling
+      // label sharing the button's own row, which is what made it read as "the button's caption"
+      // regardless of how far it was nudged within that row.
+      const position = await page.locator('.gary-speech-bubble').evaluate((el) => getComputedStyle(el).position);
+      expect(position).toBe('absolute');
+
+      // Vertically above the button (not beside it at the same height) — the literal opposite
+      // of "parallel with the chat button".
+      expect(
+        bubbleBox!.y + bubbleBox!.height,
+        `bubble: ${JSON.stringify(bubbleBox)}, button: ${JSON.stringify(buttonBox)}`
+      ).toBeLessThanOrEqual(buttonBox!.y + 1);
+
+      // Spatially associated with Gary: close above his head, not floating in open space —
+      // bounded gap, not "anywhere above the row".
+      const gapAboveCharacter = characterBox!.y - (bubbleBox!.y + bubbleBox!.height);
+      expect(gapAboveCharacter, `bubble: ${JSON.stringify(bubbleBox)}, character: ${JSON.stringify(characterBox)}`).toBeGreaterThanOrEqual(0);
+      expect(gapAboveCharacter).toBeLessThan(80);
+
+      // Substantially left of the button's own center — the core complaint being fixed.
+      const bubbleCenterX = bubbleBox!.x + bubbleBox!.width / 2;
+      const buttonCenterX = buttonBox!.x + buttonBox!.width / 2;
+      expect(buttonCenterX - bubbleCenterX).toBeGreaterThan(60);
+    });
+
+    test(`mobile speech bubble stays inside the viewport, off Gary's face, and left of his head/face center at ${viewport.width}x${viewport.height}`, async ({
       page
     }) => {
       await page.setViewportSize(viewport);
@@ -812,9 +855,16 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
         boxOverlapArea(bubbleBox, faceBox),
         `bubble: ${JSON.stringify(bubbleBox)}, face: ${JSON.stringify(faceBox)}`
       ).toBe(0);
+
+      const bubbleCenterX = bubbleBox!.x + bubbleBox!.width / 2;
+      const faceCenterX = faceBox!.x + faceBox!.width / 2;
+      expect(
+        bubbleCenterX,
+        `bubble center ${bubbleCenterX} should be left of face center ${faceCenterX}`
+      ).toBeLessThan(faceCenterX);
     });
 
-    test(`mobile sign stays inside the viewport, off the video and both CTAs, and leads toward the chat button at ${viewport.width}x${viewport.height}`, async ({
+    test(`mobile sign stays inside the viewport and off the video, both CTAs, and Gary's face at ${viewport.width}x${viewport.height}`, async ({
       page
     }) => {
       await page.setViewportSize(viewport);
@@ -827,28 +877,16 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
       const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
       const greenCtaBox = await heroSection.getByRole('link', { name: 'Start Your Free Business Assessment' }).boundingBox();
       const ghostCtaBox = await heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
-      const characterBox = await page.locator('.gary-character-wrap').boundingBox();
       const buttonBox = await page.locator('.gary-chat-button').boundingBox();
+      const faceBox = await page.locator('.gary-glasses').boundingBox();
 
       expect(signBox!.x).toBeGreaterThanOrEqual(-1);
       expect(signBox!.x + signBox!.width).toBeLessThanOrEqual(viewport.width + 1);
       expect(boxOverlapArea(signBox, videoBox), `sign vs video: ${JSON.stringify({ signBox, videoBox })}`).toBe(0);
       expect(boxOverlapArea(signBox, greenCtaBox), `sign vs green CTA`).toBe(0);
       expect(boxOverlapArea(signBox, ghostCtaBox), `sign vs ghost CTA`).toBe(0);
-
-      // "Spatially between/above Gary and toward the chat button" — the sign's own horizontal
-      // center sits to the right of Gary's and to the left of the button's, i.e. genuinely on
-      // the path between them rather than floating off on its own.
-      const signCenterX = signBox!.x + signBox!.width / 2;
-      const characterCenterX = characterBox!.x + characterBox!.width / 2;
-      expect(
-        signCenterX,
-        `sign center ${signCenterX} should be right of Gary's center ${characterCenterX}`
-      ).toBeGreaterThan(characterCenterX);
-      expect(
-        signCenterX,
-        `sign center ${signCenterX} should be left of the button at ${buttonBox!.x}`
-      ).toBeLessThan(buttonBox!.x);
+      expect(boxOverlapArea(signBox, buttonBox), `sign vs button: ${JSON.stringify({ signBox, buttonBox })}`).toBe(0);
+      expect(boxOverlapArea(signBox, faceBox), `sign vs face: ${JSON.stringify({ signBox, faceBox })}`).toBe(0);
     });
 
     test(`the sign still reads exactly "The button. Up there." at ${viewport.width}x${viewport.height}`, async ({ page }) => {
@@ -860,7 +898,111 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
       const text = await page.locator('.gary-sign-copy').textContent();
       expect(text?.replace(/\s+/g, ' ').trim()).toBe('The button. Up there.');
     });
+
+    test(`the initial pointing gesture (signPoint) angles up-and-right toward the chat button, not straight up, at ${viewport.width}x${viewport.height}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+      await advanceToPose(page, 'signPoint', ROUTINE_START_SIGN_POINT + 500);
+      // The arm rotates via a real CSS transition (transform 0.3s ease) — advanceToPose stops the
+      // instant data-gary-pose flips to signPoint, which can be mid-transition from signPoint's
+      // predecessor angle. A short real-time wait (unaffected by the fake clock, which only
+      // virtualizes the page's own JS timers, not the compositor) lets it settle before reading.
+      await page.waitForTimeout(400);
+
+      const transform = await page.locator('.gary-arm-right').evaluate((el) => getComputedStyle(el).transform);
+      // matrix(a, b, c, d, tx, ty) — the rotation angle is atan2(b, a). The desktop/base angle is
+      // -165deg (near-straight-up); compact mode overrides it to -100deg (up-and-right). Assert
+      // it's in the up-and-right band, not the near-vertical one, without hardcoding the exact
+      // matrix string (which drifts with float rounding).
+      const angleDeg = await page.evaluate((t) => {
+        const m = t.match(/matrix\(([^)]+)\)/);
+        if (!m) return null;
+        const [a, b] = m[1].split(',').map(Number);
+        return (Math.atan2(b, a) * 180) / Math.PI;
+      }, transform);
+      expect(angleDeg, `arm-right transform: ${transform}`).not.toBeNull();
+      // -165deg normalizes to 195deg; -100deg stays -100deg — assert it's closer to -100 than -165.
+      const distanceFromCompact = Math.abs(((angleDeg! - -100 + 540) % 360) - 180);
+      const distanceFromDesktop = Math.abs(((angleDeg! - -165 + 540) % 360) - 180);
+      expect(
+        distanceFromCompact,
+        `angle ${angleDeg}deg should be closer to the compact -100deg than the desktop -165deg`
+      ).toBeLessThan(distanceFromDesktop);
+    });
+
+    test(`the sign is still solidly visible when signWave arrives, and Gary waves without the sign jumping or leaving the viewport, at ${viewport.width}x${viewport.height}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.clock.install();
+      await page.goto('/');
+
+      // The exact >=5000ms hold duration is asserted directly against the routine's real source
+      // values in lib/gary/routineSteps.test.ts (a unit test, not e2e) — a fake-clock e2e test
+      // that tries to *measure* a ~6s continuous duration by chaining ~190 small
+      // page.clock.fastForward() calls turns out to drift significantly (confirmed empirically:
+      // measured holds came back ~25% short of the real values), so it's not a reliable way to
+      // verify a duration here. advanceToPose() is drift-tolerant by contrast: it stops as soon
+      // as it observes the target pose, so a few dozen short-lived steps can't accumulate the
+      // same error. What's checked here at each of the three sub-poses is presence and ordering —
+      // sign, then signPoint, then signWave all solidly visible in sequence — which is exactly
+      // what the routine's structure (a single sign board rendered continuously across all three
+      // poses, per GaryLauncher.tsx) guarantees once each pose is confirmed reached in turn.
+      await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
+      expect(await currentGaryPose(page)).toBe('sign');
+      let solid = await page.evaluate(() => {
+        const board = document.querySelector('.gary-sign-board');
+        return !!board && board.getAttribute('aria-hidden') !== 'true';
+      });
+      expect(solid, 'sign board should be solidly visible at sign').toBe(true);
+
+      await advanceToPose(page, 'signPoint', 1500 + 500);
+      solid = await page.evaluate(() => {
+        const board = document.querySelector('.gary-sign-board');
+        return !!board && board.getAttribute('aria-hidden') !== 'true';
+      });
+      expect(solid, 'sign board should be solidly visible at signPoint').toBe(true);
+
+      await advanceToPose(page, 'signWave', 1500 + 500);
+      solid = await page.evaluate(() => {
+        const board = document.querySelector('.gary-sign-board');
+        return !!board && board.getAttribute('aria-hidden') !== 'true';
+      });
+      expect(solid, 'sign board should be solidly visible at signWave').toBe(true);
+
+      // The right arm is genuinely animating (the wave) during signWave.
+      const t1 = await page.locator('.gary-arm-right').evaluate((el) => getComputedStyle(el).transform);
+      const signBoxT1 = await page.locator('.gary-sign-board').boundingBox();
+      await page.clock.fastForward(500);
+      await page.waitForTimeout(20);
+      // Still in signWave (500ms in, well inside its 3000ms hold) — if it already moved on, the
+      // arm-changed/sign-stable assertions below wouldn't mean what they claim to.
+      expect(await currentGaryPose(page)).toBe('signWave');
+      const t2 = await page.locator('.gary-arm-right').evaluate((el) => getComputedStyle(el).transform);
+      const signBoxT2 = await page.locator('.gary-sign-board').boundingBox();
+
+      expect(t1, 'arm should visibly animate (wave) while the sign is up').not.toBe(t2);
+      // The sign itself must not move/jump during the wave — it's a physically independent
+      // element, not attached to the waving arm's transform.
+      expect(signBoxT2).toEqual(signBoxT1);
+      expect(signBoxT2!.x).toBeGreaterThanOrEqual(-1);
+      expect(signBoxT2!.x + signBoxT2!.width).toBeLessThanOrEqual(viewport.width + 1);
+
+      const text = await page.locator('.gary-sign-copy').textContent();
+      expect(text?.replace(/\s+/g, ' ').trim()).toBe('The button. Up there.');
+    });
   }
+
+  test('reduced motion never enters signWave — no forced long wave for reduced-motion users', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.clock.install();
+    await page.goto('/');
+    const sequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
+    expect(sequence, `sequence: ${sequence.join(' -> ')}`).toEqual(['seated']);
+  });
 });
 
 test.describe('Homepage responsive images', () => {

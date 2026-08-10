@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { hasPlayedLaunchAnimation, markLaunchAnimationPlayed } from '@/lib/gary/clientSession';
+import { ROUTINE_STEPS } from '@/lib/gary/routineSteps';
 import GaryCharacter, { type GaryPose } from './GaryCharacter';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
@@ -13,23 +14,9 @@ const GaryPanel = dynamic(() => import('./GaryPanel'), { ssr: false });
 
 const LAUNCH_DELAY_MS = 5000;
 
-// Locked routine timing (ms). Each entry is how long that pose holds before the next one starts.
-// jump -> wave -> point (the "waiting to see whether the visitor responds" beat) -> frustrated
-// -> a brief neutral pause -> idea -> sign (held long enough to actually read) -> lowering ->
-// back to seated. Total run time is under 12s, matching a one-time attention beat rather than
-// something that lingers.
-const ROUTINE_STEPS: Array<{ pose: GaryPose; holdMs: number }> = [
-  { pose: 'jump', holdMs: 700 },
-  { pose: 'wave', holdMs: 1600 },
-  { pose: 'point', holdMs: 1200 },
-  { pose: 'wait', holdMs: 1400 },
-  { pose: 'frustrated', holdMs: 1400 },
-  { pose: 'seated', holdMs: 600 },
-  { pose: 'idea', holdMs: 700 },
-  { pose: 'sign', holdMs: 1400 },
-  { pose: 'signPoint', holdMs: 1400 },
-  { pose: 'lowering', holdMs: 600 },
-];
+// Locked routine timing lives in lib/gary/routineSteps.ts (a plain .ts module, not this 'use
+// client' component) specifically so it can be imported directly by a Vitest unit test — see that
+// file's own comment for why that matters more than it might seem.
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -166,7 +153,7 @@ export default function GaryLauncher() {
 
       {!open && (
         <div className="gary-decorative-cluster relative">
-          {(pose === 'sign' || pose === 'signPoint' || pose === 'lowering') && (
+          {(pose === 'sign' || pose === 'signPoint' || pose === 'signWave' || pose === 'lowering') && (
             <div
               className={`gary-sign-board${pose === 'lowering' ? ' is-lowering' : ''}`}
               aria-hidden={pose === 'lowering' ? 'true' : undefined}
