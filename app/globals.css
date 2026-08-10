@@ -234,36 +234,16 @@
     pointer-events: auto;
   }
 
-  /* Collision-aware compact layout — short mobile viewports only (measured: 360x800 has just
+  /* Collision-aware phone layout (measured: 360x800 has just
      ~65px of clearance below the homepage hero's own CTA button before the safe-area bottom
      margin; the normal stacked layout needs ~115px+). Switches the launcher from a vertical
-     stack (button above, Gary below) to a single horizontal row, and shrinks the character
-     further within that row, so the whole cluster fits inside the available clearance with a
-     real margin rather than a pixel-perfect edge case. Gated on BOTH short height and narrow
-     width so a merely-short desktop window never triggers it — this is specifically the mobile-
-     portrait case.
-     Bounds worked backward from the 360x800 measurement: character width floor 34px keeps a
-     recognizable head/glasses/shirt/tie silhouette (not a single-pixel blob) while landing the
-     whole row comfortably under the ~65px budget.
-     The height ceiling (940px, not the 920px the original CTA-overlap fix needed) exists so all
-     four required mobile test heights — 800/844/915/932 — land on one consistent row-reverse
-     layout and share the same bubble/sign positioning math below, rather than 430x932 alone
-     falling back to the stacked desktop-style layout and needing its own bespoke coordinate
-     system for a single viewport. */
-  @media (max-height: 940px) and (max-width: 480px) {
+     stack (button above, Gary below) to a single horizontal row. Width alone controls this
+     composition; the height-sensitive rule below only shrinks Gary when clearance requires it. */
+  @media (max-width: 767px) {
     .gary-launcher {
       flex-direction: row-reverse;
       align-items: flex-end;
       gap: 0.5rem;
-    }
-    /* Moderately bigger than the original 34-44px compact floor/ceiling — Gary was reading as a
-       tiny character beside an oversized bubble/button. Kept close enough to the button's own
-       56px box (height = width * 1.25, so a 50px-wide Gary is ~62.5px tall) that it doesn't
-       meaningfully regrow the launcher's total footprint against the CTA-clearance budget the
-       compact layout was built around — verified against the existing CTA-overlap tests, not
-       just asserted here. */
-    .gary-launcher .gary-character-wrap {
-      width: clamp(42px, 12vw, 50px);
     }
     /* The bubble is a DOM child of the same flex row as the button (see GaryLauncher.tsx) — as a
        normal flow sibling there, no amount of margin/transform nudging ever stops it reading as
@@ -276,7 +256,7 @@
        left than the earlier version had room for while it still had to dodge the sign. */
     .gary-speech-bubble {
       position: absolute;
-      right: 128px;
+      right: clamp(128px, 27.333vw, 164px);
       bottom: 28px;
       left: auto;
       top: auto;
@@ -305,7 +285,6 @@
          Anchoring further right (44px vs. the original 34px) pulls the whole box's right edge
          back clear of the face at every required compact width, verified directly against the
          face-overlap assertion rather than just eyeballed. */
-      right: 44px;
       top: 6px;
       width: clamp(84px, 24vw, 118px);
       min-height: 36px;
@@ -324,6 +303,26 @@
        later in source — would win regardless of this media query matching). */
     .gary-launcher [data-gary-pose='signPoint'] .gary-arm-right {
       transform: rotate(-100deg);
+    }
+  }
+
+  /* Only the character shrink is height-sensitive; message behavior and the horizontal phone
+     composition are shared by every phone-width viewport. */
+  @media (max-height: 940px) and (max-width: 480px) {
+    .gary-launcher .gary-character-wrap {
+      width: clamp(42px, 12vw, 50px);
+    }
+  }
+
+  /* Preserve one pixel of CTA clearance on the shortest supported phones without transform:
+     transform would create a containing block and break GaryPanel's fixed positioning. */
+  @media (max-height: 844px) and (max-width: 480px) {
+    .gary-launcher {
+      bottom: calc(max(1rem, env(safe-area-inset-bottom)) - 1px) !important;
+    }
+
+    .gary-launcher .gary-sign-board {
+      top: 38px;
     }
   }
 
@@ -425,7 +424,7 @@
   .gary-sign-board {
     position: absolute;
     z-index: 2;
-    right: -12px;
+    right: max(44px, 80%);
     top: 10px;
     width: clamp(116px, 30vw, 172px);
     min-height: 48px;
