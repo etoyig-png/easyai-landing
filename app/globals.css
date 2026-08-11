@@ -210,13 +210,9 @@
     to { transform: rotate(360deg); }
   }
 
-  /* Base launcher layout — a vertical stack (button above, Gary below), matching the locked
-     routine's own "chat button is visible above Gary" step. Defined here (not as Tailwind
-     flex-col/items-end utility classes on the element) specifically so the compact-mode media
-     query below can override flex-direction: Tailwind's utilities layer always wins over
-     @layer components regardless of selector specificity or source order, so a .gary-launcher
-     rule in this layer could never beat a flex-col utility class on the same element — moving
-     the whole layout here sidesteps that fight entirely. */
+  /* Universal launcher composition — the speech bubble and button share the top row, with
+     Gary seated directly beneath the button. Mobile, tablet, and desktop use this same structure;
+     responsive rules may scale the geometry, but never rearrange the relationship. */
   .gary-launcher {
     display: flex;
     flex-direction: column;
@@ -234,57 +230,10 @@
     pointer-events: auto;
   }
 
-  /* Collision-aware phone layout (measured: 360x800 has just
-     ~65px of clearance below the homepage hero's own CTA button before the safe-area bottom
-     margin; the normal stacked layout needs ~115px+). Switches the launcher from a vertical
-     stack (button above, Gary below) to a single horizontal row. Width alone controls this
-     composition; the height-sensitive rule below only shrinks Gary when clearance requires it. */
+  /* Phone widths keep the exact desktop composition. Only the physical sign scales down so
+     the animation remains readable and inside narrow viewports. */
   @media (max-width: 767px) {
-    .gary-launcher {
-      flex-direction: row-reverse;
-      align-items: flex-end;
-      gap: 0.5rem;
-    }
-    /* The bubble is a DOM child of the same flex row as the button (see GaryLauncher.tsx) — as a
-       normal flow sibling there, no amount of margin/transform nudging ever stops it reading as
-       the button's own label, since it's still literally laid out beside the button by the same
-       flex row. Taking it out of that flow entirely and anchoring it to the launcher's own box
-       (the nearest positioned ancestor, via position:fixed) lets it sit above and to the left of
-       Gary — genuinely a different visual relationship, not a bigger version of the same nudge.
-       Only rendered at all outside the sign-related poses (GaryLauncher.tsx's showIntroBubble) —
-       with the sign never visible at the same time, this can sit closer to Gary and lower/further
-       left than the earlier version had room for while it still had to dodge the sign. */
-    .gary-speech-bubble {
-      position: absolute;
-      right: clamp(128px, 27.333vw, 164px);
-      bottom: 28px;
-      left: auto;
-      top: auto;
-      max-width: min(46vw, 168px);
-      z-index: 3;
-    }
-    .gary-speech-bubble::after {
-      right: 14px;
-      bottom: -8px;
-      left: auto;
-      top: auto;
-      border: 0;
-      border-bottom: 1px solid rgb(203 213 225);
-      border-right: 1px solid rgb(203 213 225);
-      transform: rotate(45deg);
-    }
-    /* Smaller than the desktop/base sign — compact mobile doesn't need to compete with an intro
-       bubble anymore (it's unmounted for the whole sign routine, above), so the sign no longer
-       has to out-shout a second message element, only stay legibly readable and clear of the
-       video below it. */
     .gary-launcher .gary-sign-board {
-      /* right (not just width) has to track the sign's own vw-based growth: the sign's fixed
-         right-anchor combined with its 24vw-growing width means its LEFT edge crept steadily
-         further left as the viewport widened toward 480px, eventually clipping the bottom-left
-         corner of Gary's face — measured overlap growing from 0 at 360px to ~42px^2 by 430px.
-         Anchoring further right (44px vs. the original 34px) pulls the whole box's right edge
-         back clear of the face at every required compact width, verified directly against the
-         face-overlap assertion rather than just eyeballed. */
       top: 6px;
       width: clamp(84px, 24vw, 118px);
       min-height: 36px;
@@ -292,22 +241,16 @@
       font-size: clamp(10px, 2.6vw, 12px);
       transform: translateY(-72%) rotate(9deg);
     }
-    /* Higher specificity than the base .gary-sign-board.is-lowering rule (three selector parts
-       here vs. two there) so the lowering fade-out keeps leaning the same direction as the sign
-       did while held, instead of snapping back to the desktop rotation for that last transition. */
     .gary-launcher .gary-sign-board.is-lowering {
       transform: translateY(20%) rotate(10deg) scale(0.9);
     }
-    /* .gary-launcher prefix bumps specificity above the base [data-gary-pose='signPoint']
-       .gary-arm-right rule below (both would otherwise be equally specific, and the base rule —
-       later in source — would win regardless of this media query matching). */
     .gary-launcher [data-gary-pose='signPoint'] .gary-arm-right {
       transform: rotate(-100deg);
     }
   }
 
-  /* Only the character shrink is height-sensitive; message behavior and the horizontal phone
-     composition are shared by every phone-width viewport. */
+  /* Short phones scale Gary down for clearance without changing the desktop composition. */
+
   @media (max-height: 940px) and (max-width: 480px) {
     .gary-launcher .gary-character-wrap {
       width: clamp(42px, 12vw, 50px);
