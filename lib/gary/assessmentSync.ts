@@ -62,15 +62,23 @@ export async function syncCompleteAssessmentToCommandCenter(params: SyncParams):
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SYNC_TOKEN}` },
       body: JSON.stringify({
-        // Flat fields — same shape the existing route already accepts for the always-created
-        // AssessmentSubmission row (see app/api/easy-ai/assessments/route.ts).
-        firstName: submission.firstName,
-        lastName: submission.lastName,
-        businessName: submission.businessName,
-        email: submission.email,
-        phone: (submission as unknown as { phone?: string }).phone,
+        // Flat fields — these names are the Command Center's contract, not ours: its route reads
+        // companyName / contactName / contactEmail / contactPhone and hard-rejects a body without
+        // a companyName and at least one contact method (see app/api/easy-ai/assessments/route.ts).
+        // The quiz collects no phone number (lib/validation.ts has no phone field), so email is
+        // the only contact method sent and contactPhone is deliberately omitted rather than faked.
+        companyName: submission.businessName,
+        contactName: `${submission.firstName} ${submission.lastName}`.trim(),
+        contactEmail: submission.email,
         industry: submission.industry,
+        profileResult: submission.desiredOutcome,
         source: 'easyai-landing',
+        submittedAt: new Date().toISOString(),
+        // A stable identity for this submission so a platform-level retry of the assessment
+        // function replays the original save instead of creating a second Assessment. Without
+        // this the Command Center falls back to hashing submittedAt, which is regenerated on
+        // every call and would make each retry look like a brand-new submission.
+        idempotencyKey: `easy-ai-assessment-${submissionId}`,
         // The optional, richer payload the route persists via saveAssessmentPackage() when present.
         assessmentPackage: {
           assessmentVersion: ASSESSMENT_VERSION,
@@ -86,7 +94,11 @@ export async function syncCompleteAssessmentToCommandCenter(params: SyncParams):
           source: 'easyai-landing',
         },
         submissionId,
-        funnelCorrelationId: (submission as unknown as { funnelCorrelationId?: string }).funnelCorrelationId,
+        // The high-confidence identity signal the Command Center's lead matcher keys on
+        // (lib/easy-ai/lead-intake-service.ts's findLeadMatch). Set only when this submission
+        // came through a Gary handoff; the Command Center stores it on the Assessment and carries
+        // it onto the record created when the founder moves that Assessment to Sales.
+        funnelCorrelationId: submission.funnelCorrelationId,
         processingStatus: status,
         emailDeliveryStatus,
       }),
