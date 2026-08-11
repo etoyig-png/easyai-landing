@@ -134,11 +134,9 @@ export default function GaryLauncher() {
         bottom: 'max(1rem, env(safe-area-inset-bottom))',
       }}
     >
-      {/* Speech bubble sits BESIDE the button, not stacked below the character — keeps the
-          launcher's total vertical footprint small enough that it doesn't sit on top of page
-          content on short mobile viewports (measured and fixed: a stacked label added enough
-          height to overlap the hero's own CTA button on a 375x812 viewport). On compact mobile
-          it's also absolutely positioned out of this row entirely (see globals.css). */}
+      {/* Universal top row: the speech bubble stays to the left of the green button on every
+          viewport. Gary remains directly beneath the button; mobile CSS only scales the cluster
+          and never rearranges it. */}
       <div className="flex items-center gap-2">
         {showIntroBubble && (
           <div className="gary-speech-bubble" data-testid="gary-speech-bubble">
