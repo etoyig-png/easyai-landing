@@ -742,7 +742,7 @@ async function advanceToPose(page: Page, pose: string, budgetMs: number, stepMs 
   throw new Error(`never observed pose "${pose}" within ${budgetMs}ms`);
 }
 
-test.describe('Gary launcher — chat button color/ring and mobile sign/bubble composition', () => {
+test.describe('Gary launcher — chat button color/ring and universal sign/bubble composition', () => {
   test('chat button uses the exact same green as the "Start Your Free Business Assessment" CTA', async ({ page }) => {
     await page.clock.install();
     await page.goto('/');
@@ -804,7 +804,7 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
   ];
 
   for (const viewport of COMPACT_VIEWPORTS) {
-    test(`chat button stays to Gary's right in compact mobile mode at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    test(`chat button stays above Gary using the desktop composition at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
       await page.goto('/');
@@ -812,13 +812,18 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
 
       const buttonBox = await page.locator('.gary-chat-button').boundingBox();
       const characterBox = await page.locator('.gary-character-wrap').boundingBox();
+
       expect(
-        buttonBox!.x,
+        buttonBox!.y + buttonBox!.height,
         `button: ${JSON.stringify(buttonBox)}, character: ${JSON.stringify(characterBox)}`
-      ).toBeGreaterThanOrEqual(characterBox!.x + characterBox!.width);
+      ).toBeLessThanOrEqual(characterBox!.y + 1);
+
+      const buttonCenterX = buttonBox!.x + buttonBox!.width / 2;
+      const characterCenterX = characterBox!.x + characterBox!.width / 2;
+      expect(Math.abs(buttonCenterX - characterCenterX)).toBeLessThanOrEqual(20);
     });
 
-    test(`mobile speech bubble no longer sits parallel with the chat button — it's above Gary, not beside the button, at ${viewport.width}x${viewport.height}`, async ({
+    test(`mobile uses the same bubble-button top row and Gary-below composition as desktop at ${viewport.width}x${viewport.height}`, async ({
       page
     }) => {
       await page.setViewportSize(viewport);
@@ -826,34 +831,19 @@ test.describe('Gary launcher — chat button color/ring and mobile sign/bubble c
       await page.goto('/');
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
-      const bubbleBox = await page.locator('.gary-speech-bubble').boundingBox();
+      const bubble = page.locator('.gary-speech-bubble');
+      const bubbleBox = await bubble.boundingBox();
       const buttonBox = await page.locator('.gary-chat-button').boundingBox();
       const characterBox = await page.locator('.gary-character-wrap').boundingBox();
 
-      // Taken out of the button's flex row entirely (see globals.css) — no longer a sibling
-      // label sharing the button's own row, which is what made it read as "the button's caption"
-      // regardless of how far it was nudged within that row.
-      const position = await page.locator('.gary-speech-bubble').evaluate((el) => getComputedStyle(el).position);
-      expect(position).toBe('absolute');
+      expect(await bubble.evaluate((el) => getComputedStyle(el).position)).toBe('relative');
+      expect(boxOverlapArea(bubbleBox, buttonBox)).toBe(0);
 
-      // Does not physically collide with the button — the bubble now sits low enough to be
-      // genuinely near Gary (its box can overlap his own vertically, see the "near Gary" check
-      // below), but it must never touch the button itself.
-      expect(
-        boxOverlapArea(bubbleBox, buttonBox),
-        `bubble: ${JSON.stringify(bubbleBox)}, button: ${JSON.stringify(buttonBox)}`
-      ).toBe(0);
-
-      // Spatially associated with Gary — sits close beside/above him (a small bounded horizontal
-      // gap to his character box, not floating in open space), while never actually boxing over
-      // him (checked in the face-overlap test below, the stricter version of this).
-      const gapToCharacter = characterBox!.x - (bubbleBox!.x + bubbleBox!.width);
-      expect(gapToCharacter, `bubble: ${JSON.stringify(bubbleBox)}, character: ${JSON.stringify(characterBox)}`).toBeLessThan(60);
-
-      // Substantially left of the button's own center — the core complaint being fixed.
-      const bubbleCenterX = bubbleBox!.x + bubbleBox!.width / 2;
-      const buttonCenterX = buttonBox!.x + buttonBox!.width / 2;
-      expect(buttonCenterX - bubbleCenterX).toBeGreaterThan(60);
+      const bubbleCenterY = bubbleBox!.y + bubbleBox!.height / 2;
+      const buttonCenterY = buttonBox!.y + buttonBox!.height / 2;
+      expect(Math.abs(bubbleCenterY - buttonCenterY)).toBeLessThanOrEqual(2);
+      expect(bubbleBox!.x + bubbleBox!.width).toBeLessThanOrEqual(buttonBox!.x);
+      expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(characterBox!.y + 1);
     });
 
     test(`mobile speech bubble stays inside the viewport, off Gary's face, and left of his head/face center at ${viewport.width}x${viewport.height}`, async ({
