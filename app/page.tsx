@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import type { Metadata } from 'next';
 import HeroVideo from '@/components/HeroVideo';
+import ResponsiveImage from '@/components/ResponsiveImage';
 
 export const metadata: Metadata = {
   title: 'Easy AI | Practical AI Guidance for Small and Midsize Businesses',
@@ -117,22 +117,22 @@ export default function HomePage() {
     <>
       {/* ── S1 HERO ──────────────────────────────────────────────────────── */}
       <section className="bg-navy-900 overflow-hidden border-b border-navy-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 md:py-20 flex flex-col md:flex-row md:items-center gap-10 md:gap-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 max-[380px]:py-0 md:py-20 flex flex-col md:grid md:grid-cols-[2fr_1fr] lg:grid-cols-[3fr_2fr] md:items-start gap-3 max-[380px]:gap-0 md:gap-x-10">
 
           {/* Left: copy */}
-          <div className="md:w-[65%] flex-shrink-0">
-            <p className="eyebrow-silver mb-4">INDEPENDENT AI ADVISORY</p>
-            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-6">
+          <div>
+            <p className="eyebrow-silver mb-2 max-[380px]:mb-0">INDEPENDENT AI ADVISORY</p>
+            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-3 max-[380px]:mb-0">
               Find the AI tools your business can actually trust and truly needs.
             </h1>
-            <p className="text-silver-light text-lg leading-relaxed mb-8 font-sans">
+            <p className="text-silver-light text-lg leading-relaxed mb-4 max-[380px]:mb-0 font-sans">
               Easy AI identifies where your business is losing time and money, then recommends the right AI tools, software, and workflows without the hype, guesswork, or unnecessary technology.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <Link href="/assessment" className="btn-green text-base px-7 py-3.5">
+            <div className="flex flex-col sm:flex-row gap-4 mb-3 max-[380px]:mb-0">
+              <Link href="/assessment" className="btn-green text-base px-7 py-2.5 sm:py-3.5">
                 Start Your Free Business Assessment
               </Link>
-              <a href="#how-easy-ai-works" className="btn-ghost-white text-base px-7 py-3.5">
+              <a href="#how-easy-ai-works" className="btn-ghost-white text-base px-7 py-2.5 sm:py-3.5">
                 See How Easy AI Works
               </a>
             </div>
@@ -141,8 +141,30 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Right: video – 25% width */}
-          <div className="md:w-[35%] flex-shrink-0">
+          {/* Right: video — a two-tier grid split (~67/33 at md, tightening to 60/40 at lg+),
+              using fr units specifically so md:gap-x-10 is subtracted from the available width
+              before the columns are sized — the previous flex-basis-percentage layout added its
+              gap ON TOP of two percentages that already summed to 100%, silently overflowing the
+              container's own right edge by the full gap width, which is what actually pushed the
+              video visually against the viewport edge. The 60/40 split alone was too tight at
+              768px specifically (md's own lower bound) — it squeezed the CTA buttons onto three
+              lines each; the wider md-tier ratio keeps 768–1023px comfortable, and 1024px+ has
+              enough room for the full 60/40 target. Below md the hero stacks (flex-col) and the
+              video renders after the CTA/disclaimer, same source order as before — Gary's
+              existing compact-mode CTA
+              clearance (globals.css, the "mobile CTA overlap" fix) was measured and tuned against
+              the CTA sitting at its current position, so the video must not move ahead of it and
+              push it down again. hero-video-wrap keeps the video at a real, useful size on mobile
+              (>=180px at 360px wide, >=200px at 390px+ — see globals.css) rather than shrinking it
+              into a thumbnail; the clearance from Gary's launcher instead comes from tighter mobile
+              hero spacing above (most of it scoped to a max-[380px]: tier so 390px+ keeps its
+              normal rhythm) plus, only at the narrowest breakpoint, a small bounded upward nudge on
+              the video itself. md:items-start on the row plus hero-video-desktop-align's own
+              negative margin-top (see globals.css) lift the video to sit near the headline's upper
+              half instead of vertically centered against the whole text block — a real layout
+              adjustment, not a transform, so it doesn't leave dead space in document flow. Gary's
+              own size/position/behavior is untouched. */}
+          <div className="hero-video-wrap hero-video-desktop-align md:w-full md:mx-0 flex-shrink-0">
             <HeroVideo />
           </div>
 
@@ -162,15 +184,15 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* HVAC image – 25% size */}
+          {/* HVAC image — fluid width via .responsive-media--landscape, see globals.css */}
           <div className="mb-12 flex justify-center">
-            <Image
+            <ResponsiveImage
+              orientation="landscape"
               src="/easy-ai-work-smarter-hvac.png"
               alt="HVAC professional using AI-assisted scheduling, documents, email, and task management."
               width={2048}
               height={1143}
-              className="w-1/4 h-auto object-contain"
-              sizes="(max-width: 768px) 50vw, 25vw"
+              sizes="(max-width: 768px) 70vw, 560px"
               loading="lazy"
             />
           </div>
@@ -222,15 +244,15 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Right: electrician image – 25% size */}
+          {/* Right: electrician image — fluid width via .responsive-media--portrait, see globals.css */}
           <div className="md:w-[35%] flex items-center justify-center">
-            <Image
+            <ResponsiveImage
+              orientation="portrait"
               src="/easy-ai-business-electrician.png"
               alt="Electrician using a smartphone while AI organizes scheduling, follow-up, and business tasks."
               width={941}
               height={1672}
-              className="w-1/4 md:w-1/2 h-auto object-contain mx-auto"
-              sizes="(max-width: 768px) 25vw, 15vw"
+              sizes="(max-width: 768px) 70vw, 340px"
               loading="lazy"
             />
           </div>
@@ -275,15 +297,15 @@ export default function HomePage() {
             </h2>
           </div>
 
-          {/* Construction image – 25% size */}
+          {/* Construction image — fluid width via .responsive-media--landscape, see globals.css */}
           <div className="mb-2 flex justify-center">
-            <Image
+            <ResponsiveImage
+              orientation="landscape"
               src="/easy-ai-buy-back-time-construction.png"
               alt="Construction business owner reviewing an illustrative AI productivity dashboard on a job site."
               width={2048}
               height={1143}
-              className="w-1/4 h-auto object-contain"
-              sizes="(max-width: 768px) 50vw, 25vw"
+              sizes="(max-width: 768px) 70vw, 560px"
               loading="lazy"
             />
           </div>
