@@ -53,7 +53,9 @@ export default function PrivacyPage() {
 
             <hr className="border-slate-200" />
 
-            <div>
+            {/* id="terms" is the target of the footer's "Terms of Service" link (/privacy#terms) —
+                without it that link lands at the top of the page instead of this section. */}
+            <div id="terms" className="scroll-mt-24">
               <h2 className="text-2xl font-bold text-slate-900 mb-4">Terms of Service</h2>
               <p className="mb-4 text-sm">By using this website and engaging EasyAI&apos;s services, you agree to the following terms.</p>
 
