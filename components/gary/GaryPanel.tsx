@@ -7,6 +7,8 @@ import {
   clearStoredSessionId,
   getOrCreateAnonymousId,
   getStoredSessionId,
+  getStoredSessionCapability,
+  storeSessionCapability,
   storeSessionId,
 } from '@/lib/gary/clientSession';
 
@@ -18,6 +20,7 @@ interface ChatBubble {
 
 interface MessageApiResponse {
   sessionId: string;
+  sessionCapability?: string;
   reply: { text: string; options?: string[] };
   offerAssessment?: boolean;
 }
@@ -45,6 +48,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: getStoredSessionId(),
+          sessionCapability: getStoredSessionCapability(),
           anonymousId: getOrCreateAnonymousId(),
           currentPage: pathname,
           referrer: typeof document !== 'undefined' ? document.referrer : undefined,
@@ -54,6 +58,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
       if (!response.ok) throw new Error('Gary is having trouble responding right now.');
       const data: MessageApiResponse = await response.json();
       storeSessionId(data.sessionId);
+      if (data.sessionCapability) storeSessionCapability(data.sessionCapability);
       setMessages((prev) => [...prev, { id: `gary-${Date.now()}`, role: 'gary', text: data.reply.text }]);
       setOptions(data.reply.options ?? []);
       setOfferAssessment(Boolean(data.offerAssessment));
@@ -87,7 +92,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
       const response = await fetch('/api/gary/handoff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: getStoredSessionId() }),
+        body: JSON.stringify({ sessionId: getStoredSessionId(), sessionCapability: getStoredSessionCapability() }),
       });
       if (!response.ok) throw new Error('handoff failed');
       const { redirectUrl } = (await response.json()) as { redirectUrl: string };

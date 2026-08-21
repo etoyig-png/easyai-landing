@@ -58,6 +58,8 @@ export async function syncCompleteAssessmentToCommandCenter(params: SyncParams):
   const { submission, submissionId, resultHtml, status, emailDeliveryStatus } = params;
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
     const response = await fetch(SYNC_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SYNC_TOKEN}` },
@@ -90,7 +92,9 @@ export async function syncCompleteAssessmentToCommandCenter(params: SyncParams):
         processingStatus: status,
         emailDeliveryStatus,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!response.ok) {
       console.error('Complete-assessment sync to Command Center failed', response.status, await response.text().catch(() => ''));
     }

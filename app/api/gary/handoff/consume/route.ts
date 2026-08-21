@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { hashToken, verifyHandoffToken } from '@/lib/gary/handoffToken';
+import { readLimitedJson } from '@/lib/requestSafety';
 
 export const runtime = 'nodejs';
 
@@ -11,8 +12,9 @@ const requestSchema = z.object({ token: z.string().min(1) });
 export async function POST(req: NextRequest) {
   let body: unknown;
   try {
-    body = await req.json();
-  } catch {
+    body = await readLimitedJson(req);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'REQUEST_TOO_LARGE') return NextResponse.json({ error: 'Request too large' }, { status: 413 });
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
   const parsed = requestSchema.safeParse(body);
@@ -33,7 +35,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Token expired' }, { status: 400 });
   }
 
-  if (!handoff.consumedAt) {
+  const alreadyConsumed = Boolean(handoff.consumedAt);
+  if (!alreadyConsumed) {
     await prisma.assessmentHandoff.update({ where: { id: handoff.id }, data: { consumedAt: new Date() } });
   }
 
@@ -46,5 +49,5 @@ export async function POST(req: NextRequest) {
   if (allowedFields.has('businessName') && contact?.businessName) prefill.businessName = contact.businessName;
   if (allowedFields.has('email') && contact?.emailNormalized) prefill.email = contact.emailNormalized;
 
-  return NextResponse.json({ sessionId: verification.payload.sessionId, prefill });
+  return NextResponse.json({ sessionId: verification.payload.sessionId, prefill, alreadyConsumed });
 }

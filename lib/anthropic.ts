@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { AssessmentSubmission } from './validation';
 import { escapeHtmlText } from './htmlEscape';
 import { validateResultHtml } from './resultValidator';
+import { renderUntrustedAssessmentContent } from './safeEmailContent';
 
 // Constructed lazily so this module can be imported at build time without ANTHROPIC_API_KEY set.
 let anthropicClient: Anthropic | undefined;
@@ -169,7 +170,7 @@ export async function generateAssessmentResult({ submission }: GenerateResultInp
 
   const firstAttempt = validateResultHtml(strippedHtml, submission);
   if (firstAttempt.valid) {
-    return strippedHtml;
+    return renderUntrustedAssessmentContent(strippedHtml);
   }
 
   // One controlled correction attempt: tell Claude exactly what it violated and ask
@@ -210,7 +211,7 @@ Rewrite the entire email body from scratch, following every instruction in the s
     );
   }
 
-  return strippedCorrectedHtml;
+  return renderUntrustedAssessmentContent(strippedCorrectedHtml);
 }
 
 /**

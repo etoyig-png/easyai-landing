@@ -9,12 +9,15 @@ import { GARY_OPENING_OPTIONS, GARY_OPENING_QUESTION } from '@/lib/gary/openingQ
 import { enqueueFunnelEvent } from '@/lib/gary/funnelEvents';
 import type { GaryConversationState } from '@/lib/gary/systemPrompt';
 import type { ChatMessage } from '@/lib/gary/llm/types';
+import { createSessionCapability, verifySessionCapability } from '@/lib/gary/sessionCapability';
+import { GARY_MAX_MESSAGES, GARY_MAX_TRANSCRIPT_CHARS, readLimitedJson } from '@/lib/requestSafety';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const requestSchema = z.object({
   sessionId: z.string().nullish(),
+  sessionCapability: z.string().max(2048).nullish(),
   anonymousId: z.string().min(1),
   message: z.string().max(2000).optional(),
   optionSelected: z.string().max(200).optional(),
@@ -26,8 +29,9 @@ const requestSchema = z.object({
 export async function POST(req: NextRequest) {
   let body: unknown;
   try {
-    body = await req.json();
-  } catch {
+    body = await readLimitedJson(req);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'REQUEST_TOO_LARGE') return NextResponse.json({ error: 'Request too large' }, { status: 413 });
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
@@ -42,12 +46,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many messages. Please try again later.' }, { status: 429 });
   }
 
+  if (data.sessionId && !verifySessionCapability(data.sessionCapability ?? '', data.sessionId)) {
+    return NextResponse.json({ error: 'Invalid session authorization' }, { status: 403 });
+  }
   // Load or create the session.
   let session = data.sessionId
     ? await prisma.publicChatSession.findUnique({ where: { id: data.sessionId }, include: { messages: { orderBy: { createdAt: 'asc' } } } })
     : null;
 
-  const isNewSession = !session;
+  const isNewSession = !data.sessionId;
+  if (data.sessionId && !session) return NextResponse.json({ error: 'Invalid session authorization' }, { status: 403 });
   if (!session) {
     session = await prisma.publicChatSession.create({
       data: {
@@ -74,6 +82,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({
       sessionId: session.id,
+      sessionCapability: createSessionCapability(session.id),
       reply: { text: GARY_OPENING_QUESTION, options: GARY_OPENING_OPTIONS },
       offerAssessment: false,
     });
@@ -82,6 +91,9 @@ export async function POST(req: NextRequest) {
   const visitorMessage = data.message?.trim();
   if (!visitorMessage) {
     return NextResponse.json({ error: 'message is required' }, { status: 400 });
+  }
+  if (session.messages.length >= GARY_MAX_MESSAGES || session.messages.reduce((total, item) => total + item.content.length, 0) + visitorMessage.length > GARY_MAX_TRANSCRIPT_CHARS) {
+    return NextResponse.json({ error: 'This conversation has reached its limit. Please start a new chat.' }, { status: 409 });
   }
 
   const safetyClass = classifyVisitorMessageSafety(visitorMessage);
@@ -124,6 +136,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     sessionId: session.id,
+    sessionCapability: data.sessionCapability ?? createSessionCapability(session.id),
     reply: { text: reply.text },
     offerAssessment: reply.offerAssessment,
   });

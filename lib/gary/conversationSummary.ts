@@ -1,4 +1,5 @@
 import type { LlmProviderAdapter, ChatMessage } from './llm/types';
+import { GARY_MAX_TRANSCRIPT_CHARS, PROVIDER_TIMEOUT_MS, withTimeout } from '../requestSafety';
 
 export interface GaryConversationSummary {
   conversationReason: string;
@@ -43,7 +44,7 @@ Rules:
 - Respond with a single JSON object with exactly these keys and string values, nothing else — no markdown, no code fences, no commentary.`;
 
 function buildTranscriptText(history: ChatMessage[]): string {
-  return history.map((m) => `${m.role === 'user' ? 'Visitor' : 'Gary'}: ${m.content}`).join('\n');
+  return history.map((m) => `${m.role === 'user' ? 'Visitor' : 'Gary'}: ${m.content}`).join('\n').slice(-GARY_MAX_TRANSCRIPT_CHARS);
 }
 
 function parseSummary(raw: string): GaryConversationSummary | null {
@@ -71,11 +72,11 @@ export async function buildGaryConversationSummary(adapter: LlmProviderAdapter, 
     return Object.fromEntries(SUMMARY_FIELDS.map((f) => [f, NOT_ESTABLISHED])) as unknown as GaryConversationSummary;
   }
 
-  const result = await adapter.generateChatCompletion({
+  const result = await withTimeout(adapter.generateChatCompletion({
     systemPrompt: SUMMARY_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: buildTranscriptText(history) }],
     maxTokens: 800,
-  });
+  }), PROVIDER_TIMEOUT_MS, 'summary provider');
 
   const parsed = parseSummary(result.text);
   if (parsed) return parsed;

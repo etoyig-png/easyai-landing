@@ -1,11 +1,12 @@
 import { prisma } from './prisma';
+import { createHash } from 'crypto';
 
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_SUBMISSIONS_PER_WINDOW = 3;
 
 /** Returns true if this IP has submitted too many assessments recently. */
 export async function isRateLimited(ipAddress: string): Promise<boolean> {
-  if (!ipAddress || ipAddress === 'unknown') return false;
+  if (!ipAddress) return true;
 
   const since = new Date(Date.now() - WINDOW_MS);
   const count = await prisma.submission.count({
@@ -18,8 +19,10 @@ export async function isRateLimited(ipAddress: string): Promise<boolean> {
 /** Best-effort extraction of the client IP from standard proxy headers (Vercel sets x-forwarded-for). */
 export function getClientIp(headers: Headers): string {
   const forwardedFor = headers.get('x-forwarded-for');
-  if (forwardedFor) return forwardedFor.split(',')[0].trim();
-  return headers.get('x-real-ip') ?? 'unknown';
+  const candidate = forwardedFor?.split(',')[0].trim() || headers.get('x-real-ip')?.trim();
+  if (candidate && candidate.length <= 64 && /^[0-9a-f:.]+$/i.test(candidate)) return candidate;
+  const fallback = [headers.get('user-agent') ?? '', headers.get('accept-language') ?? ''].join('|').slice(0, 1024);
+  return `unknown:${createHash('sha256').update(fallback || 'no-client-headers').digest('hex').slice(0, 24)}`;
 }
 
 const MIN_FILL_TIME_MS = 3000;
@@ -36,7 +39,7 @@ const GARY_MAX_MESSAGES_PER_WINDOW = 60;
 
 /** Separate rate limit for Gary's chat — a real conversation sends many more requests than the one-shot assessment form, so it needs its own, higher ceiling rather than sharing isRateLimited's budget. */
 export async function isGaryRateLimited(ipAddress: string): Promise<boolean> {
-  if (!ipAddress || ipAddress === 'unknown') return false;
+  if (!ipAddress) return true;
 
   const since = new Date(Date.now() - GARY_WINDOW_MS);
   const count = await prisma.publicChatMessage.count({
