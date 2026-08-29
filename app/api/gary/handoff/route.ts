@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { createHandoffToken, hashToken } from '@/lib/gary/handoffToken';
+import { resolveHandoffState } from '@/lib/gary/handoffState';
 import { createGaryLlmAdapter } from '@/lib/gary/llm/providerFactory';
 import { buildGaryConversationSummary } from '@/lib/gary/conversationSummary';
 import { enqueueFunnelEvent } from '@/lib/gary/funnelEvents';
@@ -51,23 +51,10 @@ export async function POST(req: NextRequest) {
     return false;
   });
 
-  const handoffState = await prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${session.id}))`;
-    const currentSession = await tx.publicChatSession.findUniqueOrThrow({ where: { id: session.id } });
-    const existing = await tx.assessmentHandoff.findUnique({ where: { sessionId: session.id } });
-    const reusable = Boolean(existing && existing.expiresAt.getTime() >= Date.now());
-    const expiresAt = reusable ? existing!.expiresAt : new Date(Date.now() + 30 * 60 * 1000);
-    const effectiveFields = reusable ? (existing!.allowedPrefillFields as string[]) : allowedFields;
-    const token = createHandoffToken(session.id, effectiveFields, expiresAt.getTime());
-    if (!reusable) await tx.assessmentHandoff.upsert({
-      where: { sessionId: session.id },
-      create: { sessionId: session.id, signedTokenHash: hashToken(token), allowedPrefillFields: effectiveFields as never, expiresAt },
-      update: { signedTokenHash: hashToken(token), allowedPrefillFields: effectiveFields as never, expiresAt, consumedAt: null },
-    });
-    const firstHandoff = currentSession.status !== 'handed_off_to_assessment';
-    if (firstHandoff) await tx.publicChatSession.update({ where: { id: session.id }, data: { status: 'handed_off_to_assessment', handedOffAt: new Date() } });
-    return { token, firstHandoff };
-  }, { isolationLevel: 'Serializable' });
+  const handoffState = await prisma.$transaction(
+    (tx) => resolveHandoffState(tx, session.id, allowedFields),
+    { isolationLevel: 'Serializable' },
+  );
   const token = handoffState.token;
 
   const funnelCorrelationId = session.id;

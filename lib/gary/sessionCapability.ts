@@ -3,6 +3,14 @@ import { createHmac, timingSafeEqual } from 'crypto';
 interface Payload { sessionId: string; expiresAt: number }
 export const SESSION_CAPABILITY_TTL_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * TRANSITIONAL COMPATIBILITY: the fallback to GARY_HANDOFF_TOKEN_SECRET is deliberate and is
+ * retained until every environment sets GARY_SESSION_CAPABILITY_SECRET. Removing it now would
+ * make Gary fail closed — and go offline — in any environment provisioned before this variable
+ * existed. Sharing a value is safe because `sign()` domain-separates with a "gary-session:"
+ * prefix, so a capability signature can never be confused with a handoff-token signature.
+ * See SECURITY_LEDGER.md (EAI-A-01). Production configuration remains UNVERIFIED.
+ */
 function secret(): string {
   const value = process.env.GARY_SESSION_CAPABILITY_SECRET ?? process.env.GARY_HANDOFF_TOKEN_SECRET;
   if (!value) throw new Error('Gary session capability secret is not configured.');
