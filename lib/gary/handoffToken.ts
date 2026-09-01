@@ -19,8 +19,8 @@ function sign(data: string): string {
 }
 
 /** Builds `<base64url payload>.<base64url signature>`. No JWT library — this repo has none, and a single HMAC-signed payload needs nothing heavier. */
-export function createHandoffToken(sessionId: string, allowedFields: string[]): string {
-  const payload: HandoffTokenPayload = { sessionId, allowedFields, expiresAt: Date.now() + TOKEN_TTL_MS };
+export function createHandoffToken(sessionId: string, allowedFields: string[], expiresAt = Date.now() + TOKEN_TTL_MS): string {
+  const payload: HandoffTokenPayload = { sessionId, allowedFields, expiresAt };
   const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
   return `${encodedPayload}.${sign(encodedPayload)}`;
 }
@@ -50,7 +50,9 @@ export function verifyHandoffToken(token: string): VerifyResult {
     return { valid: false, reason: 'unparseable payload' };
   }
 
-  if (typeof payload.expiresAt !== 'number' || Date.now() > payload.expiresAt) {
+  if (typeof payload.sessionId !== 'string' || !payload.sessionId || !Array.isArray(payload.allowedFields) ||
+      !payload.allowedFields.every((field) => typeof field === 'string') ||
+      typeof payload.expiresAt !== 'number' || Date.now() > payload.expiresAt) {
     return { valid: false, reason: 'expired' };
   }
 

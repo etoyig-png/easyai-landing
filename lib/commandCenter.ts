@@ -14,6 +14,8 @@ export async function notifyCommandCenter(event: {
   if (!url || !secret) return; // not configured yet — no-op until wired up
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
     await fetch(url, {
       method: 'POST',
       headers: {
@@ -26,7 +28,9 @@ export async function notifyCommandCenter(event: {
         submissionId: event.submissionId,
         timestamp: new Date().toISOString(),
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
   } catch {
     // Best-effort only — a failed status ping should never affect the lead's experience.
   }

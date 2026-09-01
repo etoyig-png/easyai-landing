@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { prisma } from '@/lib/prisma';
 import { assessmentSubmissionSchema } from '@/lib/validation';
-import { getClientIp, isRateLimited, looksLikeSpam } from '@/lib/rateLimit';
+import { getClientIp, looksLikeSpam } from '@/lib/rateLimit';
 import { sendInternalNotification, sendResultEmail } from '@/lib/resend';
 import { generateAssessmentResult, buildFallbackResultHtml } from '@/lib/anthropic';
 import { notifyCommandCenter } from '@/lib/commandCenter';
 import { syncCompleteAssessmentToCommandCenter } from '@/lib/gary/assessmentSync';
+import { PROVIDER_TIMEOUT_MS, readLimitedJson, withTimeout } from '@/lib/requestSafety';
+import { admitAssessment } from '@/lib/assessmentAdmission';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -14,8 +16,9 @@ export const maxDuration = 300;
 export async function POST(req: NextRequest) {
   let body: unknown;
   try {
-    body = await req.json();
-  } catch {
+    body = await readLimitedJson(req);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'REQUEST_TOO_LARGE') return NextResponse.json({ error: 'Request too large' }, { status: 413 });
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
@@ -31,33 +34,21 @@ export async function POST(req: NextRequest) {
   }
 
   const ipAddress = getClientIp(req.headers);
-  if (await isRateLimited(ipAddress)) {
+  let admission;
+  try {
+    admission = await admitAssessment(data, ipAddress);
+  } catch (error) {
+    console.error('Assessment admission failed', error);
+    return NextResponse.json({ error: 'Unable to accept the submission right now.' }, { status: 503 });
+  }
+  if (admission.kind === 'limited') {
     return NextResponse.json({ error: 'Too many submissions. Please try again later.' }, { status: 429 });
   }
-
-  // Save to the database FIRST — a later email failure must never lose the lead.
-  const submission = await prisma.submission.create({
-    data: {
-      workSituation: data.workSituation,
-      usingAiTools: data.usingAiTools,
-      aiChallenge: data.aiChallenge,
-      desiredOutcome: data.desiredOutcome,
-      timeDrain: data.timeDrain,
-      privacyConcern: data.privacyConcern,
-      industry: data.industry,
-      industryOther: data.industryOther,
-      sportsFan: data.sportsFan,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      businessName: data.businessName,
-      email: data.email,
-      funnelCorrelationId: data.funnelCorrelationId,
-      ipAddress,
-    },
-  });
+  if (admission.kind === 'duplicate') return NextResponse.json({ success: true, id: admission.submission.id, duplicate: true });
+  const submission = admission.submission;
 
   try {
-    await sendInternalNotification({ ...data, id: submission.id });
+    await withTimeout(sendInternalNotification({ ...data, id: submission.id }), PROVIDER_TIMEOUT_MS, 'email provider');
   } catch (err) {
     console.error('Failed to send internal notification email', err);
   }
@@ -69,26 +60,37 @@ export async function POST(req: NextRequest) {
   waitUntil((async () => {
     let resultHtml: string;
     try {
-      resultHtml = await generateAssessmentResult({ submission: data });
+      resultHtml = await withTimeout(generateAssessmentResult({ submission: data }), PROVIDER_TIMEOUT_MS, 'assessment provider');
     } catch (err) {
       console.error('Claude generation failed, using fallback result', err);
       resultHtml = buildFallbackResultHtml(data);
     }
 
+    let emailSent = false;
     try {
-      await sendResultEmail({
+      await withTimeout(sendResultEmail({
         to: data.email,
         firstName: data.firstName,
         businessName: data.businessName,
         resultHtml,
-      });
+      }), PROVIDER_TIMEOUT_MS, 'email provider');
+      emailSent = true;
+    } catch (err) {
+      console.error('Failed to send result email', err);
+    }
+
+    if (emailSent) {
+      try {
       await prisma.submission.update({
         where: { id: submission.id },
         data: { status: 'completed', resultHtml },
       });
+      } catch (err) {
+        // The customer delivery succeeded. A persistence failure must never rewrite
+        // that completed delivery as an email failure.
+        console.error('Result email sent but completion state update failed', err);
+      }
       await notifyCommandCenter({ status: 'assessment_completed', submissionId: submission.id });
-      // Additive: the complete assessment (every Q&A, generated result, IDs) — the existing
-      // status-only notifyCommandCenter() call above is untouched.
       await syncCompleteAssessmentToCommandCenter({
         submissionId: submission.id,
         submission: data,
@@ -96,12 +98,11 @@ export async function POST(req: NextRequest) {
         status: 'completed',
         emailDeliveryStatus: 'sent',
       });
-    } catch (err) {
-      console.error('Failed to send result email', err);
-      await prisma.submission.update({
+    } else {
+      try { await prisma.submission.update({
         where: { id: submission.id },
-        data: { status: 'failed', errorMessage: err instanceof Error ? err.message : 'Unknown error' },
-      });
+        data: { status: 'failed', errorMessage: 'Result email delivery failed' },
+      }); } catch (err) { console.error('Failed to persist email failure state', err); }
       await notifyCommandCenter({ status: 'assessment_failed', submissionId: submission.id });
       await syncCompleteAssessmentToCommandCenter({
         submissionId: submission.id,
