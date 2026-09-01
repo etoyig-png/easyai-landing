@@ -239,7 +239,7 @@ export default function HomePage() {
             <div className="md:w-[43%] md:flex-shrink-0">
               <ResponsiveImage
                 orientation="landscape"
-                src="/1 169 website image.jpeg"
+                src="/hero-section-banner.jpeg"
                 alt="Home-service professional receiving a new customer opportunity while working at a residential HVAC property."
                 width={2752}
                 height={1536}
@@ -355,7 +355,7 @@ export default function HomePage() {
           <div className="md:w-[35%] flex items-center justify-center">
             <ResponsiveImage
               orientation="portrait"
-              src="/1 916 website image.jpeg"
+              src="/community-trust-visual.jpeg"
               alt="Homeowner completing a service request as a professional home-service technician arrives."
               width={1536}
               height={2752}
@@ -414,7 +414,7 @@ export default function HomePage() {
           <div className="mb-12 flex justify-center">
             <ResponsiveImage
               orientation="landscape"
-              src="/2 169 website image.jpeg"
+              src="/local-growth-showcase.jpeg"
               alt="Chiropractic practice using organized digital workflows while staff assist patients."
               width={2752}
               height={1536}
