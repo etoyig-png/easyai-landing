@@ -14,40 +14,40 @@ const trustPrinciples = [
 export default function AITrustPage() {
   return (
     <>
-      <section className="bg-gradient-to-br from-brand-950 to-brand-700 text-white py-20">
+      <section className="bg-navy-900 text-white border-b border-navy-800 py-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <p className="section-label text-teal-300 mb-3">Our approach</p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">AI Trust & Human Control</h1>
-          <p className="text-brand-100 text-lg max-w-2xl">AI is a tool in our process — not a replacement for judgment. Here is exactly how we use it and where humans stay in control.</p>
+          <p className="eyebrow-silver mb-3">Our approach</p>
+          <h1 className="text-4xl md:text-5xl font-serif font-semibold mb-4">AI Trust & Human Control</h1>
+          <p className="text-silver-light text-lg max-w-2xl">AI is a tool in our process — not a replacement for judgment. Here is exactly how we use it and where humans stay in control.</p>
         </div>
       </section>
 
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-navy-900">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
-            <p className="section-label mb-3">What we commit to</p>
-            <h2 className="text-3xl font-bold text-slate-900">How trust works at EasyAI</h2>
+            <p className="eyebrow-silver mb-3">What we commit to</p>
+            <h2 className="text-3xl font-serif font-semibold text-white">How trust works at EasyAI</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {trustPrinciples.map(p => (
               <div key={p.title} className="card hover:shadow-md transition-shadow">
                 <div className="text-2xl mb-3">{p.icon}</div>
-                <h3 className="font-semibold text-slate-900 mb-2">{p.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{p.body}</p>
+                <h3 className="font-semibold text-white mb-2">{p.title}</h3>
+                <p className="text-sm text-silver-light leading-relaxed">{p.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-20 bg-slate-50">
+      <section className="py-20 bg-navy-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="section-label mb-3 text-center">What AI does in our process</p>
-          <h2 className="text-3xl font-bold text-slate-900 mb-10 text-center">AI assists. Humans decide.</h2>
+          <p className="eyebrow-silver mb-3 text-center">What AI does in our process</p>
+          <h2 className="text-3xl font-serif font-semibold text-white mb-10 text-center">AI assists. Humans decide.</h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="card border-green-100">
               <h3 className="font-semibold text-green-700 mb-3">AI is used for</h3>
-              <ul className="space-y-2 text-sm text-slate-600">
+              <ul className="space-y-2 text-sm text-silver-light">
                 {['Transcribing and analyzing consultation recordings','Extracting bottlenecks, pain points, and repeated tasks','Researching AI products and software options','Drafting comparison tables and ROI scenarios','Generating the first draft of assessment reports','Summarizing findings for human review'].map(i => (
                   <li key={i} className="flex items-start gap-2"><span className="text-green-500 mt-0.5">+</span>{i}</li>
                 ))}
@@ -55,7 +55,7 @@ export default function AITrustPage() {
             </div>
             <div className="card border-red-100">
               <h3 className="font-semibold text-red-700 mb-3">AI does not</h3>
-              <ul className="space-y-2 text-sm text-slate-600">
+              <ul className="space-y-2 text-sm text-silver-light">
                 {['Make final recommendations without human review','Access your business data without explicit permission','Send outreach or communications automatically','Approve its own suggestions','Guarantee business outcomes or savings','Make decisions about what gets implemented'].map(i => (
                   <li key={i} className="flex items-start gap-2"><span className="text-red-400 mt-0.5">-</span>{i}</li>
                 ))}
@@ -65,13 +65,13 @@ export default function AITrustPage() {
         </div>
       </section>
 
-      <section className="py-16 bg-white text-center">
+      <section className="py-16 bg-navy-900 text-center">
         <div className="max-w-xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Questions about how we use AI?</h2>
-          <p className="text-slate-500 mb-6">Ask us directly before or during your consultation.</p>
+          <h2 className="text-2xl font-serif font-semibold text-white mb-4">Questions about how we use AI?</h2>
+          <p className="text-silver-light mb-6">Ask us directly before or during your consultation.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/book-consultation" className="btn-primary">Book a Consultation</Link>
-            <Link href="/contact" className="btn-secondary">Contact Us</Link>
+            <Link href="/assessment?intent=consultation" className="btn-green">Book a Consultation</Link>
+            <Link href="/contact" className="btn-ghost-white">Contact Us</Link>
           </div>
         </div>
       </section>

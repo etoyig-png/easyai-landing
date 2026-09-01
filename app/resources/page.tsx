@@ -38,15 +38,15 @@ const articles = [
 export default function ResourcesPage() {
   return (
     <>
-      <section className="bg-gradient-to-br from-brand-950 to-brand-700 text-white py-20">
+      <section className="bg-navy-900 text-white border-b border-navy-800 py-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <p className="section-label text-teal-300 mb-3">Education</p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Resources</h1>
-          <p className="text-brand-100 text-lg max-w-2xl">Practical reading on AI for business — without the hype.</p>
+          <p className="eyebrow-silver mb-3">Education</p>
+          <h1 className="text-4xl md:text-5xl font-serif font-semibold mb-4">Resources</h1>
+          <p className="text-silver-light text-lg max-w-2xl">Practical reading on AI for business — without the hype.</p>
         </div>
       </section>
 
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-navy-900">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-10 text-sm text-amber-800 max-w-2xl">
             These articles are educational overviews, not implementation advice for your specific business. For recommendations that apply to your situation, start with the <Link href="/assessment" className="underline font-medium">AI Opportunity Assessment</Link>.
@@ -54,22 +54,22 @@ export default function ResourcesPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {articles.map(a => (
               <div key={a.title} className="card hover:shadow-md transition-shadow flex flex-col">
-                <span className="inline-block text-xs font-semibold uppercase tracking-wide text-brand-600 bg-brand-50 rounded-full px-3 py-1 mb-3 w-fit">{a.tag}</span>
-                <h2 className="font-semibold text-slate-900 text-base mb-3 leading-snug">{a.title}</h2>
-                <p className="text-sm text-slate-500 leading-relaxed flex-1">{a.body}</p>
+                <span className="inline-block text-xs font-semibold uppercase tracking-wide text-teal bg-navy-800/40 rounded-full px-3 py-1 mb-3 w-fit">{a.tag}</span>
+                <h2 className="font-semibold text-white text-base mb-3 leading-snug">{a.title}</h2>
+                <p className="text-sm text-silver-light leading-relaxed flex-1">{a.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-16 bg-slate-50 text-center">
+      <section className="py-16 bg-navy-900 text-center">
         <div className="max-w-xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Ready to apply this to your business?</h2>
-          <p className="text-slate-500 mb-6">General reading only goes so far. The assessment is how we learn enough to give you specific answers.</p>
+          <h2 className="text-2xl font-serif font-semibold text-white mb-4">Ready to apply this to your business?</h2>
+          <p className="text-silver-light mb-6">General reading only goes so far. The assessment is how we learn enough to give you specific answers.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/assessment" className="btn-primary">Take the Assessment</Link>
-            <Link href="/book-consultation" className="btn-secondary">Book a Consultation</Link>
+            <Link href="/assessment" className="btn-green">Take the Assessment</Link>
+            <Link href="/assessment?intent=consultation" className="btn-ghost-white">Book a Consultation</Link>
           </div>
         </div>
       </section>

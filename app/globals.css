@@ -103,7 +103,12 @@
   @media (max-width: 380px) {
     .hero-video-wrap {
       width: 180px;
-      transform: translateY(-14px);
+      /* -14px -> -22px: the customer-growth hero label is a longer line than the one this was
+         originally measured against and still wraps to two lines here, and every other spacing
+         step at this tier is already collapsed to zero, so the last few pixels of Gary-launcher
+         clearance have to come from this same bounded nudge. Still a transform, so it moves the
+         video only and never leaves a gap in document flow. */
+      transform: translateY(-22px);
     }
   }
 
@@ -117,6 +122,21 @@
   @media (min-width: 768px) {
     .hero-video-desktop-align {
       margin-top: -80px;
+    }
+  }
+
+  /* Gary's fixed anchor. Desktop keeps the original 1rem inset. Phones pull him ~24px
+     (about a quarter inch) further left: his sign and speech bubble extend to his right, and at
+     the original inset those could sit against or past the right edge on a narrow screen. This
+     moves the whole launcher, so tap targets, scale and vertical position are unchanged, and it
+     cannot introduce horizontal scrolling because the element only moves inward. */
+  .gary-launcher-anchor {
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  @media (max-width: 767px) {
+    .gary-launcher-anchor {
+      right: max(2.5rem, calc(env(safe-area-inset-right) + 1.5rem));
     }
   }
 

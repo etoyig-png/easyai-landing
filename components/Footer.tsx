@@ -2,15 +2,16 @@ import Link from 'next/link';
 
 const links = {
   Services: [
-    { label: 'How It Works', href: '/how-it-works' },
-    { label: 'AI Product Consulting', href: '/ai-product-consulting' },
-    { label: 'Implementation & Custom Agents', href: '/implementation' },
+    { label: 'What We Do', href: '/how-it-works' },
+    { label: 'Free Assessment', href: '/assessment' },
+    { label: 'AI Strategy & Tool Selection', href: '/ai-product-consulting' },
+    { label: 'Implementation & Support', href: '/implementation' },
     { label: 'AI Trust & Human Control', href: '/ai-trust' },
   ],
   Company: [
     { label: 'About EasyAI', href: '/about' },
     { label: 'Resources', href: '/resources' },
-    { label: 'Book a Consultation', href: '/book-consultation' },
+    { label: 'Book a Consultation', href: '/assessment?intent=consultation' },
     { label: 'Contact', href: '/contact' },
   ],
   Legal: [
@@ -30,7 +31,7 @@ export default function Footer() {
               EasyAI
             </Link>
             <p className="text-sm text-slate-400 leading-relaxed">
-              AI product consulting and implementation for businesses that want real results, not AI hype.
+              We help local businesses get found, get chosen, and turn attention into customers.
             </p>
             <p className="text-sm text-slate-400 mt-3">Tampa, FL &nbsp;·&nbsp; Serving clients remotely</p>
           </div>

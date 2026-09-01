@@ -3,11 +3,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 
+// Kept deliberately flat and short. No nav entry ever names an individual Easy AI product:
+// visitors navigate by what they want to accomplish, not by the systems behind it.
+// "How It Works" targets the homepage customer-journey section rather than a separate page,
+// so the two service-oriented links stay distinct ("What We Do" = the services page).
 const nav = [
-  { label: 'Home',       href: '/' },
-  { label: 'What We Do', href: '/how-it-works' },
-  { label: 'About',      href: '/about' },
-  { label: 'Contact',    href: '/contact' },
+  { label: 'Home',            href: '/' },
+  { label: 'What We Do',      href: '/how-it-works' },
+  { label: 'How It Works',    href: '/#how-easy-ai-works' },
+  { label: 'Free Assessment', href: '/assessment' },
+  { label: 'About',           href: '/about' },
+  { label: 'Contact',         href: '/contact' },
 ];
 
 export default function Header() {
@@ -15,7 +21,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-navy-900 border-b border-navy-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-24 md:h-28">
 
         {/* Logo */}
         <Link href="/" className="flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver rounded">
@@ -24,14 +30,19 @@ export default function Header() {
             alt="Easy AI — Business AI Advisory"
             width={200}
             height={54}
-            className="h-[52px] w-auto object-contain"
+            // Doubled at md+ (52px -> 104px). The mark is ~3.7:1, so a full 104px would render
+            // ~385px wide and crowd the hamburger on a 360px phone; mobile therefore scales to
+            // 72px, which is the largest size that still leaves room for the menu button.
+            // w-auto + object-contain keep the original proportions; mixBlendMode preserves the
+            // transparent background against navy with no box behind it.
+            className="h-[72px] md:h-[104px] w-auto object-contain"
             priority
             style={{ mixBlendMode: 'screen' }}
           />
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+        <nav className="hidden md:flex items-center gap-5 lg:gap-7" aria-label="Main navigation">
           {nav.map(item => (
             <Link
               key={item.label}
@@ -45,7 +56,12 @@ export default function Header() {
 
         {/* Desktop CTA */}
         <div className="hidden md:block">
-          <Link href="/assessment" className="btn-green text-sm px-5 py-2.5">
+          {/* Deliberately about half the hero button's footprint. The hero CTA is the primary
+              action; this one is a persistent convenience and was visually competing with it.
+              px-5 py-2.5 text-sm -> px-3 py-1.5 text-xs roughly halves the box area, while
+              min-h-[36px] keeps it a comfortable pointer target and the focus ring, green, and
+              label are unchanged. */}
+          <Link href="/assessment" className="btn-green text-xs px-3 py-1.5 min-h-[36px] leading-tight">
             Start Your Free Assessment
           </Link>
         </div>
