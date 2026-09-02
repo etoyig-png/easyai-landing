@@ -15,11 +15,15 @@ interface Answers {
   privacyConcern: string;
   industry: string;
   industryOther: string;
+  leadResponse: string;
   sportsFan: string;
+  favoriteTeam: string;
   firstName: string;
   lastName: string;
   businessName: string;
   email: string;
+  websiteUrl: string;
+  noWebsite: boolean;
 }
 
 const EMPTY_ANSWERS: Answers = {
@@ -31,21 +35,25 @@ const EMPTY_ANSWERS: Answers = {
   privacyConcern: '',
   industry: '',
   industryOther: '',
+  leadResponse: '',
   sportsFan: '',
+  favoriteTeam: '',
   firstName: '',
   lastName: '',
   businessName: '',
   email: '',
+  websiteUrl: '',
+  noWebsite: false,
 };
 
-const QUESTIONS_COUNT = 8;
+const QUESTIONS_COUNT = 9;
 const INTRO_STEP = 0;
 const FIRST_QUESTION_STEP = 1;
-const LAST_QUESTION_STEP = FIRST_QUESTION_STEP + QUESTIONS_COUNT - 1; // 8
-const CONTACT_STEP = LAST_QUESTION_STEP + 1; // 9 — final contact: last name + email
-const CONFIRM_STEP = CONTACT_STEP + 1; // 10
-const BUILDING_STEP = CONFIRM_STEP + 1; // 11
-const TOTAL_NUMBERED_STEPS = QUESTIONS_COUNT + 2; // intro + 8 questions + final contact = 10
+const LAST_QUESTION_STEP = FIRST_QUESTION_STEP + QUESTIONS_COUNT - 1; // 9
+const CONTACT_STEP = LAST_QUESTION_STEP + 1; // 10 — final contact
+const CONFIRM_STEP = CONTACT_STEP + 1; // 11
+const BUILDING_STEP = CONFIRM_STEP + 1; // 12
+const TOTAL_NUMBERED_STEPS = QUESTIONS_COUNT + 2; // intro + 9 questions + final contact = 11
 
 function emailLooksValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -110,17 +118,27 @@ function AssessmentPageInner() {
   }, [step]);
 
   function selectOption(key: AnswerKey, value: string) {
-    setAnswers((prev) => ({ ...prev, [key]: value }));
+    setAnswers((prev) => ({
+      ...prev,
+      [key]: value,
+      ...(key === 'sportsFan' && value === 'Not really a sports fan' ? { favoriteTeam: '' } : {}),
+    }));
     if (value === 'Something else') {
       setOtherDraft(answers.industryOther);
       return; // wait for free-text continue
     }
-    setStep((s) => s + 1);
+    if (key !== 'sportsFan' || value === 'Not really a sports fan') setStep((s) => s + 1);
   }
 
   function continueWithOther() {
     if (!otherDraft.trim()) return;
     setAnswers((prev) => ({ ...prev, industryOther: otherDraft.trim() }));
+    setStep((s) => s + 1);
+  }
+
+  function continueWithFavoriteTeam() {
+    if (!answers.favoriteTeam.trim()) return;
+    setAnswers((prev) => ({ ...prev, favoriteTeam: prev.favoriteTeam.trim() }));
     setStep((s) => s + 1);
   }
 
@@ -145,6 +163,14 @@ function AssessmentPageInner() {
     const errs: Partial<Record<keyof Answers, string>> = {};
     if (!answers.lastName.trim()) errs.lastName = 'Required';
     if (!emailLooksValid(answers.email)) errs.email = 'Enter a valid email';
+    if (!answers.noWebsite) {
+      try {
+        const url = new URL(answers.websiteUrl);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('Invalid protocol');
+      } catch {
+        errs.websiteUrl = 'Enter a valid http:// or https:// URL, or select no website';
+      }
+    }
     setContactErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -178,11 +204,15 @@ function AssessmentPageInner() {
           privacyConcern: answers.privacyConcern,
           industry: answers.industry,
           industryOther: answers.industryOther || undefined,
+          leadResponse: answers.leadResponse,
           sportsFan: answers.sportsFan,
+          favoriteTeam: answers.favoriteTeam || undefined,
           firstName: answers.firstName,
           lastName: answers.lastName,
           businessName: answers.businessName,
           email: answers.email,
+          websiteUrl: answers.noWebsite ? undefined : answers.websiteUrl,
+          noWebsite: answers.noWebsite,
           funnelCorrelationId,
           consent: true,
           companyUrl: honeypot,
@@ -274,6 +304,9 @@ function AssessmentPageInner() {
               onOtherDraftChange={setOtherDraft}
               onSelect={(value) => selectOption(questions[step - FIRST_QUESTION_STEP].key, value)}
               onContinueWithOther={continueWithOther}
+              favoriteTeam={answers.favoriteTeam}
+              onFavoriteTeamChange={(value) => setAnswers((prev) => ({ ...prev, favoriteTeam: value }))}
+              onContinueWithFavoriteTeam={continueWithFavoriteTeam}
               onBack={goBack}
             />
           )}
@@ -300,6 +333,27 @@ function AssessmentPageInner() {
                     onChange={(e) => setAnswers((p) => ({ ...p, email: e.target.value }))}
                   />
                   {contactErrors.email && <p className="text-xs text-red-600 mt-1">{contactErrors.email}</p>}
+                </div>
+                <div>
+                  <label className="label">Business website</label>
+                  <input
+                    type="url"
+                    className="input"
+                    placeholder="https://example.com"
+                    value={answers.websiteUrl}
+                    disabled={answers.noWebsite}
+                    onChange={(e) => setAnswers((p) => ({ ...p, websiteUrl: e.target.value, noWebsite: false }))}
+                  />
+                  {contactErrors.websiteUrl && <p className="text-xs text-red-600 mt-1">{contactErrors.websiteUrl}</p>}
+                  <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={answers.noWebsite}
+                      onChange={(e) => setAnswers((p) => ({ ...p, noWebsite: e.target.checked, websiteUrl: e.target.checked ? '' : p.websiteUrl }))}
+                      className="accent-brand-600"
+                    />
+                    I don&rsquo;t have a website
+                  </label>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-8">
@@ -401,6 +455,9 @@ function QuestionStep({
   onOtherDraftChange,
   onSelect,
   onContinueWithOther,
+  favoriteTeam,
+  onFavoriteTeamChange,
+  onContinueWithFavoriteTeam,
   onBack,
 }: {
   question: QuestionDef;
@@ -409,9 +466,13 @@ function QuestionStep({
   onOtherDraftChange: (v: string) => void;
   onSelect: (value: string) => void;
   onContinueWithOther: () => void;
+  favoriteTeam: string;
+  onFavoriteTeamChange: (v: string) => void;
+  onContinueWithFavoriteTeam: () => void;
   onBack?: () => void;
 }) {
   const showOtherInput = question.allowOther && selected === 'Something else';
+  const showFavoriteTeamInput = question.key === 'sportsFan' && (selected === 'Football' || selected === 'Basketball');
 
   return (
     <div>
@@ -450,6 +511,25 @@ function QuestionStep({
               Continue →
             </button>
           </div>
+        </div>
+      )}
+      {showFavoriteTeamInput && (
+        <div className="pt-2">
+          <label className="label">Favorite team</label>
+          <input
+            className="input"
+            value={favoriteTeam}
+            onChange={(e) => onFavoriteTeamChange(e.target.value)}
+            placeholder={`Your favorite ${selected.toLowerCase()} team`}
+            autoFocus
+          />
+          <button
+            onClick={onContinueWithFavoriteTeam}
+            disabled={!favoriteTeam.trim()}
+            className="btn-primary w-full mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Continue →
+          </button>
         </div>
       )}
 

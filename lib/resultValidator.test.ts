@@ -4,7 +4,7 @@ import { buildWhyQuestion, validateResultHtml } from './resultValidator';
 const submission = { businessName: 'Johnson Electric', firstName: 'Taylor' };
 
 function withWhyQuestion(body: string): string {
-  return `${body}<p>${buildWhyQuestion(submission.businessName)}</p>`;
+  return `${body}<p>Free action 1: Write down the process.</p><p>Free action 2: Draft a response.</p><p>Free action 3: Track the next step.</p><p>${buildWhyQuestion(submission.businessName)}</p>`;
 }
 
 describe('validateResultHtml', () => {
@@ -69,19 +69,35 @@ describe('validateResultHtml', () => {
   });
 
   it('flags a missing WHY question', () => {
-    const html = '<h2>Hi Taylor,</h2><p>Thanks for the assessment, Johnson Electric.</p>';
+    const html = withWhyQuestion('<h2>Hi Taylor,</h2><p>Thanks for the assessment, Johnson Electric.</p>').replace(`<p>${buildWhyQuestion(submission.businessName)}</p>`, '');
     expect(validateResultHtml(html, submission).violations).toContain('missing mandatory closing WHY question');
   });
 
   it('flags a duplicated WHY question', () => {
     const why = buildWhyQuestion(submission.businessName);
-    const html = `<p>${why}</p><p>${why}</p>`;
+    const html = withWhyQuestion(`<p>${why}</p>`);
     expect(validateResultHtml(html, submission).violations).toContain('duplicate WHY question');
   });
 
   it('flags the WHY question when it is not the final paragraph', () => {
-    const html = `<p>${buildWhyQuestion(submission.businessName)}</p><p>One more thought after it.</p>`;
+    const html = `${withWhyQuestion('')}<p>One more thought after it.</p>`;
     expect(validateResultHtml(html, submission).violations).toContain('WHY question is not the final narrative paragraph');
+  });
+
+  it('requires exactly one of each of three labeled free actions', () => {
+    const why = `<p>${buildWhyQuestion(submission.businessName)}</p>`;
+    expect(validateResultHtml(`<p>Free action 1: One.</p><p>Free action 2: Two.</p>${why}`, submission).violations).toContain('must contain exactly three free actions');
+    expect(validateResultHtml(`<p>Free action 1: One.</p><p>Free action 2: Two.</p><p>Free action 3: Three.</p><p>Free action 4: Four.</p>${why}`, submission).violations).toContain('must contain exactly three free actions');
+  });
+
+  it('rejects unsupported money, audit, and sports content', () => {
+    for (const content of ['It costs $40 monthly.', 'We completed a business audit.', 'Use a football strategy.']) {
+      expect(validateResultHtml(withWhyQuestion(`<p>${content}</p>`), submission).violations.some((v) => v.includes('unsupported money'))).toBe(true);
+    }
+  });
+
+  it('rejects the submitted favorite team if it leaks into customer-facing content', () => {
+    expect(validateResultHtml(withWhyQuestion('<p>The Lions can help frame this.</p>'), { ...submission, favoriteTeam: 'Lions' }).violations).toContain('favorite team leaked into customer-facing content');
   });
 
   it('counts business-name mentions', () => {

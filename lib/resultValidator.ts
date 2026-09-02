@@ -94,8 +94,14 @@ const CLIENT_CLAIM_PATTERNS: RegExp[] = [
 // Content that could only plausibly reach the email via unescaped/injected input —
 // legitimate generated prose never contains these regardless of source.
 const INJECTION_PATTERNS: RegExp[] = [/<script/i, /on\w+\s*=\s*["']/i, /javascript:/i];
+const UNSUPPORTED_CLAIM_PATTERNS: RegExp[] = [
+  /[$£€]\s*\d/i,
+  /\bROI\b/i,
+  /\baudit(?:ed|ing|s)?\b/i,
+  /\b(?:football|basketball|sports?)\b/i,
+];
 
-export function validateResultHtml(html: string, submission: { businessName: string; firstName: string }): ValidationResult {
+export function validateResultHtml(html: string, submission: { businessName: string; firstName: string; favoriteTeam?: string }): ValidationResult {
   const violations: string[] = [];
   const plainText = stripTags(html);
 
@@ -135,6 +141,19 @@ export function validateResultHtml(html: string, submission: { businessName: str
     if (pattern.test(html)) {
       violations.push(`unescaped/injected content matched ("${pattern.source}")`);
     }
+  }
+
+  const freeActions = plainText.match(/\bFree action [1-3]:/g) ?? [];
+  const hasOneOfEach = [1, 2, 3].every((number) => freeActions.filter((action) => action === `Free action ${number}:`).length === 1);
+  if (freeActions.length !== 3 || !hasOneOfEach || /\bFree action \d+:/i.test(plainText.replace(/\bFree action [1-3]:/g, ''))) {
+    violations.push('must contain exactly three free actions');
+  }
+
+  for (const pattern of UNSUPPORTED_CLAIM_PATTERNS) {
+    if (pattern.test(plainText)) violations.push(`unsupported money, audit, or sports content matched ("${pattern.source}")`);
+  }
+  if (submission.favoriteTeam && plainText.toLowerCase().includes(submission.favoriteTeam.toLowerCase())) {
+    violations.push('favorite team leaked into customer-facing content');
   }
 
   const whyQuestion = buildWhyQuestion(submission.businessName);

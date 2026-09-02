@@ -27,9 +27,11 @@ export async function admitAssessment(data: AssessmentSubmission, identity: stri
     const submission = await tx.submission.create({ data: {
       workSituation: data.workSituation, usingAiTools: data.usingAiTools, aiChallenge: data.aiChallenge,
       desiredOutcome: data.desiredOutcome, timeDrain: data.timeDrain, privacyConcern: data.privacyConcern,
-      industry: data.industry, industryOther: data.industryOther, sportsFan: data.sportsFan,
+      industry: data.industry, industryOther: data.industryOther, leadResponse: data.leadResponse,
+      sportsFan: data.sportsFan, favoriteTeam: data.favoriteTeam,
       firstName: data.firstName, lastName: data.lastName, businessName: data.businessName,
-      email: data.email, funnelCorrelationId: data.funnelCorrelationId, ipAddress: identity,
+      email: data.email, websiteUrl: data.websiteUrl, noWebsite: data.noWebsite,
+      funnelCorrelationId: data.funnelCorrelationId, ipAddress: identity,
     }, select: { id: true } });
     return { kind: 'created', submission } as const;
   }, { isolationLevel: 'Serializable' });

@@ -10,11 +10,13 @@ const baseSubmission: AssessmentSubmission = {
   timeDrain: 'Answering calls & following up with leads quickly',
   privacyConcern: 'Somewhat worried — I think about it, but it\'s not stopping me',
   industry: 'Construction & Trades (contractors, subs, home services)',
+  leadResponse: 'We respond manually, but follow-up is not always consistent.',
   sportsFan: 'Not really a sports fan',
   firstName: 'Taylor',
   lastName: 'Doe',
   businessName: 'Johnson Electric',
   email: 'taylor@example.com',
+  noWebsite: true,
   consent: true,
   formLoadedAt: 1,
 };
@@ -61,5 +63,12 @@ describe('buildFallbackResultHtml', () => {
   it('keeps ordinary apostrophes in business names literal, not entity-encoded', () => {
     const html = buildFallbackResultHtml({ ...baseSubmission, businessName: "Bob's Plumbing" });
     expect(html).toContain("Bob's Plumbing");
+  });
+
+  it('contains exactly three free actions, no unsupported money claim, and the exact final WHY question', () => {
+    const html = buildFallbackResultHtml({ ...baseSubmission, sportsFan: 'Football', favoriteTeam: 'Lions' });
+    expect(html.match(/Free action [1-3]:/g)).toHaveLength(3);
+    expect(html).not.toMatch(/\$40|football|Lions/i);
+    expect(html.trim()).toMatch(/One final question worth thinking about: What made you build Johnson Electric, and what do you want the business to make possible for you\?<\/p>$/);
   });
 });

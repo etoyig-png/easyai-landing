@@ -45,15 +45,21 @@ model Submission {
   industry      String
   industryOther String?
 
-  // Q8 — sports fan
-  sportsFan String
+  // Q8 — lead response (nullable only for submissions created before this question existed)
+  leadResponse String?
 
-  // Q9 — contact info
+  // Q9 — sports fan
+  sportsFan    String
+  favoriteTeam String?
+
+  // Contact info
   firstName    String
   lastName     String
   businessName String
   email        String
   phone        String?
+  websiteUrl   String?
+  noWebsite    Boolean @default(false)
 
   // Gary funnel correlation — set only when this submission originated from a Gary handoff
   funnelCorrelationId String?
