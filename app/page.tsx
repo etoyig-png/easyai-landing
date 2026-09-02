@@ -4,17 +4,8 @@ import HeroVideo from '@/components/HeroVideo';
 import ResponsiveImage from '@/components/ResponsiveImage';
 
 export const metadata: Metadata = {
-  title: 'Easy AI | Get Found, Get Chosen, Turn Attention Into Customers',
-  description:
-    'Easy AI helps local businesses appear when customers search Google or ask AI who to call, turn website attention into inquiries, and respond before interest fades.',
-  alternates: { canonical: '/' },
-  openGraph: {
-    title: 'Easy AI | Get Found, Get Chosen, Turn Attention Into Customers',
-    description:
-      'Easy AI helps local businesses appear when customers search Google or ask AI who to call, turn website attention into inquiries, and respond before interest fades.',
-    url: '/',
-    type: 'website',
-  },
+  title: 'Easy AI | Practical AI Guidance for Small and Midsize Businesses',
+  description: 'Easy AI helps business owners find trustworthy AI tools, software, and workflows that reduce busywork, improve operations, and help them buy back their time.',
 };
 /* ── Inline SVG icons ───────────────────────────────────────────────────────── */
 const IconClock = () => (

@@ -1,11 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = {
-  title: 'AI Strategy & Tool Selection',
-  description:
-    'After we help customers find and choose your business, Easy AI looks at the systems behind it: what to fix, what to automate, and what to leave alone.',
-  alternates: { canonical: '/ai-product-consulting' },
-};
+export const metadata: Metadata = { title: 'AI Product Consulting' };
 
 const solutionTypes = [
   { icon: '🤖', label: 'Existing AI products', body: 'Off-the-shelf tools that may already solve your problem -- often the fastest and lowest-risk path.' },

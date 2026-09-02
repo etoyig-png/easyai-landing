@@ -1,12 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'What We Do',
-  description:
-    'Easy AI helps local businesses get found across Google, local search, and AI discovery, turn website attention into inquiries, and respond before customer interest fades.',
-  alternates: { canonical: '/how-it-works' },
-};
+export const metadata: Metadata = { title: 'How It Works' };
 
 /**
  * The complete public service range. Descriptions are outcome-first on purpose: they say what the

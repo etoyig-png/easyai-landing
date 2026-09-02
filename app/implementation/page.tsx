@@ -1,11 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = {
-  title: 'Implementation & Support',
-  description:
-    'Easy AI sets up, connects, tests, documents, and supports the systems behind your customer growth, so approved changes actually get used.',
-  alternates: { canonical: '/implementation' },
-};
+export const metadata: Metadata = { title: 'Implementation & Custom Agents' };
 
 const implServices = [
   { icon: '🔧', title: 'Tool setup & configuration', body: 'We install and configure approved tools for your business -- properly, not just out of the box.' },

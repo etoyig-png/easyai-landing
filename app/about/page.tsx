@@ -1,11 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = {
-  title: 'About Easy AI',
-  description:
-    'Easy AI is a Tampa, Florida practice helping local businesses get found, get chosen, and turn website attention into real customer opportunities.',
-  alternates: { canonical: '/about' },
-};
+export const metadata: Metadata = { title: 'About EasyAI' };
 
 export default function AboutPage() {
   return (

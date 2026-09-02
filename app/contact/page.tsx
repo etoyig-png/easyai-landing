@@ -1,12 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Contact',
-  description:
-    'Reach Easy AI in Tampa, Florida. Get in touch with questions or to start your business assessment.',
-  alternates: { canonical: '/contact' },
-};
+export const metadata: Metadata = { title: 'Contact' };
 
 export default function ContactPage() {
   return (
@@ -47,6 +42,30 @@ export default function ContactPage() {
               <h2 className="font-serif font-semibold text-white text-lg mb-1">Response time</h2>
               <p className="font-sans text-sm text-silver-light">We respond within one business day.</p>
             </div>
+          </div>
+
+          <div className="mt-14 max-w-2xl">
+            <h2 className="font-serif font-semibold text-white text-2xl mb-6">Send a message</h2>
+            <form
+              action="https://formspree.io/f/REPLACE_WITH_YOUR_FORM_ID"
+              method="POST"
+              className="space-y-5"
+            >
+              <div>
+                <label htmlFor="name" className="block font-sans text-sm font-medium text-silver-light mb-2">Name</label>
+                <input type="text" id="name" name="name" required className="w-full rounded-lg border border-navy-700 bg-navy-800 px-4 py-3 text-white focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal" />
+              </div>
+              <div>
+                <label htmlFor="email" className="block font-sans text-sm font-medium text-silver-light mb-2">Email</label>
+                <input type="email" id="email" name="email" required className="w-full rounded-lg border border-navy-700 bg-navy-800 px-4 py-3 text-white focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal" />
+              </div>
+              <div>
+                <label htmlFor="message" className="block font-sans text-sm font-medium text-silver-light mb-2">Message</label>
+                <textarea id="message" name="message" required rows={5} className="w-full resize-y rounded-lg border border-navy-700 bg-navy-800 px-4 py-3 text-white focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal" />
+              </div>
+              <button type="submit" className="btn-green w-full py-3">Send Message</button>
+              <p className="text-xs text-silver-dark text-center">We will respond within one business day.</p>
+            </form>
           </div>
 
           {/* Always-present alternate path, so the page is never a dead end even if the chat
