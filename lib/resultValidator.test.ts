@@ -96,6 +96,28 @@ describe('validateResultHtml', () => {
     }
   });
 
+  it.each(['Smith Sports', 'ROI Advisors', 'Audit Partners', '$40 Studio'])(
+    'allows claim-pattern language in the business name only inside the required WHY question: %s',
+    (businessName) => {
+      const customSubmission = { ...submission, businessName };
+      const html = [
+        '<p>Here is a safe plan for your business.</p>',
+        '<p>Free action 1: Write down the process.</p>',
+        '<p>Free action 2: Draft a response.</p>',
+        '<p>Free action 3: Track the next step.</p>',
+        `<p>${buildWhyQuestion(businessName)}</p>`,
+      ].join('');
+      expect(validateResultHtml(html, customSubmission).violations).toEqual([]);
+    }
+  );
+
+  it.each(['sports', 'ROI', 'business audit', '$40'])(
+    'still rejects claim-pattern language everywhere before the WHY question: %s',
+    (unsafeContent) => {
+      expect(validateResultHtml(withWhyQuestion(`<p>${unsafeContent}</p>`), submission).violations.some((v) => v.includes('unsupported money'))).toBe(true);
+    }
+  );
+
   it('rejects the submitted favorite team if it leaks into customer-facing content', () => {
     expect(validateResultHtml(withWhyQuestion('<p>The Lions can help frame this.</p>'), { ...submission, favoriteTeam: 'Lions' }).violations).toContain('favorite team leaked into customer-facing content');
   });

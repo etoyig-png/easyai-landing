@@ -104,6 +104,11 @@ const UNSUPPORTED_CLAIM_PATTERNS: RegExp[] = [
 export function validateResultHtml(html: string, submission: { businessName: string; firstName: string; favoriteTeam?: string }): ValidationResult {
   const violations: string[] = [];
   const plainText = stripTags(html);
+  const whyQuestion = buildWhyQuestion(submission.businessName);
+  // The exact required closing question necessarily repeats the submitted business
+  // name. Exclude only that one required sentence from claim-pattern scanning so a
+  // legitimate name such as "Smith Sports" cannot reject an otherwise safe result.
+  const claimScanText = plainText.replace(whyQuestion, '');
 
   if (/—/.test(html)) violations.push('em dash present');
   if (/–/.test(html)) violations.push('en dash present');
@@ -150,13 +155,12 @@ export function validateResultHtml(html: string, submission: { businessName: str
   }
 
   for (const pattern of UNSUPPORTED_CLAIM_PATTERNS) {
-    if (pattern.test(plainText)) violations.push(`unsupported money, audit, or sports content matched ("${pattern.source}")`);
+    if (pattern.test(claimScanText)) violations.push(`unsupported money, audit, or sports content matched ("${pattern.source}")`);
   }
   if (submission.favoriteTeam && plainText.toLowerCase().includes(submission.favoriteTeam.toLowerCase())) {
     violations.push('favorite team leaked into customer-facing content');
   }
 
-  const whyQuestion = buildWhyQuestion(submission.businessName);
   const whyCount = countOccurrences(plainText, whyQuestion);
   if (whyCount === 0) {
     violations.push('missing mandatory closing WHY question');
