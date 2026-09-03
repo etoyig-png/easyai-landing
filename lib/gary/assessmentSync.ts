@@ -27,10 +27,11 @@ const QUESTION_LABELS: Record<string, string> = {
   timeDrain: 'Which area of your business eats up the most of your time?',
   privacyConcern: 'How worried are you about data privacy and security?',
   industry: 'What kind of business do you run?',
+  leadResponse: 'What usually happens after a potential customer contacts your business?',
   sportsFan: 'Are you a sports fan?',
 };
 
-function buildQuestionsAndAnswers(submission: AssessmentSubmission): { question: string; answer: string }[] {
+export function buildQuestionsAndAnswers(submission: AssessmentSubmission): { question: string; answer: string }[] {
   const entries: { question: string; answer: string }[] = [];
   for (const [key, question] of Object.entries(QUESTION_LABELS)) {
     const answer = (submission as unknown as Record<string, string | undefined>)[key];
@@ -41,6 +42,22 @@ function buildQuestionsAndAnswers(submission: AssessmentSubmission): { question:
     });
   }
   return entries;
+}
+
+export function buildAssessmentPackage(submission: AssessmentSubmission, resultHtml: string) {
+  return {
+    assessmentVersion: ASSESSMENT_VERSION,
+    questions: buildQuestionsAndAnswers(submission),
+    categoryScores: {},
+    overallResult: resultHtml,
+    profileResult: submission.desiredOutcome,
+    painPointsIdentified: [submission.aiChallenge, submission.timeDrain].filter(Boolean),
+    suggestions: [],
+    recommendedNextStep: 'Review the generated AI Action Plan and watch the next-step video.',
+    clientFacingSummary: resultHtml,
+    submittedAt: new Date().toISOString(),
+    source: 'easyai-landing',
+  };
 }
 
 /**
@@ -74,19 +91,7 @@ export async function syncCompleteAssessmentToCommandCenter(params: SyncParams):
         industry: submission.industry,
         source: 'easyai-landing',
         // The optional, richer payload the route persists via saveAssessmentPackage() when present.
-        assessmentPackage: {
-          assessmentVersion: ASSESSMENT_VERSION,
-          questions: buildQuestionsAndAnswers(submission),
-          categoryScores: {},
-          overallResult: resultHtml,
-          profileResult: submission.desiredOutcome,
-          painPointsIdentified: [submission.aiChallenge, submission.timeDrain].filter(Boolean),
-          suggestions: [],
-          recommendedNextStep: 'Review the generated AI Action Plan and reach out to schedule a discovery call.',
-          clientFacingSummary: resultHtml,
-          submittedAt: new Date().toISOString(),
-          source: 'easyai-landing',
-        },
+        assessmentPackage: buildAssessmentPackage(submission, resultHtml),
         submissionId,
         funnelCorrelationId: (submission as unknown as { funnelCorrelationId?: string }).funnelCorrelationId,
         processingStatus: status,

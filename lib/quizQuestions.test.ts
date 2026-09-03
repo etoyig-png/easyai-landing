@@ -8,6 +8,7 @@ import {
   TIME_DRAIN_OPTIONS,
   PRIVACY_CONCERN_OPTIONS,
   INDUSTRY_OPTIONS,
+  LEAD_RESPONSE_OPTIONS,
   SPORTS_OPTIONS,
 } from './quizQuestions';
 
@@ -19,14 +20,16 @@ const ORIGINAL_TITLES: Record<string, string> = {
   timeDrain: 'Which area of your business eats up the most of your time?',
   privacyConcern: "When you think about using AI in your business, how worried are you about you and your customers' data privacy and security?",
   industry: 'What kind of business do you run?',
+  leadResponse: 'What usually happens after a potential customer contacts your business?',
   sportsFan: 'Are you a sports fan? If so, which do you like more?',
 };
 
 describe('buildQuestions', () => {
-  it('keeps Q1 (workSituation) and Q8 (sportsFan) unpersonalized regardless of business name', () => {
+  it('keeps Q1 (workSituation), leadResponse, and Q9 (sportsFan) unpersonalized regardless of business name', () => {
     const questions = buildQuestions('Johnson Electric');
     expect(questions[0].title).toBe(ORIGINAL_TITLES.workSituation);
-    expect(questions[7].title).toBe(ORIGINAL_TITLES.sportsFan);
+    expect(questions[7].title).toBe(ORIGINAL_TITLES.leadResponse);
+    expect(questions[8].title).toBe(ORIGINAL_TITLES.sportsFan);
   });
 
   it('interpolates the business name into Q2-Q7 titles', () => {
@@ -55,6 +58,7 @@ describe('buildQuestions', () => {
       'timeDrain',
       'privacyConcern',
       'industry',
+      'leadResponse',
       'sportsFan',
     ]);
     expect(questions[0].options).toEqual(WORK_SITUATION_OPTIONS);
@@ -64,9 +68,22 @@ describe('buildQuestions', () => {
     expect(questions[4].options).toEqual(TIME_DRAIN_OPTIONS);
     expect(questions[5].options).toEqual(PRIVACY_CONCERN_OPTIONS);
     expect(questions[6].options).toEqual(INDUSTRY_OPTIONS);
-    expect(questions[7].options).toEqual(SPORTS_OPTIONS);
+    expect(questions[7].options).toEqual(LEAD_RESPONSE_OPTIONS);
+    expect(questions[8].options).toEqual(SPORTS_OPTIONS);
     expect(questions[6].allowOther).toBe(true);
     expect(questions.filter((q) => q.allowOther).map((q) => q.key)).toEqual(['industry']);
+  });
+
+  it('uses the approved lead-response choices and only the approved time-drain replacement', () => {
+    expect(LEAD_RESPONSE_OPTIONS).toEqual([
+      'They receive a fast response and are tracked through the next step.',
+      'We respond manually, but follow-up is not always consistent.',
+      'Responses are sometimes delayed because our team is busy.',
+      'Some calls, messages, or website inquiries are probably missed.',
+      "I don't have a clear way to track what happens.",
+    ]);
+    expect(TIME_DRAIN_OPTIONS).toContain('Finding more customers and generating a steady flow of qualified leads.');
+    expect(TIME_DRAIN_OPTIONS).not.toContain('Marketing, new customers & missed leads');
   });
 
   it('does not strip or mangle an HTML/script-like business name at the string level', () => {

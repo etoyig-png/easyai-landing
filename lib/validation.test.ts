@@ -10,11 +10,13 @@ function basePayload(overrides: Record<string, unknown> = {}) {
     timeDrain: 'Answering calls & following up with leads quickly',
     privacyConcern: "Somewhat worried — I think about it, but it's not stopping me",
     industry: 'Construction & Trades (contractors, subs, home services)',
+    leadResponse: 'We respond manually, but follow-up is not always consistent.',
     sportsFan: 'Not really a sports fan',
     firstName: 'Taylor',
     lastName: 'Confirm',
     businessName: 'Confirm Trades Co',
     email: 'taylor@example.com',
+    noWebsite: true,
     consent: true,
     companyUrl: '',
     formLoadedAt: Date.now() - 5000,
@@ -23,12 +25,22 @@ function basePayload(overrides: Record<string, unknown> = {}) {
 }
 
 describe('assessmentSubmissionSchema', () => {
-  it('accepts a valid payload matching the new UI collection order but unchanged flat shape', () => {
-    // The reordered UI (intro step -> Q1-Q8 -> final contact step) still submits
-    // the same 4 contact fields in the same flat shape as before — collection
-    // order on the client has no bearing on schema validation.
+  it('accepts a valid payload matching the 11 data-entry screens', () => {
     const result = assessmentSubmissionSchema.safeParse(basePayload());
     expect(result.success).toBe(true);
+  });
+
+  it('requires favoriteTeam only for Football or Basketball', () => {
+    expect(assessmentSubmissionSchema.safeParse(basePayload({ sportsFan: 'Football' })).success).toBe(false);
+    expect(assessmentSubmissionSchema.safeParse(basePayload({ sportsFan: 'Football', favoriteTeam: 'Lions' })).success).toBe(true);
+    expect(assessmentSubmissionSchema.safeParse(basePayload({ favoriteTeam: 'Lions' })).success).toBe(false);
+  });
+
+  it('requires an HTTP(S) website URL or noWebsite, but never both', () => {
+    expect(assessmentSubmissionSchema.safeParse(basePayload({ noWebsite: false })).success).toBe(false);
+    expect(assessmentSubmissionSchema.safeParse(basePayload({ noWebsite: false, websiteUrl: 'https://example.com' })).success).toBe(true);
+    expect(assessmentSubmissionSchema.safeParse(basePayload({ noWebsite: false, websiteUrl: 'ftp://example.com' })).success).toBe(false);
+    expect(assessmentSubmissionSchema.safeParse(basePayload({ noWebsite: true, websiteUrl: 'https://example.com' })).success).toBe(false);
   });
 
   it('still requires industryOther when industry is "Something else"', () => {

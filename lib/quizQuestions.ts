@@ -29,7 +29,15 @@ export const TIME_DRAIN_OPTIONS = [
   'Scheduling & appointments',
   'Invoicing, billing & payments',
   'Paperwork & documentation',
-  'Marketing, new customers & missed leads',
+  'Finding more customers and generating a steady flow of qualified leads.',
+] as const;
+
+export const LEAD_RESPONSE_OPTIONS = [
+  'They receive a fast response and are tracked through the next step.',
+  'We respond manually, but follow-up is not always consistent.',
+  'Responses are sometimes delayed because our team is busy.',
+  'Some calls, messages, or website inquiries are probably missed.',
+  "I don't have a clear way to track what happens.",
 ] as const;
 
 export const PRIVACY_CONCERN_OPTIONS = [
@@ -59,6 +67,7 @@ export type TimeDrain = (typeof TIME_DRAIN_OPTIONS)[number];
 export type PrivacyConcern = (typeof PRIVACY_CONCERN_OPTIONS)[number];
 export type Industry = (typeof INDUSTRY_OPTIONS)[number];
 export type SportsAnswer = (typeof SPORTS_OPTIONS)[number];
+export type LeadResponse = (typeof LEAD_RESPONSE_OPTIONS)[number];
 
 export type QuestionKey =
   | 'workSituation'
@@ -68,6 +77,7 @@ export type QuestionKey =
   | 'timeDrain'
   | 'privacyConcern'
   | 'industry'
+  | 'leadResponse'
   | 'sportsFan';
 
 export interface QuestionDef {
@@ -78,8 +88,8 @@ export interface QuestionDef {
 }
 
 /**
- * Builds the 8 quiz questions, naturally interpolating the submitted business
- * name into Q2-Q7. Q1 (workSituation) and Q8 (sportsFan) always keep their
+ * Builds the 9 quiz questions, naturally interpolating the submitted business
+ * name into Q2-Q7. Q1, Q8 (leadResponse), and Q9 (sportsFan) keep their
  * original, unpersonalized wording. Business name is inserted as plain text —
  * safe against HTML/script injection because callers render `title` as JSX
  * text content (React auto-escapes), never via dangerouslySetInnerHTML.
@@ -122,6 +132,11 @@ export function buildQuestions(businessName: string): QuestionDef[] {
       title: name ? `What kind of business is ${name}?` : 'What kind of business do you run?',
       options: INDUSTRY_OPTIONS,
       allowOther: true,
+    },
+    {
+      key: 'leadResponse',
+      title: 'What usually happens after a potential customer contacts your business?',
+      options: LEAD_RESPONSE_OPTIONS,
     },
     { key: 'sportsFan', title: 'Are you a sports fan? If so, which do you like more?', options: SPORTS_OPTIONS },
   ];

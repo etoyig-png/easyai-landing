@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AssessmentSubmission } from './validation';
 import { escapeHtmlText } from './htmlEscape';
-import { validateResultHtml } from './resultValidator';
+import { buildWhyQuestion, validateResultHtml } from './resultValidator';
 import { renderUntrustedAssessmentContent } from './safeEmailContent';
 
 // Constructed lazily so this module can be imported at build time without ANTHROPIC_API_KEY set.
@@ -20,7 +20,7 @@ export const INDUSTRY_RESEARCH: Record<string, string> = {
   'Construction & Trades (contractors, subs, home services)':
     'Trade businesses miss 27-62% of incoming calls. Only 5-12% of dormant/old leads convert without automated follow-up.',
   'Healthcare & Wellness (chiropractic, medical, dental, therapy)':
-    'No-shows cost the average chiropractic-style clinic $15,000-$40,000/year. Solo practitioners lose 15-20 hrs/week to insurance and scheduling admin. Do not reference or ask about any patient medical history, diagnoses, or health data — stay focused on practice operations only.',
+    'Solo practitioners can lose substantial time each week to insurance and scheduling administration. Do not reference or ask about any patient medical history, diagnoses, or health data — stay focused on practice operations only.',
   'Professional Services (consulting, legal, accounting, financial)':
     'Unbilled time is the "leaky faucet" of professional services — loose time tracking quietly drains profit.',
   'Retail & E-commerce':
@@ -46,7 +46,7 @@ Structure the email using this Feel-Felt-Found arc, in this order:
 3. FELT — normalize it by connecting to real founder experience. Etoyi (Easy AI's founder) has personally talked with business owners in these industries — you may write in that honest founder voice, e.g. "Owners I've spoken with often describe...", "In my years working with business owners in [industry]...", "A common concern I hear is...". Never describe these people as Easy AI clients and never claim Easy AI produced results for them — this is about shared experience, not a case study or testimonial.
 4. FOUND — where their industry is headed and what's been found to work, grounded in the research note provided below. Cite the stat naturally, not as a bullet list of data, and keep its original context/limitations intact — never present an industry-wide range as a guaranteed number for this specific business.
 5. Mirror their specific biggest time drain, framed as "businesses like yours typically..." — this must never read as a personal guarantee about their specific results.
-6. Money reassurance tied to their desired outcome — most of the tools that would realistically help run $40-60/month, not thousands.
+6. Give exactly three practical actions the reader can take for free, without buying a tool or hiring anyone. Format them as three separate paragraphs beginning exactly "Free action 1:", "Free action 2:", and "Free action 3:". Do not include any other numbered or labeled actions.
 7. Time reassurance — make clear their time is the asset being protected here, not something else being asked of them.
 8. End with the mandatory closing question described under "Closing question" below. Do not write your own call-to-action, button, or booking link — that is added automatically after your content.
 
@@ -83,6 +83,7 @@ Hard rules:
 - Do NOT invent or assert facts about this specific business that were not confirmed by web search or given in the submitted answers. Only use a specific factual claim about this business if it was actually verified.
 - Do NOT describe anyone as an Easy AI client or claim Easy AI produced results for them. Founder-experience language ("owners I've spoken with...") is allowed; testimonials or case-study framing are not.
 - Do NOT use any sports, game, or team metaphors or headers of any kind.
+- Do NOT include sports preferences, favorite teams, financial figures, prices, ROI, savings estimates, or claims about an audit.
 - Do NOT use em dashes (—) or en dashes (–) anywhere in your output. Rewrite the sentence naturally with commas, periods, or separate sentences instead of substituting a different repetitive punctuation mark in their place.
 - Do NOT use any of these AI-writing tells: "not X, but Y" constructions (including "not because X, but because Y"), repeated negative comparisons, three consecutive dramatic sentence fragments in a row, a rhetorical question immediately followed by its own answer, "you're in good company", "if any of this lands", "quietly saving", "low hum", "on-ramp", "move the needle", "genuinely fine", "reasonable place to be standing", "the thing that stood out most", "here's the part", "the deeper goal may be", decorative metaphors that don't clarify anything, or generic motivational filler. Vary paragraph and sentence length naturally rather than writing every paragraph to a similar rhythm. Use contractions naturally.
 - Do NOT name a specific third-party product or brand anywhere in the output, including but not limited to CRR, Intelligent Website, GoHighLevel, or Merchynt. Describe outcomes and capabilities only, never named tools.
@@ -123,7 +124,9 @@ Already using AI tools regularly: ${submission.usingAiTools}
 Their #1 AI challenge: ${submission.aiChallenge}
 Outcome they most want: ${submission.desiredOutcome}
 Biggest time drain: ${submission.timeDrain}
+Current lead response: ${submission.leadResponse}
 Data privacy/security worry level: ${submission.privacyConcern}
+Business website: ${submission.noWebsite ? 'No website provided' : submission.websiteUrl}
 
 Industry research note to draw on for the FOUND section: ${research}
 
@@ -232,7 +235,10 @@ export function buildFallbackResultHtml(submission: AssessmentSubmission): strin
     <p>Thanks for taking the time to walk us through ${businessName}. We're putting together your full AI Action Plan now, and wanted to make sure you heard from us right away.</p>
     <p>You mentioned ${aiChallenge}. That's an extremely common starting point, and it's exactly what a short discovery call is for.</p>
     <p>${research.split('.')[0]}. Businesses like yours typically find the biggest win is tackling "${timeDrain}" first.</p>
-    <p>Most of the tools that realistically fit a business your size run $40-60/month, not thousands, and the goal is always to protect your time, not add more to your plate.</p>
-    <p>When you're ready, we'd love to set up a short discovery call to go deeper.</p>
+    <p>Your answer about lead response suggests a useful place to begin is making the next step visible and repeatable, while keeping people responsible for the decisions.</p>
+    <p><strong>Free action 1:</strong> Write down every step a new inquiry should follow, from first contact through the next committed step.</p>
+    <p><strong>Free action 2:</strong> Draft one reusable response that acknowledges an inquiry and clearly states when the customer should expect a human follow-up.</p>
+    <p><strong>Free action 3:</strong> Track incoming inquiries and their next steps in one shared document for a week, then review where delays or gaps appear.</p>
+    <p>${buildWhyQuestion(submission.businessName)}</p>
   `;
 }

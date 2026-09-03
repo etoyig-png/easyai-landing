@@ -12,8 +12,9 @@ import { admitAssessment } from './assessmentAdmission';
 
 const submission = {
   workSituation: 'x', usingAiTools: 'x', aiChallenge: 'x', desiredOutcome: 'x', timeDrain: 'x',
-  privacyConcern: 'x', industry: 'x', sportsFan: 'x', firstName: 'A', lastName: 'B',
-  businessName: 'C', email: 'person@example.com', consent: true, formLoadedAt: 1,
+  privacyConcern: 'x', industry: 'x', leadResponse: 'x', sportsFan: 'x', firstName: 'A', lastName: 'B',
+  businessName: 'C', email: 'person@example.com', websiteUrl: 'https://example.com', noWebsite: false,
+  consent: true, formLoadedAt: 1,
 } as never;
 
 describe('atomic assessment admission', () => {
@@ -21,6 +22,9 @@ describe('atomic assessment admission', () => {
   it('creates below the threshold while acquiring identity and email locks', async () => {
     await expect(admitAssessment(submission, 'identity')).resolves.toEqual({ kind: 'created', submission: { id: 'new' } });
     expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(tx.submission.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
+      leadResponse: 'x', websiteUrl: 'https://example.com', noWebsite: false,
+    }) }));
   });
   it('returns an existing pending/completed duplicate without new work', async () => {
     tx.submission.findFirst.mockResolvedValue({ id: 'existing' });

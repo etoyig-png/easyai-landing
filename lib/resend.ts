@@ -15,6 +15,7 @@ function getResend(): Resend {
 // redirect to fetch the actual PNG, which was why the logo previously failed to render.
 // www.easyaiconsult.com/easy-ai-logo.png returns a direct 200 image/png with no hop.
 export const RESULT_EMAIL_LOGO_URL = 'https://www.easyaiconsult.com/easy-ai-logo.png';
+export const RESULT_EMAIL_CTA_URL = 'https://www.easyaiconsult.com/assessment/complete';
 
 const NOTIFICATION_FROM = process.env.NOTIFICATION_EMAIL_FROM ?? 'Easy AI Assessments <assessments@mail.easyaiconsult.com>';
 const RESULT_FROM = process.env.RESULT_EMAIL_FROM ?? 'Easy AI <hello@mail.easyaiconsult.com>';
@@ -37,6 +38,9 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
     ['Biggest time drain', submission.timeDrain],
     ['Privacy concern level', submission.privacyConcern],
     ['Industry', submission.industryOther ? `${submission.industry} — ${submission.industryOther}` : submission.industry],
+    ['Lead response', submission.leadResponse],
+    ['Sports preference', submission.favoriteTeam ? `${submission.sportsFan} — ${submission.favoriteTeam}` : submission.sportsFan],
+    ['Website', submission.noWebsite ? 'No website' : (submission.websiteUrl ?? '')],
   ];
 
   const rowsHtml = rows
@@ -81,13 +85,29 @@ export function buildResultEmailHtml(resultHtml: string): string {
           ${resultHtml}
         </div>
         <div style="padding:24px 32px;background:#f8f4ed;text-align:center;">
-          <a href="https://easyaiconsult.com/book-consultation" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-weight:bold;font-size:14px;">Book Your Discovery Call</a>
+          <a href="${RESULT_EMAIL_CTA_URL}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-weight:bold;font-size:14px;">Watch Your Next-Step Video</a>
         </div>
         <div style="padding:16px 32px;font-family:Arial,Helvetica,sans-serif;color:#8b9aaa;font-size:11px;text-align:center;">
           You're receiving this because you completed the Easy AI assessment. Easy AI Consulting.
         </div>
       </div>
     `;
+}
+
+/** Builds a readable multipart-email alternative without carrying model-supplied markup through. */
+export function buildResultEmailText(resultHtml: string): string {
+  const body = resultHtml
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\s*\/\s*(?:p|h[1-6]|li|div)\s*>/gi, '\n\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return `${body}\n\nWatch Your Next-Step Video: ${RESULT_EMAIL_CTA_URL}\n\nYou're receiving this because you completed the Easy AI assessment. Easy AI Consulting.`;
 }
 
 /** Sends the personalized AI Action Plan to the lead. resultHtml is the Claude-generated body content. */
@@ -100,6 +120,7 @@ export async function sendResultEmail(params: { to: string; firstName: string; b
     ...(RESULT_REPLY_TO ? { replyTo: RESULT_REPLY_TO } : {}),
     subject: `${firstName}, your AI Action Plan for ${businessName} is ready`,
     html: buildResultEmailHtml(resultHtml),
+    text: buildResultEmailText(resultHtml),
   });
   if (error) throw new Error(`Resend result email failed: ${error.message}`);
 }

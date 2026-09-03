@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildResultEmailHtml, RESULT_EMAIL_LOGO_URL } from './resend';
+import { buildResultEmailHtml, buildResultEmailText, RESULT_EMAIL_CTA_URL, RESULT_EMAIL_LOGO_URL } from './resend';
 
 describe('buildResultEmailHtml', () => {
   it('renders the logo image tag with the fixed www URL and non-mirrored alt text', () => {
@@ -13,6 +13,20 @@ describe('buildResultEmailHtml', () => {
   it('embeds the provided result body unchanged', () => {
     const html = buildResultEmailHtml('<p>Unique marker XYZ123.</p>');
     expect(html).toContain('Unique marker XYZ123.');
+  });
+
+  it('uses the next-step video CTA on the assessment completion path', () => {
+    const html = buildResultEmailHtml('<p>Body content.</p>');
+    expect(html).toContain('Watch Your Next-Step Video');
+    expect(new URL(RESULT_EMAIL_CTA_URL).pathname).toBe('/assessment/complete');
+    expect(html).not.toContain('Book Your Discovery Call');
+  });
+
+  it('builds a plain-text alternative with the CTA and no HTML tags', () => {
+    const text = buildResultEmailText('<p>Free action 1: Start.</p><p>Final thought.</p>');
+    expect(text).toContain('Free action 1: Start.');
+    expect(text).toContain(`Watch Your Next-Step Video: ${RESULT_EMAIL_CTA_URL}`);
+    expect(text).not.toMatch(/<[^>]+>/);
   });
 });
 

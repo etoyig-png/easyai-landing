@@ -94,10 +94,21 @@ const CLIENT_CLAIM_PATTERNS: RegExp[] = [
 // Content that could only plausibly reach the email via unescaped/injected input —
 // legitimate generated prose never contains these regardless of source.
 const INJECTION_PATTERNS: RegExp[] = [/<script/i, /on\w+\s*=\s*["']/i, /javascript:/i];
+const UNSUPPORTED_CLAIM_PATTERNS: RegExp[] = [
+  /[$£€]\s*\d/i,
+  /\bROI\b/i,
+  /\baudit(?:ed|ing|s)?\b/i,
+  /\b(?:football|basketball|sports?)\b/i,
+];
 
-export function validateResultHtml(html: string, submission: { businessName: string; firstName: string }): ValidationResult {
+export function validateResultHtml(html: string, submission: { businessName: string; firstName: string; favoriteTeam?: string }): ValidationResult {
   const violations: string[] = [];
   const plainText = stripTags(html);
+  const whyQuestion = buildWhyQuestion(submission.businessName);
+  // The exact required closing question necessarily repeats the submitted business
+  // name. Exclude only that one required sentence from claim-pattern scanning so a
+  // legitimate name such as "Smith Sports" cannot reject an otherwise safe result.
+  const claimScanText = plainText.replace(whyQuestion, '');
 
   if (/—/.test(html)) violations.push('em dash present');
   if (/–/.test(html)) violations.push('en dash present');
@@ -137,7 +148,19 @@ export function validateResultHtml(html: string, submission: { businessName: str
     }
   }
 
-  const whyQuestion = buildWhyQuestion(submission.businessName);
+  const freeActions = plainText.match(/\bFree action [1-3]:/g) ?? [];
+  const hasOneOfEach = [1, 2, 3].every((number) => freeActions.filter((action) => action === `Free action ${number}:`).length === 1);
+  if (freeActions.length !== 3 || !hasOneOfEach || /\bFree action \d+:/i.test(plainText.replace(/\bFree action [1-3]:/g, ''))) {
+    violations.push('must contain exactly three free actions');
+  }
+
+  for (const pattern of UNSUPPORTED_CLAIM_PATTERNS) {
+    if (pattern.test(claimScanText)) violations.push(`unsupported money, audit, or sports content matched ("${pattern.source}")`);
+  }
+  if (submission.favoriteTeam && plainText.toLowerCase().includes(submission.favoriteTeam.toLowerCase())) {
+    violations.push('favorite team leaked into customer-facing content');
+  }
+
   const whyCount = countOccurrences(plainText, whyQuestion);
   if (whyCount === 0) {
     violations.push('missing mandatory closing WHY question');
