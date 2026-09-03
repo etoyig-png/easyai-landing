@@ -14,8 +14,10 @@ export async function admitAssessment(data: AssessmentSubmission, identity: stri
     // identity serializes, and the same recipient serializes across identities.
     const emailKey = `email:${data.email.toLowerCase()}`;
     const identityKey = `identity:${identity}`;
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${identityKey}))`;
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${emailKey}))`;
+    // PostgreSQL returns void from pg_advisory_xact_lock. Cast it so Prisma can
+    // deserialize the result while the transaction-scoped lock is acquired.
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${identityKey}))::text`;
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${emailKey}))::text`;
     const now = Date.now();
     const duplicate = await tx.submission.findFirst({
       where: { email: { equals: data.email, mode: 'insensitive' }, status: { in: ['pending', 'completed'] }, createdAt: { gte: new Date(now - EMAIL_COOLDOWN_MS) } },
