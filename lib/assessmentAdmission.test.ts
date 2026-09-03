@@ -22,6 +22,8 @@ describe('atomic assessment admission', () => {
   it('creates below the threshold while acquiring identity and email locks', async () => {
     await expect(admitAssessment(submission, 'identity')).resolves.toEqual({ kind: 'created', submission: { id: 'new' } });
     expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
+    const lockQueries = tx.$queryRaw.mock.calls.map(([query]) => query.join(''));
+    expect(lockQueries.every((query) => query.includes('pg_advisory_xact_lock') && query.includes('::text'))).toBe(true);
     expect(tx.submission.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
       leadResponse: 'x', websiteUrl: 'https://example.com', noWebsite: false,
     }) }));
