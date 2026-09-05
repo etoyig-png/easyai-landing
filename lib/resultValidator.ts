@@ -20,6 +20,28 @@ function stripTags(html: string): string {
     .trim();
 }
 
+/**
+ * Case-insensitive removal of every occurrence of `needle`, replacing each with a
+ * space so surrounding words don't fuse together. Used to lift the submitted business
+ * name out of the text before scanning for banned marketing language — otherwise a
+ * business legitimately named "Elevate Dental" or "Unlock Realty" would reject its own
+ * report. Same exemption principle already applied to the required WHY question.
+ */
+function removeAllOccurrences(haystack: string, needle: string): string {
+  const trimmed = needle.trim();
+  if (!trimmed) return haystack;
+  const lowerHaystack = haystack.toLowerCase();
+  const lowerNeedle = trimmed.toLowerCase();
+  let result = '';
+  let idx = 0;
+  while (true) {
+    const found = lowerHaystack.indexOf(lowerNeedle, idx);
+    if (found === -1) return result + haystack.slice(idx);
+    result += `${haystack.slice(idx, found)} `;
+    idx = found + lowerNeedle.length;
+  }
+}
+
 function countOccurrences(haystack: string, needle: string): number {
   if (!needle) return 0;
   let count = 0;
@@ -71,6 +93,62 @@ const PROHIBITED_PHRASES: string[] = [
 ];
 const NOT_BUT_PATTERN = /\bnot\b[^.!?]{0,80}?\bbut\b/i;
 
+// Generic marketing filler banned outright by the Easy AI writing standard. Deliberately
+// NOT shared with lib/gary/responseValidator.ts: Gary is an independent assistant and the
+// separation rule forbids the assessment engine from importing anything under lib/gary,
+// so the overlap between the two lists is required, not accidental duplication.
+// Scanned against text with the business name removed (see removeAllOccurrences).
+const AI_SLOP_PHRASES: string[] = [
+  'unlock',
+  'leverage',
+  'game-changing',
+  'game changing',
+  'revolutionary',
+  'transformative',
+  'cutting-edge',
+  'cutting edge',
+  'seamless',
+  'robust',
+  'supercharge',
+  'elevate your business',
+  'take your business to the next level',
+  "in today's digital landscape",
+  'in todays digital landscape',
+  "in today's fast-paced world",
+  'in todays fast-paced world',
+  "in today's fast paced world",
+  'harness the power of ai',
+  'ai-powered solution',
+  'ai powered solution',
+  'streamline your operations',
+  'maximize your potential',
+  'embark on a journey',
+  'tailored solutions',
+  'valuable insights',
+  'drive growth',
+  'stay ahead of the curve',
+  'the possibilities are endless',
+];
+
+// Canned empathy the FEEL step must never produce ("We completely understand your frustration").
+const FAKE_EMPATHY_PATTERN = /\b(?:we|i)\s+(?:completely|totally|fully|absolutely)\s+understand\b/i;
+
+// Claims that a live search, competitor comparison, or verified Google + AI Presence (GAP)
+// Score already happened. The report is REQUIRED to offer the GAP Score as an optional next
+// step, so these match only assertions that the work was already performed, never the offer.
+// The first pattern requires an inspection verb AND a business-asset noun in the same
+// sentence so honest phrasing like "we reviewed your answers" is not rejected.
+const FABRICATED_RESEARCH_PATTERNS: RegExp[] = [
+  /\b(?:we|our team|easy ai|i)\s+(?:searched|scanned|crawled|analyzed|analysed|examined|compared|benchmarked|verified|looked at|looked up|pulled up)\b[^.!?]{0,60}?\b(?:websites?|sites?|google|listings?|profiles?|competitors?|rankings?|reviews?|presence|business)\b/i,
+  /\bafter\s+(?:searching|scanning|reviewing|analyzing|analysing|checking|auditing)\s+(?:your|the|their)\b/i,
+  /\bbased on\s+(?:our|the|my)\s+(?:search|research|analysis|scan|review|comparison|findings)\b/i,
+  /\byour\s+(?:current\s+)?(?:google\s+|search\s+)?rankings?\s+(?:show|shows|are|is|indicate|indicates|reveal|reveals)\b/i,
+  /\byou\s+(?:currently\s+)?rank\b/i,
+  /\b(?:your|the)\s+(?:gap|google \+ ai presence)\s+score\s+(?:is|was|came back|shows|showed|revealed|confirmed)\b/i,
+  /\bcompetitor\s+(?:analysis|comparison|audit|research)\s+(?:showed|shows|revealed|found|confirmed)\b/i,
+  /\b(?:we|our team|easy ai)\s+(?:found|confirmed|verified)\s+that\s+(?:your|you)\b/i,
+];
+
 // Explicit brand blocklist. "Paige" is also a common first name — a submitter
 // legitimately named Paige will false-positive here. Documented, not solved:
 // the brief requires this exact blocklist and offers no way to distinguish
@@ -109,6 +187,9 @@ export function validateResultHtml(html: string, submission: { businessName: str
   // name. Exclude only that one required sentence from claim-pattern scanning so a
   // legitimate name such as "Smith Sports" cannot reject an otherwise safe result.
   const claimScanText = plainText.replace(whyQuestion, '');
+  // Banned marketing language is scanned with the business name lifted out, so an owner
+  // whose company is called "Unlock Realty" or "Elevate Dental" is not rejected for it.
+  const slopScanText = removeAllOccurrences(plainText, submission.businessName).toLowerCase();
 
   if (/—/.test(html)) violations.push('em dash present');
   if (/–/.test(html)) violations.push('en dash present');
@@ -132,6 +213,22 @@ export function validateResultHtml(html: string, submission: { businessName: str
   }
   if (NOT_BUT_PATTERN.test(plainText)) {
     violations.push('prohibited "not X, but Y" construction');
+  }
+
+  for (const phrase of AI_SLOP_PHRASES) {
+    if (slopScanText.includes(phrase)) {
+      violations.push(`AI-slop phrase: "${phrase}"`);
+    }
+  }
+  if (FAKE_EMPATHY_PATTERN.test(plainText)) {
+    violations.push('canned empathy instead of a specific observation');
+  }
+
+  for (const pattern of FABRICATED_RESEARCH_PATTERNS) {
+    if (pattern.test(plainText)) {
+      violations.push(`fabricated search, competitor, or verified-audit claim ("${pattern.source}")`);
+      break;
+    }
   }
 
   for (const brand of BRAND_BLOCKLIST) {

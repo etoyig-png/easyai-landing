@@ -40,17 +40,21 @@ const SYSTEM_PROMPT = `You are writing a personalized "Customer Opportunity Acti
 
 Tone: warm, empathetic, specific, and grounded — never hype-y, never a hard sell, never a guaranteed-results promise. This is roughly 70% emotional connection, 30% concrete substance. Sound supportive, intelligent, practical, and human. Use plain language, avoid technical jargon, avoid fear-selling, and avoid sounding like therapy, a motivational speech, or a generic AI advertisement.
 
-Structure the email using this Feel-Felt-Found arc, in this order:
-1. Personal hook — open using their first name and business name. If your web search turned up anything real and specific about the business (their site, services, reviews, location), weave in ONE concrete detail naturally. If you found nothing verifiable, skip the specific detail rather than inventing one — do not fabricate facts about their business.
-2. FEEL — reflect their stated data-privacy/security worry and their #1 AI challenge back to them empathetically, in their own terms, so they feel heard.
-3. FELT — normalize it by connecting to real founder experience. Etoyi (Easy AI's founder) has personally talked with business owners in these industries — you may write in that honest founder voice, e.g. "Owners I've spoken with often describe...", "In my years working with business owners in [industry]...", "A common concern I hear is...". Never describe these people as Easy AI clients and never claim Easy AI produced results for them — this is about shared experience, not a case study or testimonial.
-4. GET FOUND diagnosis. Start one paragraph exactly with "<strong>Get found:</strong>". Interpret their self-reported Google and AI visibility, industry, and desire for customers. Explain the likely discovery gap without claiming this assessment verified rankings, listings, or competitor performance. This assessment is directional and does not replace a verified GAP Score.
-5. GET CHOSEN diagnosis. Start one paragraph exactly with "<strong>Get chosen:</strong>". Interpret their website-conversion answer together with lead response and biggest time drain. Explain where interest may be lost after discovery. If they have no website, focus on creating one dependable path from discovery to contact.
-6. Ground the two diagnoses in the approved industry research note where it is relevant. Keep every statistic in its original context and never present an industry pattern as a result for this business.
-7. Give exactly three practical actions the reader can take for free, without buying a tool or hiring anyone. "Free action 1:" must improve discovery today. "Free action 2:" must improve the website or contact path today. "Free action 3:" must improve tracking or follow-up for the next seven days. Format them as three separate paragraphs beginning exactly "Free action 1:", "Free action 2:", and "Free action 3:". Do not include any other numbered or labeled actions.
-8. After the free actions, explain in one short paragraph that Easy AI's verified GAP Score can compare their Google and AI presence against three local competitors. Present it as an optional next step that supplies evidence, never as something this free assessment already performed.
-9. Time reassurance. Make clear their time is the asset being protected here.
-10. End with the mandatory closing question described under "Closing question" below. Do not write your own call-to-action, button, or booking link. That is added automatically after your content.
+WRITING METHOD (internal only): Feel, Felt, Found is how you think, not how you format. Never print the words "Feel", "Felt", or "Found" as labels, headers, or paragraph openers, and never describe the method to the reader. The email must read as one continuous piece of advice from an experienced adviser, not as a labeled framework.
+- Feel: acknowledge their actual challenge using their answers. Connect their #1 AI challenge, desired outcome, time drain, security concern, self-reported visibility, website-conversion answer, and lead-response answer into one observant, human paragraph. Do not simply repeat every answer back to them, and never use canned empathy such as "We completely understand your frustration."
+- Felt: normalize the problem inside their industry and business situation. Explain that businesses like theirs commonly run into the same gaps. Do not invent testimonials, customers, statistics, case studies, research, or results, and never imply Easy AI has worked with a particular business unless verified data supports it (nothing here ever supplies that).
+- Found: explain the practical business lesson their answers reveal, separated into Get found and Get chosen, then turn that lesson into actions they can perform immediately. Show the logical connection between the problem, the action, and the expected business benefit. Never promise rankings, leads, revenue, savings, or specific results.
+
+REQUIRED REPORT FLOW, in this exact order:
+1. Personal opening. Use their first name and business name naturally, and identify the central business problem in plain language. Do not write a long introduction before naming the problem. If your web search turned up anything real and specific about the business (their site, services, reviews, location), weave in ONE concrete detail naturally. If you found nothing verifiable, skip the specific detail rather than inventing one.
+2. Feel, Felt, Found narrative, applied naturally with no visible labels. Keep it short and specific. You may write in the honest founder voice of Etoyi (Easy AI's founder), e.g. "Owners I've spoken with often describe...", "A common concern I hear is...". Never describe those people as Easy AI clients and never claim Easy AI produced results for them.
+3. Get found diagnosis. Exactly one paragraph, beginning exactly with "<strong>Get found:</strong>". Explain the likely discovery gap using only their self-reported visibility, industry, and stated goals. Never claim that Google, ChatGPT, Claude, Gemini, Perplexity, Facebook, directories, listings, reviews, or competitors were actually searched, checked, or compared.
+4. Get chosen diagnosis. Exactly one paragraph, beginning exactly with "<strong>Get chosen:</strong>". Explain the likely website, inquiry-capture, response, or follow-up gap using their website-conversion answer together with lead response and biggest time drain. If they have no website, focus on one dependable path from discovery to contact.
+5. Exactly three immediate actions, as three separate paragraphs beginning exactly "Free action 1:", "Free action 2:", and "Free action 3:". Action 1 must improve discovery or business-information consistency today. Action 2 must improve the website or contact path today. Action 3 must be a seven-day tracking or follow-up action. Each action must say what to do, how to do it, and what to observe. Every action must be useful without buying anything from Easy AI. Do not include any other numbered or labeled actions.
+6. Optional next step, one short paragraph. Explain that Easy AI's verified Google + AI Presence Score (spell it out in full before you ever shorten it to "GAP Score") can test the business's actual Google and AI visibility against three local competitors. State plainly that this free assessment is directional and is not a completed Google + AI Presence review. Keep the invitation soft and pressure free. This is the only call to action in your output.
+7. Closing question. End with the mandatory closing question described under "Closing question" below. Do not write your own call-to-action, button, or booking link. That is added automatically after your content.
+
+Ground the two diagnoses in the approved industry research note where it is relevant. Keep every statistic in its original context and never present an industry pattern as a result for this business.
 
 Personalization requirements:
 - Use the business name naturally 4-6 times across the email, not just in the opening line.
@@ -77,6 +81,28 @@ Recommended capabilities — pick only 2-3 that clearly match their discovery si
 
 Closing question — the final paragraph of your output, and there must be nothing after it (no further paragraphs, no CTA, no sign-off). It must read, with the business name substituted in:
 "One final question worth thinking about: What made you build [Business Name], and what do you want the business to make possible for you?"
+
+Writing standard:
+- Use plain language a nontechnical business owner understands. Short paragraphs, active verbs, specific nouns and instructions instead of marketing language.
+- Sound like an experienced business adviser speaking directly to one owner. Empathetic without being sentimental, confident without exaggerating.
+- Do not explain what Artificial Intelligence is unless it is genuinely necessary.
+- Spell out "Google + AI Presence" in full before ever using the short form "GAP".
+- Target roughly 350 to 550 words.
+- Every sentence must diagnose, explain, instruct, reassure, or move the reader toward a decision. Delete anything that does none of those.
+
+Banned AI-slop language. Never use any of these, in any capitalization or word form: unlock, leverage, game-changing, revolutionary, transformative, cutting-edge, seamless, robust, supercharge, elevate your business, take your business to the next level, in today's digital landscape, in today's fast-paced world, harness the power of AI, AI-powered solutions, streamline your operations, maximize your potential, embark on a journey, tailored solutions, valuable insights, drive growth, stay ahead of the curve, the possibilities are endless.
+
+Also prohibited:
+- Generic lists of AI tools.
+- Empty motivational language and excessive adjectives.
+- Repeating the reader's complete set of answers back to them.
+- A long introduction before you identify the problem.
+- Fake quotations or testimonials.
+- Unsupported statistics or dollar figures.
+- Any claim that research, a web search, a competitor comparison, or a completed review of their business occurred. Never use the word "audit" anywhere in your output.
+- Recommendations that could apply unchanged to any business.
+- More than one primary call to action.
+- Any recommendation that requires buying Easy AI services before the reader gets value.
 
 Hard rules:
 - Do NOT invent specific promises, numbers, or guarantees about THIS business's results. Stats from the research note describe industry patterns, not this business.
@@ -114,7 +140,12 @@ export function stripLeakedPreamble(text: string): string | null {
   return trimmed.slice(tagIndex);
 }
 
-function buildUserPrompt(submission: AssessmentSubmission): string {
+/**
+ * Exported for lib/assessmentGarySeparation.test.ts, which proves that no Gary session,
+ * message, or correlation metadata reaches the generation prompt. Not part of the public
+ * generation path — generateAssessmentResult is the only caller in production.
+ */
+export function buildUserPrompt(submission: AssessmentSubmission): string {
   const research = researchForIndustry(submission.industry, submission.industryOther);
   return `Generate the personalized Customer Opportunity Action Plan email body for this lead.
 
@@ -222,31 +253,92 @@ Rewrite the entire email body from scratch, following every instruction in the s
 }
 
 /**
+ * Quotes one of the visitor's selected answers back to them. Escaped for a text node and
+ * stripped of a trailing period so the sentence it lands in reads correctly (some option
+ * lists end their options with a period, others do not).
+ */
+function quoteAnswer(value: string): string {
+  return escapeHtmlText(value.trim().replace(/\.+$/, ''));
+}
+
+/**
+ * The desired-outcome and privacy-concern option lists both contain em dashes, which the
+ * validator bans from generated output. Map them to safe derived phrasing rather than
+ * quoting them verbatim.
+ */
+function outcomeFocus(desiredOutcome: string): string {
+  if (desiredOutcome.startsWith('Save time')) return 'free up your schedule';
+  if (desiredOutcome.startsWith('Improve quality')) return 'deliver more consistent work with fewer mistakes';
+  return 'bring in more revenue';
+}
+
+function privacyPosture(privacyConcern: string): string {
+  if (privacyConcern.startsWith('Very worried')) {
+    return 'keeping control of your business and customer information is the main thing holding you back';
+  }
+  if (privacyConcern.startsWith('Somewhat worried')) {
+    return 'you still think carefully about how your business and customer information gets handled';
+  }
+  return 'you are open to new tools as long as your business and customer information is handled properly';
+}
+
+/** Reader-facing industry phrasing. Never uses the free-text "Something else" description. */
+function industryLabel(industry: string): string {
+  if (industry === 'Something else') return 'businesses like yours';
+  return `${industry.split('(')[0].trim().toLowerCase()} businesses`;
+}
+
+/**
+ * First sentence of the approved research note. Only entries from the locked
+ * INDUSTRY_RESEARCH table are ever interpolated: the "Something else" free-text
+ * description is raw visitor input and the fallback path does not run through
+ * renderUntrustedAssessmentContent, so it must not reach the email body here.
+ */
+function fallbackResearchSentence(industry: string): string {
+  const note = INDUSTRY_RESEARCH[industry];
+  if (!note) {
+    return 'Businesses this size usually lose the most ground in the places customers look first, long before anyone picks up a phone.';
+  }
+  // Some notes punctuate with an em dash (Professional Services), which the validator
+  // bans from generated output. The notes are written for the model, not for the reader,
+  // so normalize the punctuation before it lands in a customer-facing sentence.
+  return `${note.split('.')[0].replace(/\s*[—–]\s*/g, ', ')}.`;
+}
+
+/**
  * Deterministic fallback used only if the Claude call fails, refuses, or never passes
- * validation — the lead should never get nothing. Every submitted field is escaped
- * before interpolation (escapeHtmlText — safe for text-node content, keeps natural
- * punctuation like apostrophes literal) since these are raw user-submitted strings,
- * not model output.
+ * validation — the lead should never get nothing. It follows the same Feel, Felt, Found
+ * method and report flow as the prompt, and anthropic.test.ts proves it passes the same
+ * validateResultHtml gate the model output has to clear.
+ *
+ * Every submitted field is escaped before interpolation (escapeHtmlText — safe for
+ * text-node content, keeps natural punctuation like apostrophes literal) since these are
+ * raw user-submitted strings, not model output.
  */
 export function buildFallbackResultHtml(submission: AssessmentSubmission): string {
-  const research = researchForIndustry(submission.industry, submission.industryOther);
   const firstName = escapeHtmlText(submission.firstName);
   const businessName = escapeHtmlText(submission.businessName);
-  const aiChallenge = escapeHtmlText(submission.aiChallenge.toLowerCase());
-  const timeDrain = escapeHtmlText(submission.timeDrain.toLowerCase());
-  const searchVisibility = escapeHtmlText(submission.searchVisibility.toLowerCase());
-  const websiteConversion = escapeHtmlText(submission.websiteConversion.toLowerCase());
+  // Answers shown inside quotation marks keep their original casing; timeDrain is the only
+  // one folded into a sentence, so it is the only one lowercased.
+  const aiChallenge = quoteAnswer(submission.aiChallenge);
+  const timeDrain = quoteAnswer(submission.timeDrain.toLowerCase());
+  const searchVisibility = quoteAnswer(submission.searchVisibility);
+  const websiteConversion = quoteAnswer(submission.websiteConversion);
+  const leadResponse = quoteAnswer(submission.leadResponse);
+  const industry = escapeHtmlText(industryLabel(submission.industry));
+  const research = escapeHtmlText(fallbackResearchSentence(submission.industry));
+  const outcome = outcomeFocus(submission.desiredOutcome);
+  const privacy = privacyPosture(submission.privacyConcern);
   return `
     <h2>Hi ${firstName},</h2>
-    <p>Thanks for walking us through ${businessName}. Your answers point to two places where customer opportunities may be getting harder to win, discovery and the path from interest to action.</p>
-    <p>Your concern that ${aiChallenge} is common for owners who are also trying to protect time. For ${businessName}, the useful starting point is a clear customer path instead of adding more disconnected tools.</p>
-    <p><strong>Get found:</strong> You described your current Google and AI visibility this way: "${searchVisibility}." That is a directional signal, not verified ranking evidence. ${research.split('.')[0]}.</p>
-    <p><strong>Get chosen:</strong> You described the website path this way: "${websiteConversion}." Combined with "${timeDrain}," this suggests ${businessName} may benefit from making one next step obvious and consistently tracked.</p>
-    <p><strong>Free action 1:</strong> Search one important service and location phrase in Google, then ask one AI search tool for businesses that provide it. Record whether ${businessName} appears and which three competitors do.</p>
-    <p><strong>Free action 2:</strong> Open your website on a phone and make sure one primary action, such as call, book, or request information, is visible before scrolling. Remove or demote competing actions.</p>
-    <p><strong>Free action 3:</strong> Track every new call, form, and message for seven days in one shared list with the response time, owner, and next step.</p>
-    <p>A verified Easy AI GAP Score can compare ${businessName}'s Google and AI presence against three local competitors if you want evidence beyond this directional assessment.</p>
-    <p>This plan is meant to protect your time by showing where to focus first.</p>
+    <p>Thanks for walking us through ${businessName}, ${firstName}. Reading your answers together, one problem stands out: customers who should be finding ${businessName} and customers who should be choosing it are slipping away at two different points, and you are trying to fix both while the work of the day keeps moving.</p>
+    <p>You told us the hardest part right now is this: "${aiChallenge}." What you want out of it is to ${outcome}, while ${timeDrain} takes the hours you would need to get there, and ${privacy}. That is a normal place to be. Most ${industry} hit the same two gaps, because getting found and getting chosen look like one job and are really two.</p>
+    <p><strong>Get found:</strong> You described how ${businessName} shows up in Google and AI answers this way: "${searchVisibility}." Read that as a directional signal about discovery, never as proof of where you actually stand. ${research} When customers cannot quickly confirm who you are and what you do in the places they look first, the opportunity is gone before you ever hear about it.</p>
+    <p><strong>Get chosen:</strong> You described the path on your website this way: "${websiteConversion}." What usually happens after someone reaches out sounds like this: "${leadResponse}." Interest that survives discovery still has to land somewhere and reach a person quickly. When the next step is unclear or the reply is slow, most customers simply move on to whoever answers first.</p>
+    <p><strong>Free action 1:</strong> Search one of your main services plus your city in Google, then ask one AI assistant the same question. Write down whether ${businessName} appears at all and which three businesses do. Then check that your name, phone number, and service area read the same way everywhere you found yourself listed.</p>
+    <p><strong>Free action 2:</strong> Open your website on your phone the way a customer would. Before scrolling, one action should be obvious: call, book, or request information. Move or remove anything competing with it, then submit the form yourself and watch where the message actually lands and how long it takes to arrive.</p>
+    <p><strong>Free action 3:</strong> For the next seven days, log every call, form, and message in one shared list with the time it came in, who responded, how long that took, and the next step. At the end of the week, count how many never got a reply. That number is usually the fastest thing to fix.</p>
+    <p>If you would rather have evidence than a directional read, Easy AI's verified Google + AI Presence Score, which we shorten to GAP Score, tests how ${businessName} actually shows up in Google and AI answers against three local competitors. This free assessment points you in a direction. It is not that completed review.</p>
     <p>${buildWhyQuestion(submission.businessName)}</p>
   `;
 }
