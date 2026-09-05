@@ -32,14 +32,14 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
     ['Contact', `${submission.firstName} ${submission.lastName}`],
     ['Email', submission.email],
     ['Work situation', submission.workSituation],
-    ['Using AI tools?', submission.usingAiTools],
+    ['Google and AI visibility', submission.searchVisibility],
     ['#1 AI challenge', submission.aiChallenge],
     ['Desired outcome', submission.desiredOutcome],
     ['Biggest time drain', submission.timeDrain],
     ['Privacy concern level', submission.privacyConcern],
     ['Industry', submission.industryOther ? `${submission.industry} — ${submission.industryOther}` : submission.industry],
     ['Lead response', submission.leadResponse],
-    ['Sports preference', submission.favoriteTeam ? `${submission.sportsFan} — ${submission.favoriteTeam}` : submission.sportsFan],
+    ['Website conversion', submission.websiteConversion],
     ['Website', submission.noWebsite ? 'No website' : (submission.websiteUrl ?? '')],
   ];
 
