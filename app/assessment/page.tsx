@@ -162,7 +162,7 @@ function AssessmentPageInner() {
         const url = new URL(answers.websiteUrl);
         if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('Invalid protocol');
       } catch {
-        errs.websiteUrl = 'Enter a valid http:// or https:// URL, or select no website';
+        errs.websiteUrl = 'Enter a valid http:// or https:// URL';
       }
     }
     setContactErrors(errs);
@@ -335,15 +335,11 @@ function AssessmentPageInner() {
                     onChange={(e) => setAnswers((p) => ({ ...p, websiteUrl: e.target.value, noWebsite: false }))}
                   />
                   {contactErrors.websiteUrl && <p className="text-xs text-red-600 mt-1">{contactErrors.websiteUrl}</p>}
-                  <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={answers.noWebsite}
-                      onChange={(e) => setAnswers((p) => ({ ...p, noWebsite: e.target.checked, websiteUrl: e.target.checked ? '' : p.websiteUrl }))}
-                      className="accent-brand-600"
-                    />
-                    I don&rsquo;t have a website
-                  </label>
+                  {answers.noWebsite && (
+                    <p className="mt-3 text-sm text-slate-600">
+                      You selected that the business does not currently have a website. Use Back if you need to change that answer.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between mt-8">
