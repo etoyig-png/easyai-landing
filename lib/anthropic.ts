@@ -36,21 +36,48 @@ function researchForIndustry(industry: string, industryOther?: string): string {
   return `The business describes itself as: "${industryOther ?? industry}". No specific stat bank is available — speak generally about how businesses their size typically lose time to manual, repetitive work, without citing a fabricated statistic.`;
 }
 
-const SYSTEM_PROMPT = `You are writing a personalized "Customer Opportunity Action Plan" email on behalf of Easy AI Consulting, sent to a small business owner who completed a free business visibility and conversion assessment.
+/**
+ * Exported as ASSESSMENT_SYSTEM_PROMPT so lib/anthropic.test.ts can assert that the recovered
+ * writing rules are actually stated in the prompt, not only enforced by the validator. Silent
+ * prompt drift is how the money-reassurance beat and the invisible-arc rule were lost before.
+ */
+export const ASSESSMENT_SYSTEM_PROMPT = `You are writing a personalized "Customer Opportunity Action Plan" email on behalf of Easy AI Consulting, sent to a small business owner who completed a free business visibility and conversion assessment.
 
 Tone: warm, empathetic, specific, and grounded — never hype-y, never a hard sell, never a guaranteed-results promise. This is roughly 70% emotional connection, 30% concrete substance. Sound supportive, intelligent, practical, and human. Use plain language, avoid technical jargon, avoid fear-selling, and avoid sounding like therapy, a motivational speech, or a generic AI advertisement.
 
-Structure the email using this Feel-Felt-Found arc, in this order:
-1. Personal hook — open using their first name and business name. If your web search turned up anything real and specific about the business (their site, services, reviews, location), weave in ONE concrete detail naturally. If you found nothing verifiable, skip the specific detail rather than inventing one — do not fabricate facts about their business.
-2. FEEL — reflect their stated data-privacy/security worry and their #1 AI challenge back to them empathetically, in their own terms, so they feel heard.
-3. FELT — normalize it by connecting to real founder experience. Etoyi (Easy AI's founder) has personally talked with business owners in these industries — you may write in that honest founder voice, e.g. "Owners I've spoken with often describe...", "In my years working with business owners in [industry]...", "A common concern I hear is...". Never describe these people as Easy AI clients and never claim Easy AI produced results for them — this is about shared experience, not a case study or testimonial.
-4. GET FOUND diagnosis. Start one paragraph exactly with "<strong>Get found:</strong>". Interpret their self-reported Google and AI visibility, industry, and desire for customers. Explain the likely discovery gap without claiming this assessment verified rankings, listings, or competitor performance. This assessment is directional and does not replace a verified GAP Score.
-5. GET CHOSEN diagnosis. Start one paragraph exactly with "<strong>Get chosen:</strong>". Interpret their website-conversion answer together with lead response and biggest time drain. Explain where interest may be lost after discovery. If they have no website, focus on creating one dependable path from discovery to contact.
-6. Ground the two diagnoses in the approved industry research note where it is relevant. Keep every statistic in its original context and never present an industry pattern as a result for this business.
-7. Give exactly three practical actions the reader can take for free, without buying a tool or hiring anyone. "Free action 1:" must improve discovery today. "Free action 2:" must improve the website or contact path today. "Free action 3:" must improve tracking or follow-up for the next seven days. Format them as three separate paragraphs beginning exactly "Free action 1:", "Free action 2:", and "Free action 3:". Do not include any other numbered or labeled actions.
-8. After the free actions, explain in one short paragraph that Easy AI's verified GAP Score can compare their Google and AI presence against three local competitors. Present it as an optional next step that supplies evidence, never as something this free assessment already performed.
-9. Time reassurance. Make clear their time is the asset being protected here.
-10. End with the mandatory closing question described under "Closing question" below. Do not write your own call-to-action, button, or booking link. That is added automatically after your content.
+Write at roughly a 6th-grade reading level: short sentences, everyday words, no jargon. It should read personal, intelligent, practical, calm, credible and useful, never robotic, over-enthusiastic, generic, corporate, preachy, salesy, or like a recap of a questionnaire.
+
+WRITING METHOD (internal only): Feel, Felt, Found is how you think, not how you format. These are instructions to you, not headings for the reader. Never write the words "Feel", "Felt", or "Found" as labels, headers, or section markers anywhere in the output, and never describe the method. The arc must be invisible.
+- Feel: acknowledge the real challenge using their answers. Sound observant and human. Never use canned empathy such as "We completely understand your frustration."
+- Felt: normalize the problem inside their industry and business situation. Say the concern is common among owners in similar situations. Never claim that anyone at Easy AI has personally spoken with owners, customers, or businesses. Never invent testimonials, customers, statistics, case studies, research, or results, and never imply Easy AI has worked with a particular business.
+- Found: explain the practical business lesson their answers reveal, then turn it into actions they can take immediately. Show the connection between the problem, the action, and the benefit. Never promise rankings, leads, revenue, savings, or specific results.
+
+ANALYSIS (internal only, never named in the output). Assess two areas:
+1. Discovery. Whether customers can find and understand the business, from their self-reported Google and AI visibility, industry, and stated goals.
+2. Conversion. Whether interest turns into a real inquiry that reaches a person, from their website-conversion answer, lead response, and biggest time drain.
+Then:
+- Rank them. Name the SINGLE largest customer leak and say plainly why that one comes first. Do not grade both areas evenly, and do not recommend every service.
+- Explain how the second area contributes to the first. The weaker area should make the main leak more expensive, never read as a separate list item.
+- Separate evidence from assumption. An answer they gave is evidence and may be stated directly. Anything you infer is an assumption and must be hedged, for example "that often points to..." or "it usually means...". Never present an inference as something they told you.
+- Never write "Get found", "Get chosen", or any other framework label as a heading or paragraph opener. The two areas appear as reasoning inside ordinary sentences, never as sections.
+- This assessment reads their submitted answers only. It did NOT inspect or verify any of the following, so never state or imply that it did: Google rankings, metadata, schema, AI visibility, keyword structure, website technical performance, competitors, local rankings, review optimization, or search-engine configuration. You have no search tool in this task.
+
+REPORT SHAPE:
+1. Open on the central business problem in their own terms, using their first name and business name naturally. No long introduction before the problem.
+2. The Feel, Felt, Found narrative, applied naturally with no visible labels. Short and specific.
+3. The connection they may not have noticed, drawn from several answers at once, then the ranked leak stated plainly.
+4. How the weaker second area makes that leak cost more, grounded in the approved industry note where it is relevant. Keep every statistic in its original context and never present an industry pattern as a result for this business.
+5. Two or three capabilities that clearly match the ranked leak, described as outcomes.
+6. Their desired outcome expanded past its surface. Money is never only money and time is never only time.
+7. Exactly three free actions, written as ordinary prose beginning "First,", "Second,", and "Third,". Never label or number them, and never write "Free action". Each says what to do, how to do it, and what to watch for.
+8. One qualitative cost reassurance carrying no figure of any kind, and one time reassurance that does not minimize the problem.
+9. One soft, pressure-free invitation to the Google + AI Presence (GAP) Score, which measures how the business shows up in Google and in AI answers next to three local competitors. Say plainly that this free read is not that. Never present it as something already performed. This is the only call to action in your output.
+10. The mandatory closing question described under "Closing question" below. Do not write your own call-to-action, button, or booking link. That is added automatically after your content.
+
+Deliver all of the advice before Easy AI is named anywhere in the output.
+
+FREE ACTIONS, approved safe list. Choose three that fit their answers: confirm hours, phone number, services and service area are accurate and consistent everywhere a customer might find them; add current business or project photos; ask recent satisfied customers for honest reviews; respond to existing reviews; make the primary phone or contact button easier to find; test the website contact form from a phone and watch where the message lands; state the main service and area served near the top of the homepage; set a simple response-time goal for new inquiries; keep one shared list so every inquiry gets a follow-up; create a consistent follow-up step for estimates.
+These free actions must NEVER include, hint at, or explain: making content easier for Google or AI systems to parse, AI-search optimization, keyword strategy, metadata, schema or structured data, entity optimization, content architecture, prompt testing, competitor analysis or competitor comparison, scoring methodology, or a complete content rewrite. You may say a website is not clearly communicating what the business does. You may NOT explain how to fix that technically. That method is paid work.
 
 Personalization requirements:
 - Use the business name naturally 4-6 times across the email, not just in the opening line.
@@ -78,13 +105,39 @@ Recommended capabilities — pick only 2-3 that clearly match their discovery si
 Closing question — the final paragraph of your output, and there must be nothing after it (no further paragraphs, no CTA, no sign-off). It must read, with the business name substituted in:
 "One final question worth thinking about: What made you build [Business Name], and what do you want the business to make possible for you?"
 
+Writing standard:
+- Use plain language a nontechnical business owner understands. Short paragraphs, active verbs, specific nouns and instructions instead of marketing language.
+- Sound like an experienced business adviser speaking directly to one owner. Empathetic without being sentimental, confident without exaggerating.
+- Use contractions naturally where they make a sentence sound spoken. Do not force a contraction into every paragraph.
+- Do not explain what Artificial Intelligence is unless it is genuinely necessary.
+- Spell out an acronym in full the first time it appears, then use the short form. Write "Artificial Intelligence (AI)" before you use "AI", and "Google + AI Presence (GAP) Score" before you use "GAP Score".
+- Punctuation: no em dashes and no en dashes. Use commas, periods, or separate sentences. Colons and parentheses are allowed but must not become a repeated tic. Avoid semicolons unless nothing else works.
+- Shape: roughly 8 to 10 blocks, at most 2 headings, no bold, no bullet lists, no numbered lists. Paragraphs of 30 to 90 words. Sentences ranging from about 5 to 35 words, averaging near 16. Never write two paragraphs to the same rhythm.
+- Target 450 to 525 words. Never exceed 550.
+- Never write three sentence fragments in a row. A single fragment is allowed only when it genuinely improves emphasis.
+- Every sentence must diagnose, explain, instruct, reassure, or move the reader toward a decision. Delete anything that does none of those.
+
+Banned AI-slop language. Never use any of these, in any capitalization or word form: unlock, leverage, game-changing, revolutionary, transformative, cutting-edge, seamless, robust, supercharge, elevate your business, take your business to the next level, in today's digital landscape, in today's fast-paced world, harness the power of AI, AI-powered solutions, streamline your operations, maximize your potential, embark on a journey, tailored solutions, valuable insights, drive growth, stay ahead of the curve, the possibilities are endless.
+
+Also prohibited:
+- Generic lists of AI tools.
+- Empty motivational language and excessive adjectives.
+- Repeating the reader's complete set of answers back to them.
+- A long introduction before you identify the problem.
+- Fake quotations or testimonials.
+- Unsupported statistics or dollar figures.
+- Any claim that research, a web search, a competitor comparison, or a completed review of their business occurred. Never use the word "audit" anywhere in your output.
+- Recommendations that could apply unchanged to any business.
+- More than one primary call to action.
+- Any recommendation that requires buying Easy AI services before the reader gets value.
+
 Hard rules:
 - Do NOT invent specific promises, numbers, or guarantees about THIS business's results. Stats from the research note describe industry patterns, not this business.
 - Do NOT collect, reference, infer, or discuss any medical/health details, diagnoses, or patient data, even if the business is in healthcare/wellness — stay strictly at the level of business operations (scheduling, admin, no-shows).
-- Do NOT mention that you performed a web search, cite your search process, or name any AI-tool directories or research methodology. Speak only as Easy AI.
-- Do NOT explain, justify, or reference the outcome of your research in any way, under any framing, anywhere in the output — not as an opening sentence, not comma-spliced into another sentence, not wrapped inside a paragraph tag, not as an aside. Forbidden content includes (and is not limited to) any variation of: "I searched...", "I couldn't confirm...", "No verifiable public listing...", "I kept the hook centered...", "no invented details", or any other sentence that describes enrichment success, failure, research limitations, prompting, or your own generation decisions. This applies whether or not the web search found anything. If nothing verifiable was found, the correct behavior is total silence about that fact — begin directly with the personal hook sentence, with zero transition, zero acknowledgment, and zero explanation of the gap.
-- Do NOT invent or assert facts about this specific business that were not confirmed by web search or given in the submitted answers. Only use a specific factual claim about this business if it was actually verified.
-- Do NOT describe anyone as an Easy AI client or claim Easy AI produced results for them. Founder-experience language ("owners I've spoken with...") is allowed; testimonials or case-study framing are not.
+- Do NOT mention searching, researching, checking, or looking anything up. You have no search tool and nothing about this business was verified. Speak only as Easy AI.
+- Do NOT explain, justify, or reference the outcome of your research in any way, under any framing, anywhere in the output — not as an opening sentence, not comma-spliced into another sentence, not wrapped inside a paragraph tag, not as an aside. Forbidden content includes (and is not limited to) any variation of: "I searched...", "I couldn't confirm...", "No verifiable public listing...", "I kept the hook centered...", "no invented details", or any other sentence that describes enrichment success, failure, research limitations, prompting, or your own generation decisions. Begin directly with the central business problem, with zero transition, zero acknowledgment, and zero explanation of what you do or do not know about them.
+- Do NOT invent or assert any fact about this specific business that was not given in the submitted answers. The submitted answers are the only source you have.
+- Do NOT claim personal experience Easy AI never supplied. Never write that you, Etoyi, or anyone at Easy AI has spoken with, worked with, talked to, or helped other owners, customers, or businesses. Normalize impersonally instead: "that concern is common among owners who...". Testimonials, client claims, and case-study framing are all banned.
 - Do NOT use any sports, game, or team metaphors or headers of any kind.
 - Do NOT include sports preferences, favorite teams, financial figures, prices, ROI, savings estimates, or claims about an audit.
 - Do NOT use em dashes (—) or en dashes (–) anywhere in your output. Rewrite the sentence naturally with commas, periods, or separate sentences instead of substituting a different repetitive punctuation mark in their place.
@@ -114,7 +167,12 @@ export function stripLeakedPreamble(text: string): string | null {
   return trimmed.slice(tagIndex);
 }
 
-function buildUserPrompt(submission: AssessmentSubmission): string {
+/**
+ * Exported for lib/assessmentGarySeparation.test.ts, which proves that no Gary session,
+ * message, or correlation metadata reaches the generation prompt. Not part of the public
+ * generation path — generateAssessmentResult is the only caller in production.
+ */
+export function buildUserPrompt(submission: AssessmentSubmission): string {
   const research = researchForIndustry(submission.industry, submission.industryOther);
   return `Generate the personalized Customer Opportunity Action Plan email body for this lead.
 
@@ -134,7 +192,7 @@ Business website: ${submission.noWebsite ? 'No website provided' : submission.we
 
 Industry research note to draw on for the FOUND section: ${research}
 
-Before writing, use web search to look up "${submission.businessName}" to see if there is a real public website, Google listing, or review source you can reference for one specific true detail. The search can enrich the hook, but it is not a verified GAP Score and must never be presented as a ranking or competitor analysis. If you cannot confidently confirm anything about this specific business, skip the detail. Do not write anything about the search process, its outcome, or your reasoning anywhere in the output.`;
+You have no search tool. Write only from the answers above and the industry note. Do not state or imply that anything about this business was looked up, checked, compared, or verified.`;
 }
 
 /** Extracts the final text block, tool-search narration and all — see stripLeakedPreamble for why only the last block is used. */
@@ -149,8 +207,7 @@ export async function generateAssessmentResult({ submission }: GenerateResultInp
   const response = await getClient().messages.create({
     model: 'claude-opus-5',
     max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-    tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
+    system: ASSESSMENT_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userPrompt }],
   });
 
@@ -191,7 +248,7 @@ Rewrite the entire email body from scratch, following every instruction in the s
   const correctionResponse = await getClient().messages.create({
     model: 'claude-opus-5',
     max_tokens: 4096,
-    system: SYSTEM_PROMPT,
+    system: ASSESSMENT_SYSTEM_PROMPT,
     messages: [
       { role: 'user', content: userPrompt },
       { role: 'assistant', content: strippedHtml },
@@ -222,31 +279,169 @@ Rewrite the entire email body from scratch, following every instruction in the s
 }
 
 /**
+ * Quotes one of the visitor's selected answers back to them. Escaped for a text node and
+ * stripped of a trailing period so the sentence it lands in reads correctly (some option
+ * lists end their options with a period, others do not).
+ */
+function quoteAnswer(value: string): string {
+  return escapeHtmlText(value.trim().replace(/\.+$/, ''));
+}
+
+/**
+ * The desired-outcome and privacy-concern option lists both contain em dashes, which the
+ * validator bans from output, so neither is ever quoted verbatim. Both are mapped to
+ * derived phrasing instead.
+ */
+function outcomeOpening(desiredOutcome: string): string {
+  if (desiredOutcome.startsWith('Save time')) return 'Getting your schedule back is the outcome you named.';
+  if (desiredOutcome.startsWith('Improve quality')) return 'More consistent work is the outcome you named.';
+  return 'More steady work is the outcome you named.';
+}
+
+function privacySentence(privacyConcern: string): string {
+  if (privacyConcern.startsWith('Very worried')) {
+    return 'Keeping control of your business and customer information is the thing holding you back most.';
+  }
+  if (privacyConcern.startsWith('Somewhat worried')) {
+    return 'You still think about how your business and customer information gets handled.';
+  }
+  return "You're open to new tools as long as your business and customer information is handled properly.";
+}
+
+/**
+ * Qualitative industry grounding. Derived from the approved INDUSTRY_RESEARCH bank but
+ * carrying no statistic, because a number presented to one owner reads as a claim about
+ * that owner. The free-text "Something else" description is never interpolated: it is raw
+ * visitor input and the fallback path does not run through renderUntrustedAssessmentContent.
+ */
+const INDUSTRY_WEIGHT_SENTENCE: Record<string, string> = {
+  'Construction & Trades (contractors, subs, home services)':
+    'In the trades, that weight tends to land on missed calls and estimates that go quiet.',
+  'Healthcare & Wellness (chiropractic, medical, dental, therapy)':
+    'In practice work, that weight tends to land on scheduling and whoever is covering the front desk.',
+  'Professional Services (consulting, legal, accounting, financial)':
+    'In professional services, that weight tends to land on time that never gets captured.',
+  'Retail & E-commerce': 'In retail, that weight tends to land on carts and questions nobody answered.',
+  'Hospitality & Food Service': 'In hospitality, that weight tends to land on the calls that come in at the busiest hour.',
+  'Real Estate': 'In real estate, that weight tends to land on the lead that waited too long for a reply.',
+};
+
+function industryWeightSentence(industry: string): string {
+  return INDUSTRY_WEIGHT_SENTENCE[industry] ?? 'In most local businesses, that weight tends to land on the inquiry nobody got back to.';
+}
+
+/**
+ * Deterministic ranking of the two customer-opportunity areas. The recovered methodology
+ * requires naming the SINGLE largest leak rather than grading both evenly, so the fallback
+ * has to reach the same verdict the model is asked to reach. Conversion wins a tie: a
+ * business that loses the inquiries it already gets should stop that before paying to
+ * attract more.
+ */
+const DISCOVERY_SCORES: Record<string, number> = {
+  'We show up consistently in Google and AI answers for the services and locations we target': 0,
+  'We show up sometimes, but competitors seem more visible': 2,
+  'We rarely show up when customers search or ask AI for businesses like ours': 4,
+  "I'm not sure where we show up": 3,
+};
+
+const WEBSITE_SCORES: Record<string, number> = {
+  'Visitors have one clear action, and we can track what happens next': 0,
+  'Visitors can contact us, but the next step could be clearer': 2,
+  'Our website mostly provides information and does not consistently capture interest': 3,
+  'We do not currently have a website': 3,
+};
+
+const LEAD_SCORES: Record<string, number> = {
+  'They receive a fast response and are tracked through the next step.': 0,
+  'We respond manually, but follow-up is not always consistent.': 1,
+  'Responses are sometimes delayed because our team is busy.': 1,
+  'Some calls, messages, or website inquiries are probably missed.': 2,
+  "I don't have a clear way to track what happens.": 2,
+};
+
+export function rankCustomerLeak(submission: AssessmentSubmission): 'conversion' | 'discovery' {
+  const discovery = DISCOVERY_SCORES[submission.searchVisibility] ?? 2;
+  const conversion = (WEBSITE_SCORES[submission.websiteConversion] ?? 2) + (LEAD_SCORES[submission.leadResponse] ?? 1);
+  return discovery > conversion ? 'discovery' : 'conversion';
+}
+
+const WEBSITE_PHRASES: Record<string, string> = {
+  'Visitors have one clear action, and we can track what happens next': 'a website that already offers one clear action',
+  'Visitors can contact us, but the next step could be clearer': "a website where the next step isn't obvious",
+  'Our website mostly provides information and does not consistently capture interest':
+    'a website that mostly informs rather than captures interest',
+  'We do not currently have a website': 'no website to catch that interest',
+};
+
+const LEAD_PHRASES: Record<string, string> = {
+  'They receive a fast response and are tracked through the next step.': 'inquiries that already get a fast, tracked reply',
+  'We respond manually, but follow-up is not always consistent.': "follow-up that isn't always consistent",
+  'Responses are sometimes delayed because our team is busy.': 'replies that slow down once the team gets busy',
+  'Some calls, messages, or website inquiries are probably missed.': 'inquiries that are probably being missed',
+  "I don't have a clear way to track what happens.": 'no clear way to track what happens next',
+};
+
+const VISIBILITY_PHRASES: Record<string, string> = {
+  'We show up consistently in Google and AI answers for the services and locations we target':
+    'Showing up consistently is worth protecting, and it',
+  'We show up sometimes, but competitors seem more visible': 'Showing up sometimes while competitors show up more often',
+  'We rarely show up when customers search or ask AI for businesses like ours': 'Rarely showing up when customers go looking',
+  "I'm not sure where we show up": 'Not knowing where you show up',
+};
+
+/**
  * Deterministic fallback used only if the Claude call fails, refuses, or never passes
- * validation — the lead should never get nothing. Every submitted field is escaped
- * before interpolation (escapeHtmlText — safe for text-node content, keeps natural
- * punctuation like apostrophes literal) since these are raw user-submitted strings,
- * not model output.
+ * validation. The lead should never get nothing. It follows the same recovered methodology
+ * as the prompt: invisible Feel, Felt, Found, no framework labels, a ranked single leak,
+ * evidence stated and inference hedged, three safe free actions in prose, advice before
+ * Easy AI is named, and the exact closing question last.
+ *
+ * Every submitted field is escaped before interpolation (escapeHtmlText, safe for text-node
+ * content and keeps apostrophes literal) since these are raw user-submitted strings, not
+ * model output. lib/actionPlanGolden.test.ts proves the result clears the same
+ * validateResultHtml gate the model output has to clear.
  */
 export function buildFallbackResultHtml(submission: AssessmentSubmission): string {
-  const research = researchForIndustry(submission.industry, submission.industryOther);
   const firstName = escapeHtmlText(submission.firstName);
   const businessName = escapeHtmlText(submission.businessName);
-  const aiChallenge = escapeHtmlText(submission.aiChallenge.toLowerCase());
-  const timeDrain = escapeHtmlText(submission.timeDrain.toLowerCase());
-  const searchVisibility = escapeHtmlText(submission.searchVisibility.toLowerCase());
-  const websiteConversion = escapeHtmlText(submission.websiteConversion.toLowerCase());
+  const timeDrain = quoteAnswer(submission.timeDrain.toLowerCase());
+  const aiChallenge = quoteAnswer(submission.aiChallenge);
+  const leak = rankCustomerLeak(submission);
+  const sitePhrase = WEBSITE_PHRASES[submission.websiteConversion] ?? 'a website that could be clearer';
+  const leadPhrase = LEAD_PHRASES[submission.leadResponse] ?? "follow-up that isn't always consistent";
+  const visibilityPhrase = VISIBILITY_PHRASES[submission.searchVisibility] ?? 'How often you show up when customers go looking';
+
+  const diagnosis =
+    leak === 'conversion'
+      ? `<p>Here's what stands out when the answers are read together. ${capitalize(leadPhrase)} and ${sitePhrase} create the same problem: interested customers can reach ${businessName} and still disappear. Pulling more people toward a business that already loses some of them raises the cost of every customer. So the first leak worth closing isn't how many people find ${businessName}. It's what happens to the ones who already did.</p>
+    <p>Visibility still matters here. ${visibilityPhrase} usually points to business details that read differently in different places. Fewer people finding you means every inquiry that arrives carries more weight. ${industryWeightSentence(submission.industry)}</p>`
+      : `<p>Here's what stands out when the answers are read together. ${visibilityPhrase} usually points to business details that read differently in different places, which is the quietest way for a business to go unseen. Customers who never find ${businessName} cannot choose it, so this is the leak worth closing first.</p>
+    <p>What happens afterward makes it cost more. ${capitalize(leadPhrase)} and ${sitePhrase} mean the few customers who do arrive are not all landing somewhere useful. ${industryWeightSentence(submission.industry)}</p>`;
+
+  const improvements =
+    leak === 'conversion'
+      ? 'Make it easier for customers to reach a person on the first try, so a missed call does not quietly become somebody else\'s job. Put one consistent follow-up step behind every estimate or inquiry. Give the website one obvious next step.'
+      : 'Make sure your business details read the same everywhere a customer might check. Give the website one obvious next step for someone who is ready to act. Put one consistent follow-up step behind every estimate or inquiry.';
+
+  const secondAction = submission.noWebsite
+    ? `Second, make sure one clear way to reach ${businessName} sits at the top of your business listing and anywhere else customers find you, then try it yourself and see where the message lands.`
+    : `Second, put one clear way to reach ${businessName} near the top of your website, then send yourself a message through it and see where it lands.`;
+
   return `
-    <h2>Hi ${firstName},</h2>
-    <p>Thanks for walking us through ${businessName}. Your answers point to two places where customer opportunities may be getting harder to win, discovery and the path from interest to action.</p>
-    <p>Your concern that ${aiChallenge} is common for owners who are also trying to protect time. For ${businessName}, the useful starting point is a clear customer path instead of adding more disconnected tools.</p>
-    <p><strong>Get found:</strong> You described your current Google and AI visibility this way: "${searchVisibility}." That is a directional signal, not verified ranking evidence. ${research.split('.')[0]}.</p>
-    <p><strong>Get chosen:</strong> You described the website path this way: "${websiteConversion}." Combined with "${timeDrain}," this suggests ${businessName} may benefit from making one next step obvious and consistently tracked.</p>
-    <p><strong>Free action 1:</strong> Search one important service and location phrase in Google, then ask one AI search tool for businesses that provide it. Record whether ${businessName} appears and which three competitors do.</p>
-    <p><strong>Free action 2:</strong> Open your website on a phone and make sure one primary action, such as call, book, or request information, is visible before scrolling. Remove or demote competing actions.</p>
-    <p><strong>Free action 3:</strong> Track every new call, form, and message for seven days in one shared list with the response time, owner, and next step.</p>
-    <p>A verified Easy AI GAP Score can compare ${businessName}'s Google and AI presence against three local competitors if you want evidence beyond this directional assessment.</p>
-    <p>This plan is meant to protect your time by showing where to focus first.</p>
+    <h2>${firstName}, a quick read on ${businessName}</h2>
+    <p>The thing eating most of your week at ${businessName} is ${timeDrain}. That's a different problem from being busy, ${firstName}, and it sits heavier, because the work on the books now doesn't tell you whether next month is covered.</p>
+    <p>Underneath it is what you called the hardest part right now: "${aiChallenge}." ${privacySentence(submission.privacyConcern)} That kind of concern is common among owners who have watched new tools create more work instead of less. It's rarely resistance to the technology. It's that most of it never survives a normal week.</p>
+    ${diagnosis}
+    <p>Three improvements fit what you described. ${improvements} Each improvement will hold up better when a person still approves what goes out.</p>
+    <p>${outcomeOpening(submission.desiredOutcome)} For a lot of owners in your position, what that really buys is room. Room to hire the help you keep putting off, room to take a week off without the phone deciding otherwise.</p>
+    <h2>Three things you can do this week, free</h2>
+    <p>First, check that your hours, phone number, services, and service area read the same everywhere a customer might find them. ${secondAction} Third, log every call, message, and form for seven days with how long each took to answer, then count the ones that never got a reply.</p>
+    <p>On cost, this isn't the part where anyone tells you to buy something. Easy AI looks for practical improvements that fit how ${businessName} already runs, and the work should give you time back rather than another system to babysit.</p>
+    <p>If you'd rather have evidence than a read like this one, Easy AI measures how ${businessName} shows up in Google and in Artificial Intelligence (AI) answers next to three local competitors. That's the Google + AI Presence (GAP) Score. This free read isn't that. It's what your own answers already say.</p>
     <p>${buildWhyQuestion(submission.businessName)}</p>
   `;
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
