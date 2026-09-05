@@ -244,7 +244,7 @@ function AssessmentPageInner() {
         {step < CONFIRM_STEP && (
           <div className="mb-8">
             <div className="flex justify-between text-xs text-slate-500 mb-2">
-              <span className="section-label !text-teal-600">Business AI Assessment</span>
+              <span className="section-label !text-teal-600">Customer Opportunity Assessment</span>
               <span>
                 {Math.min(step + 1, TOTAL_NUMBERED_STEPS)} of {TOTAL_NUMBERED_STEPS}
               </span>
@@ -357,7 +357,7 @@ function AssessmentPageInner() {
             <div>
               <h1 className="text-xl font-bold text-slate-900 mb-4">One more thing</h1>
               <div className="bg-slate-100 rounded-xl p-5 mb-6">
-                <p className="text-sm text-slate-600 mb-3">We&rsquo;ll send your personalized AI Action Plan to:</p>
+                <p className="text-sm text-slate-600 mb-3">We&rsquo;ll send your personalized Customer Opportunity Action Plan to:</p>
                 {editingEmail ? (
                   <div className="flex gap-2">
                     <input
@@ -422,7 +422,7 @@ function AssessmentPageInner() {
               <div className="text-5xl mb-4">⚙️</div>
               <h1 className="text-2xl font-bold text-slate-900 mb-3">Thanks, {answers.firstName}!</h1>
               <p className="text-slate-600 leading-relaxed">
-                We&rsquo;re building your personalized AI Action Plan for <strong>{answers.businessName}</strong> right now. This
+                We&rsquo;re building your personalized Customer Opportunity Action Plan for <strong>{answers.businessName}</strong> right now. This
                 usually takes 15+ minutes — we&rsquo;ll email it to you at <strong>{answers.email}</strong> the moment it&rsquo;s
                 ready.
               </p>
