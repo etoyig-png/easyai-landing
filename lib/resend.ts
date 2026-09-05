@@ -110,7 +110,7 @@ export function buildResultEmailText(resultHtml: string): string {
   return `${body}\n\nWatch Your Next-Step Video: ${RESULT_EMAIL_CTA_URL}\n\nYou're receiving this because you completed the Easy AI assessment. Easy AI Consulting.`;
 }
 
-/** Sends the personalized AI Action Plan to the lead. resultHtml is the Claude-generated body content. */
+/** Sends the personalized Customer Opportunity Action Plan to the lead. resultHtml is the Claude-generated body content. */
 export async function sendResultEmail(params: { to: string; firstName: string; businessName: string; resultHtml: string }) {
   const { to, firstName, businessName, resultHtml } = params;
 
@@ -118,7 +118,7 @@ export async function sendResultEmail(params: { to: string; firstName: string; b
     from: RESULT_FROM,
     to,
     ...(RESULT_REPLY_TO ? { replyTo: RESULT_REPLY_TO } : {}),
-    subject: `${firstName}, your AI Action Plan for ${businessName} is ready`,
+    subject: `${firstName}, your Customer Opportunity Action Plan for ${businessName} is ready`,
     html: buildResultEmailHtml(resultHtml),
     text: buildResultEmailText(resultHtml),
   });
