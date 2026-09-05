@@ -27,10 +27,10 @@ export async function admitAssessment(data: AssessmentSubmission, identity: stri
     const count = await tx.submission.count({ where: { ipAddress: identity, createdAt: { gte: new Date(now - WINDOW_MS) } } });
     if (count >= MAX_SUBMISSIONS) return { kind: 'limited' } as const;
     const submission = await tx.submission.create({ data: {
-      workSituation: data.workSituation, usingAiTools: data.usingAiTools, aiChallenge: data.aiChallenge,
+      workSituation: data.workSituation, usingAiTools: data.searchVisibility, aiChallenge: data.aiChallenge,
       desiredOutcome: data.desiredOutcome, timeDrain: data.timeDrain, privacyConcern: data.privacyConcern,
       industry: data.industry, industryOther: data.industryOther, leadResponse: data.leadResponse,
-      sportsFan: data.sportsFan, favoriteTeam: data.favoriteTeam,
+      sportsFan: data.websiteConversion,
       firstName: data.firstName, lastName: data.lastName, businessName: data.businessName,
       email: data.email, websiteUrl: data.websiteUrl, noWebsite: data.noWebsite,
       funnelCorrelationId: data.funnelCorrelationId, ipAddress: identity,

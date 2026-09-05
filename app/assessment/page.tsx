@@ -8,7 +8,7 @@ type AnswerKey = QuestionKey;
 
 interface Answers {
   workSituation: string;
-  usingAiTools: string;
+  searchVisibility: string;
   aiChallenge: string;
   desiredOutcome: string;
   timeDrain: string;
@@ -16,8 +16,7 @@ interface Answers {
   industry: string;
   industryOther: string;
   leadResponse: string;
-  sportsFan: string;
-  favoriteTeam: string;
+  websiteConversion: string;
   firstName: string;
   lastName: string;
   businessName: string;
@@ -28,7 +27,7 @@ interface Answers {
 
 const EMPTY_ANSWERS: Answers = {
   workSituation: '',
-  usingAiTools: '',
+  searchVisibility: '',
   aiChallenge: '',
   desiredOutcome: '',
   timeDrain: '',
@@ -36,8 +35,7 @@ const EMPTY_ANSWERS: Answers = {
   industry: '',
   industryOther: '',
   leadResponse: '',
-  sportsFan: '',
-  favoriteTeam: '',
+  websiteConversion: '',
   firstName: '',
   lastName: '',
   businessName: '',
@@ -121,24 +119,20 @@ function AssessmentPageInner() {
     setAnswers((prev) => ({
       ...prev,
       [key]: value,
-      ...(key === 'sportsFan' && value === 'Not really a sports fan' ? { favoriteTeam: '' } : {}),
+      ...(key === 'websiteConversion'
+        ? { noWebsite: value === 'We do not currently have a website', websiteUrl: value === 'We do not currently have a website' ? '' : prev.websiteUrl }
+        : {}),
     }));
     if (value === 'Something else') {
       setOtherDraft(answers.industryOther);
       return; // wait for free-text continue
     }
-    if (key !== 'sportsFan' || value === 'Not really a sports fan') setStep((s) => s + 1);
+    setStep((s) => s + 1);
   }
 
   function continueWithOther() {
     if (!otherDraft.trim()) return;
     setAnswers((prev) => ({ ...prev, industryOther: otherDraft.trim() }));
-    setStep((s) => s + 1);
-  }
-
-  function continueWithFavoriteTeam() {
-    if (!answers.favoriteTeam.trim()) return;
-    setAnswers((prev) => ({ ...prev, favoriteTeam: prev.favoriteTeam.trim() }));
     setStep((s) => s + 1);
   }
 
@@ -168,7 +162,7 @@ function AssessmentPageInner() {
         const url = new URL(answers.websiteUrl);
         if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('Invalid protocol');
       } catch {
-        errs.websiteUrl = 'Enter a valid http:// or https:// URL, or select no website';
+        errs.websiteUrl = 'Enter a valid http:// or https:// URL';
       }
     }
     setContactErrors(errs);
@@ -197,7 +191,7 @@ function AssessmentPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workSituation: answers.workSituation,
-          usingAiTools: answers.usingAiTools,
+          searchVisibility: answers.searchVisibility,
           aiChallenge: answers.aiChallenge,
           desiredOutcome: answers.desiredOutcome,
           timeDrain: answers.timeDrain,
@@ -205,8 +199,7 @@ function AssessmentPageInner() {
           industry: answers.industry,
           industryOther: answers.industryOther || undefined,
           leadResponse: answers.leadResponse,
-          sportsFan: answers.sportsFan,
-          favoriteTeam: answers.favoriteTeam || undefined,
+          websiteConversion: answers.websiteConversion,
           firstName: answers.firstName,
           lastName: answers.lastName,
           businessName: answers.businessName,
@@ -251,7 +244,7 @@ function AssessmentPageInner() {
         {step < CONFIRM_STEP && (
           <div className="mb-8">
             <div className="flex justify-between text-xs text-slate-500 mb-2">
-              <span className="section-label !text-teal-600">Business AI Assessment</span>
+              <span className="section-label !text-teal-600">Customer Opportunity Assessment</span>
               <span>
                 {Math.min(step + 1, TOTAL_NUMBERED_STEPS)} of {TOTAL_NUMBERED_STEPS}
               </span>
@@ -304,9 +297,6 @@ function AssessmentPageInner() {
               onOtherDraftChange={setOtherDraft}
               onSelect={(value) => selectOption(questions[step - FIRST_QUESTION_STEP].key, value)}
               onContinueWithOther={continueWithOther}
-              favoriteTeam={answers.favoriteTeam}
-              onFavoriteTeamChange={(value) => setAnswers((prev) => ({ ...prev, favoriteTeam: value }))}
-              onContinueWithFavoriteTeam={continueWithFavoriteTeam}
               onBack={goBack}
             />
           )}
@@ -345,15 +335,11 @@ function AssessmentPageInner() {
                     onChange={(e) => setAnswers((p) => ({ ...p, websiteUrl: e.target.value, noWebsite: false }))}
                   />
                   {contactErrors.websiteUrl && <p className="text-xs text-red-600 mt-1">{contactErrors.websiteUrl}</p>}
-                  <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={answers.noWebsite}
-                      onChange={(e) => setAnswers((p) => ({ ...p, noWebsite: e.target.checked, websiteUrl: e.target.checked ? '' : p.websiteUrl }))}
-                      className="accent-brand-600"
-                    />
-                    I don&rsquo;t have a website
-                  </label>
+                  {answers.noWebsite && (
+                    <p className="mt-3 text-sm text-slate-600">
+                      You selected that the business does not currently have a website. Use Back if you need to change that answer.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between mt-8">
@@ -371,7 +357,7 @@ function AssessmentPageInner() {
             <div>
               <h1 className="text-xl font-bold text-slate-900 mb-4">One more thing</h1>
               <div className="bg-slate-100 rounded-xl p-5 mb-6">
-                <p className="text-sm text-slate-600 mb-3">We&rsquo;ll send your personalized AI Action Plan to:</p>
+                <p className="text-sm text-slate-600 mb-3">We&rsquo;ll send your personalized Customer Opportunity Action Plan to:</p>
                 {editingEmail ? (
                   <div className="flex gap-2">
                     <input
@@ -436,7 +422,7 @@ function AssessmentPageInner() {
               <div className="text-5xl mb-4">⚙️</div>
               <h1 className="text-2xl font-bold text-slate-900 mb-3">Thanks, {answers.firstName}!</h1>
               <p className="text-slate-600 leading-relaxed">
-                We&rsquo;re building your personalized AI Action Plan for <strong>{answers.businessName}</strong> right now. This
+                We&rsquo;re building your personalized Customer Opportunity Action Plan for <strong>{answers.businessName}</strong> right now. This
                 usually takes 15+ minutes — we&rsquo;ll email it to you at <strong>{answers.email}</strong> the moment it&rsquo;s
                 ready.
               </p>
@@ -455,9 +441,6 @@ function QuestionStep({
   onOtherDraftChange,
   onSelect,
   onContinueWithOther,
-  favoriteTeam,
-  onFavoriteTeamChange,
-  onContinueWithFavoriteTeam,
   onBack,
 }: {
   question: QuestionDef;
@@ -466,13 +449,9 @@ function QuestionStep({
   onOtherDraftChange: (v: string) => void;
   onSelect: (value: string) => void;
   onContinueWithOther: () => void;
-  favoriteTeam: string;
-  onFavoriteTeamChange: (v: string) => void;
-  onContinueWithFavoriteTeam: () => void;
   onBack?: () => void;
 }) {
   const showOtherInput = question.allowOther && selected === 'Something else';
-  const showFavoriteTeamInput = question.key === 'sportsFan' && (selected === 'Football' || selected === 'Basketball');
 
   return (
     <div>
@@ -513,26 +492,6 @@ function QuestionStep({
           </div>
         </div>
       )}
-      {showFavoriteTeamInput && (
-        <div className="pt-2">
-          <label className="label">Favorite team</label>
-          <input
-            className="input"
-            value={favoriteTeam}
-            onChange={(e) => onFavoriteTeamChange(e.target.value)}
-            placeholder={`Your favorite ${selected.toLowerCase()} team`}
-            autoFocus
-          />
-          <button
-            onClick={onContinueWithFavoriteTeam}
-            disabled={!favoriteTeam.trim()}
-            className="btn-primary w-full mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Continue →
-          </button>
-        </div>
-      )}
-
       {onBack && (
         <button onClick={onBack} className="mt-6 text-sm text-slate-500 hover:text-slate-700">
           ← Back

@@ -2,102 +2,67 @@ import { describe, expect, it } from 'vitest';
 import {
   buildQuestions,
   WORK_SITUATION_OPTIONS,
-  USING_AI_TOOLS_OPTIONS,
+  SEARCH_VISIBILITY_OPTIONS,
   AI_CHALLENGE_OPTIONS,
   DESIRED_OUTCOME_OPTIONS,
   TIME_DRAIN_OPTIONS,
   PRIVACY_CONCERN_OPTIONS,
   INDUSTRY_OPTIONS,
   LEAD_RESPONSE_OPTIONS,
-  SPORTS_OPTIONS,
+  WEBSITE_CONVERSION_OPTIONS,
 } from './quizQuestions';
 
-const ORIGINAL_TITLES: Record<string, string> = {
-  workSituation: 'What best describes your work situation?',
-  usingAiTools: 'Are you regularly using AI tools in your business?',
-  aiChallenge: "What's your #1 AI challenge right now?",
-  desiredOutcome: "What's the #1 outcome you're hoping AI can help you achieve?",
-  timeDrain: 'Which area of your business eats up the most of your time?',
-  privacyConcern: "When you think about using AI in your business, how worried are you about you and your customers' data privacy and security?",
-  industry: 'What kind of business do you run?',
-  leadResponse: 'What usually happens after a potential customer contacts your business?',
-  sportsFan: 'Are you a sports fan? If so, which do you like more?',
-};
-
 describe('buildQuestions', () => {
-  it('keeps Q1 (workSituation), leadResponse, and Q9 (sportsFan) unpersonalized regardless of business name', () => {
+  it('keeps nine questions and covers both discovery and website conversion', () => {
     const questions = buildQuestions('Johnson Electric');
-    expect(questions[0].title).toBe(ORIGINAL_TITLES.workSituation);
-    expect(questions[7].title).toBe(ORIGINAL_TITLES.leadResponse);
-    expect(questions[8].title).toBe(ORIGINAL_TITLES.sportsFan);
-  });
-
-  it('interpolates the business name into Q2-Q7 titles', () => {
-    const questions = buildQuestions('Johnson Electric');
-    const personalized = questions.slice(1, 7);
-    for (const q of personalized) {
-      expect(q.title).toContain('Johnson Electric');
-    }
-  });
-
-  it('falls back to the original unpersonalized wording when business name is empty', () => {
-    const questions = buildQuestions('');
-    for (const key of Object.keys(ORIGINAL_TITLES)) {
-      const q = questions.find((item) => item.key === key);
-      expect(q?.title).toBe(ORIGINAL_TITLES[key]);
-    }
-  });
-
-  it('preserves the exact option arrays, order, and allowOther flags for every question', () => {
-    const questions = buildQuestions('Acme Co');
     expect(questions.map((q) => q.key)).toEqual([
       'workSituation',
-      'usingAiTools',
+      'searchVisibility',
       'aiChallenge',
       'desiredOutcome',
       'timeDrain',
       'privacyConcern',
       'industry',
       'leadResponse',
-      'sportsFan',
+      'websiteConversion',
     ]);
+    expect(questions).toHaveLength(9);
+  });
+
+  it('uses the approved option sets in the intended order', () => {
+    const questions = buildQuestions('Acme Co');
     expect(questions[0].options).toEqual(WORK_SITUATION_OPTIONS);
-    expect(questions[1].options).toEqual(USING_AI_TOOLS_OPTIONS);
+    expect(questions[1].options).toEqual(SEARCH_VISIBILITY_OPTIONS);
     expect(questions[2].options).toEqual(AI_CHALLENGE_OPTIONS);
     expect(questions[3].options).toEqual(DESIRED_OUTCOME_OPTIONS);
     expect(questions[4].options).toEqual(TIME_DRAIN_OPTIONS);
     expect(questions[5].options).toEqual(PRIVACY_CONCERN_OPTIONS);
     expect(questions[6].options).toEqual(INDUSTRY_OPTIONS);
     expect(questions[7].options).toEqual(LEAD_RESPONSE_OPTIONS);
-    expect(questions[8].options).toEqual(SPORTS_OPTIONS);
-    expect(questions[6].allowOther).toBe(true);
+    expect(questions[8].options).toEqual(WEBSITE_CONVERSION_OPTIONS);
     expect(questions.filter((q) => q.allowOther).map((q) => q.key)).toEqual(['industry']);
   });
 
-  it('uses the approved lead-response choices and only the approved time-drain replacement', () => {
-    expect(LEAD_RESPONSE_OPTIONS).toEqual([
-      'They receive a fast response and are tracked through the next step.',
-      'We respond manually, but follow-up is not always consistent.',
-      'Responses are sometimes delayed because our team is busy.',
-      'Some calls, messages, or website inquiries are probably missed.',
-      "I don't have a clear way to track what happens.",
-    ]);
-    expect(TIME_DRAIN_OPTIONS).toContain('Finding more customers and generating a steady flow of qualified leads.');
-    expect(TIME_DRAIN_OPTIONS).not.toContain('Marketing, new customers & missed leads');
+  it('personalizes the two new customer-opportunity questions', () => {
+    const questions = buildQuestions('Johnson Electric');
+    expect(questions[1].title).toContain('Johnson Electric');
+    expect(questions[1].title).toContain('Google');
+    expect(questions[1].title).toContain('AI');
+    expect(questions[8].title).toContain("Johnson Electric's website");
   });
 
-  it('does not strip or mangle an HTML/script-like business name at the string level', () => {
-    // XSS safety comes from React's JSX auto-escaping when `title` is rendered
-    // as text content in page.tsx (never dangerouslySetInnerHTML) — this
-    // function's only job is correct string interpolation, not sanitization.
+  it('uses clear generic wording before a business name is entered', () => {
+    const questions = buildQuestions('');
+    expect(questions[1].title).toBe(
+      'When customers search Google or ask AI for the services you offer, how visible is your business?'
+    );
+    expect(questions[8].title).toBe(
+      'When a potential customer visits your website, what usually happens next?'
+    );
+  });
+
+  it('does not strip an HTML-like business name at the string level', () => {
     const malicious = '<script>alert(1)</script> Plumbing';
-    const questions = buildQuestions(malicious);
-    expect(questions[1].title).toContain(malicious);
-  });
-
-  it('interpolates punctuation-heavy business names cleanly', () => {
-    const name = "O'Brien's Plumbing & Electric, LLC";
-    const questions = buildQuestions(name);
-    expect(questions[1].title).toBe(`Are you regularly using AI tools at ${name}?`);
+    expect(buildQuestions(malicious)[1].title).toContain(malicious);
   });
 });

@@ -6,9 +6,11 @@ export const WORK_SITUATION_OPTIONS = [
   'Full-time employee, no business of my own',
 ] as const;
 
-export const USING_AI_TOOLS_OPTIONS = [
-  'Yes — using AI tools like ChatGPT or Claude at least a few times per week',
-  "No — played around with AI, but it hasn't become part of my routine yet",
+export const SEARCH_VISIBILITY_OPTIONS = [
+  'We show up consistently in Google and AI answers for the services and locations we target',
+  'We show up sometimes, but competitors seem more visible',
+  'We rarely show up when customers search or ask AI for businesses like ours',
+  "I'm not sure where we show up",
 ] as const;
 
 export const AI_CHALLENGE_OPTIONS = [
@@ -57,28 +59,33 @@ export const INDUSTRY_OPTIONS = [
   'Something else',
 ] as const;
 
-export const SPORTS_OPTIONS = ['Football', 'Basketball', 'Not really a sports fan'] as const;
+export const WEBSITE_CONVERSION_OPTIONS = [
+  'Visitors have one clear action, and we can track what happens next',
+  'Visitors can contact us, but the next step could be clearer',
+  'Our website mostly provides information and does not consistently capture interest',
+  'We do not currently have a website',
+] as const;
 
 export type WorkSituation = (typeof WORK_SITUATION_OPTIONS)[number];
-export type UsingAiTools = (typeof USING_AI_TOOLS_OPTIONS)[number];
+export type SearchVisibility = (typeof SEARCH_VISIBILITY_OPTIONS)[number];
 export type AiChallenge = (typeof AI_CHALLENGE_OPTIONS)[number];
 export type DesiredOutcome = (typeof DESIRED_OUTCOME_OPTIONS)[number];
 export type TimeDrain = (typeof TIME_DRAIN_OPTIONS)[number];
 export type PrivacyConcern = (typeof PRIVACY_CONCERN_OPTIONS)[number];
 export type Industry = (typeof INDUSTRY_OPTIONS)[number];
-export type SportsAnswer = (typeof SPORTS_OPTIONS)[number];
 export type LeadResponse = (typeof LEAD_RESPONSE_OPTIONS)[number];
+export type WebsiteConversion = (typeof WEBSITE_CONVERSION_OPTIONS)[number];
 
 export type QuestionKey =
   | 'workSituation'
-  | 'usingAiTools'
+  | 'searchVisibility'
   | 'aiChallenge'
   | 'desiredOutcome'
   | 'timeDrain'
   | 'privacyConcern'
   | 'industry'
   | 'leadResponse'
-  | 'sportsFan';
+  | 'websiteConversion';
 
 export interface QuestionDef {
   key: QuestionKey;
@@ -87,21 +94,17 @@ export interface QuestionDef {
   allowOther?: boolean;
 }
 
-/**
- * Builds the 9 quiz questions, naturally interpolating the submitted business
- * name into Q2-Q7. Q1, Q8 (leadResponse), and Q9 (sportsFan) keep their
- * original, unpersonalized wording. Business name is inserted as plain text —
- * safe against HTML/script injection because callers render `title` as JSX
- * text content (React auto-escapes), never via dangerouslySetInnerHTML.
- */
+/** Builds the 9-question assessment around discovery and website conversion. */
 export function buildQuestions(businessName: string): QuestionDef[] {
   const name = businessName.trim();
   return [
     { key: 'workSituation', title: 'What best describes your work situation?', options: WORK_SITUATION_OPTIONS },
     {
-      key: 'usingAiTools',
-      title: name ? `Are you regularly using AI tools at ${name}?` : 'Are you regularly using AI tools in your business?',
-      options: USING_AI_TOOLS_OPTIONS,
+      key: 'searchVisibility',
+      title: name
+        ? `When customers search Google or ask AI for the services you offer, how visible is ${name}?`
+        : 'When customers search Google or ask AI for the services you offer, how visible is your business?',
+      options: SEARCH_VISIBILITY_OPTIONS,
     },
     {
       key: 'aiChallenge',
@@ -138,6 +141,12 @@ export function buildQuestions(businessName: string): QuestionDef[] {
       title: 'What usually happens after a potential customer contacts your business?',
       options: LEAD_RESPONSE_OPTIONS,
     },
-    { key: 'sportsFan', title: 'Are you a sports fan? If so, which do you like more?', options: SPORTS_OPTIONS },
+    {
+      key: 'websiteConversion',
+      title: name
+        ? `When a potential customer visits ${name}'s website, what usually happens next?`
+        : 'When a potential customer visits your website, what usually happens next?',
+      options: WEBSITE_CONVERSION_OPTIONS,
+    },
   ];
 }

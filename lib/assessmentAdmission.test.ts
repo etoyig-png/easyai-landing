@@ -11,8 +11,8 @@ vi.mock('./prisma', () => ({
 import { admitAssessment } from './assessmentAdmission';
 
 const submission = {
-  workSituation: 'x', usingAiTools: 'x', aiChallenge: 'x', desiredOutcome: 'x', timeDrain: 'x',
-  privacyConcern: 'x', industry: 'x', leadResponse: 'x', sportsFan: 'x', firstName: 'A', lastName: 'B',
+  workSituation: 'x', searchVisibility: 'x', aiChallenge: 'x', desiredOutcome: 'x', timeDrain: 'x',
+  privacyConcern: 'x', industry: 'x', leadResponse: 'x', websiteConversion: 'x', firstName: 'A', lastName: 'B',
   businessName: 'C', email: 'person@example.com', websiteUrl: 'https://example.com', noWebsite: false,
   consent: true, formLoadedAt: 1,
 } as never;
@@ -25,7 +25,7 @@ describe('atomic assessment admission', () => {
     const lockQueries = tx.$queryRaw.mock.calls.map(([query]) => query.join(''));
     expect(lockQueries.every((query) => query.includes('pg_advisory_xact_lock') && query.includes('::text'))).toBe(true);
     expect(tx.submission.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
-      leadResponse: 'x', websiteUrl: 'https://example.com', noWebsite: false,
+      usingAiTools: 'x', leadResponse: 'x', sportsFan: 'x', websiteUrl: 'https://example.com', noWebsite: false,
     }) }));
   });
   it('returns an existing pending/completed duplicate without new work', async () => {

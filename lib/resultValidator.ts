@@ -101,7 +101,7 @@ const UNSUPPORTED_CLAIM_PATTERNS: RegExp[] = [
   /\b(?:football|basketball|sports?)\b/i,
 ];
 
-export function validateResultHtml(html: string, submission: { businessName: string; firstName: string; favoriteTeam?: string }): ValidationResult {
+export function validateResultHtml(html: string, submission: { businessName: string; firstName: string }): ValidationResult {
   const violations: string[] = [];
   const plainText = stripTags(html);
   const whyQuestion = buildWhyQuestion(submission.businessName);
@@ -112,6 +112,11 @@ export function validateResultHtml(html: string, submission: { businessName: str
 
   if (/—/.test(html)) violations.push('em dash present');
   if (/–/.test(html)) violations.push('en dash present');
+
+  const getFoundCount = countOccurrences(plainText, 'Get found:');
+  const getChosenCount = countOccurrences(plainText, 'Get chosen:');
+  if (getFoundCount !== 1) violations.push('must contain exactly one Get found diagnosis');
+  if (getChosenCount !== 1) violations.push('must contain exactly one Get chosen diagnosis');
 
   for (const pattern of NARRATION_PATTERNS) {
     if (pattern.test(plainText)) {
@@ -157,10 +162,6 @@ export function validateResultHtml(html: string, submission: { businessName: str
   for (const pattern of UNSUPPORTED_CLAIM_PATTERNS) {
     if (pattern.test(claimScanText)) violations.push(`unsupported money, audit, or sports content matched ("${pattern.source}")`);
   }
-  if (submission.favoriteTeam && plainText.toLowerCase().includes(submission.favoriteTeam.toLowerCase())) {
-    violations.push('favorite team leaked into customer-facing content');
-  }
-
   const whyCount = countOccurrences(plainText, whyQuestion);
   if (whyCount === 0) {
     violations.push('missing mandatory closing WHY question');

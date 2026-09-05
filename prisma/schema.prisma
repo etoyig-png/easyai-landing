@@ -26,7 +26,8 @@ model Submission {
   // Q1 — work situation
   workSituation String
 
-  // Q2 — using AI tools regularly
+  // Q2 — perceived visibility in Google and AI answers
+  // The legacy column name is retained to avoid a production schema migration.
   usingAiTools String
 
   // Q3 — #1 AI challenge
@@ -48,7 +49,8 @@ model Submission {
   // Q8 — lead response (nullable only for submissions created before this question existed)
   leadResponse String?
 
-  // Q9 — sports fan
+  // Q9 — website conversion clarity
+  // The legacy column name is retained to avoid a production schema migration.
   sportsFan    String
   favoriteTeam String?
 

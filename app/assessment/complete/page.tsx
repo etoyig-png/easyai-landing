@@ -9,7 +9,7 @@ export default function AssessmentCompletePage() {
       <section className="bg-gradient-to-br from-brand-950 to-brand-700 text-white py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <p className="section-label text-teal-300 mb-3">You&rsquo;re all set</p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Your AI Action Plan is on its way</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Your Customer Opportunity Action Plan is on its way</h1>
           <p className="text-brand-100 text-lg max-w-2xl">
             Check your inbox soon — we&rsquo;re researching your business and putting your personalized plan together right now.
           </p>
@@ -44,7 +44,7 @@ export default function AssessmentCompletePage() {
                 },
                 {
                   num: '2',
-                  title: 'Your AI Action Plan lands in your inbox',
+                  title: 'Your Customer Opportunity Action Plan lands in your inbox',
                   body: 'Usually within 15+ minutes. It walks through where AI realistically fits your business, and what it would take to get there.',
                 },
                 {

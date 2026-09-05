@@ -4,7 +4,7 @@ import { buildWhyQuestion, validateResultHtml } from './resultValidator';
 const submission = { businessName: 'Johnson Electric', firstName: 'Taylor' };
 
 function withWhyQuestion(body: string): string {
-  return `${body}<p>Free action 1: Write down the process.</p><p>Free action 2: Draft a response.</p><p>Free action 3: Track the next step.</p><p>${buildWhyQuestion(submission.businessName)}</p>`;
+  return `${body}<p>Get found: Review visibility.</p><p>Get chosen: Review the website path.</p><p>Free action 1: Write down the process.</p><p>Free action 2: Draft a response.</p><p>Free action 3: Track the next step.</p><p>${buildWhyQuestion(submission.businessName)}</p>`;
 }
 
 describe('validateResultHtml', () => {
@@ -84,6 +84,11 @@ describe('validateResultHtml', () => {
     expect(validateResultHtml(html, submission).violations).toContain('WHY question is not the final narrative paragraph');
   });
 
+  it('requires one diagnosis for both discovery and website conversion', () => {
+    const html = withWhyQuestion('<p>Body.</p>').replace('<p>Get chosen: Review the website path.</p>', '');
+    expect(validateResultHtml(html, submission).violations).toContain('must contain exactly one Get chosen diagnosis');
+  });
+
   it('requires exactly one of each of three labeled free actions', () => {
     const why = `<p>${buildWhyQuestion(submission.businessName)}</p>`;
     expect(validateResultHtml(`<p>Free action 1: One.</p><p>Free action 2: Two.</p>${why}`, submission).violations).toContain('must contain exactly three free actions');
@@ -102,6 +107,8 @@ describe('validateResultHtml', () => {
       const customSubmission = { ...submission, businessName };
       const html = [
         '<p>Here is a safe plan for your business.</p>',
+        '<p>Get found: Review visibility.</p>',
+        '<p>Get chosen: Review the website path.</p>',
         '<p>Free action 1: Write down the process.</p>',
         '<p>Free action 2: Draft a response.</p>',
         '<p>Free action 3: Track the next step.</p>',
@@ -117,10 +124,6 @@ describe('validateResultHtml', () => {
       expect(validateResultHtml(withWhyQuestion(`<p>${unsafeContent}</p>`), submission).violations.some((v) => v.includes('unsupported money'))).toBe(true);
     }
   );
-
-  it('rejects the submitted favorite team if it leaks into customer-facing content', () => {
-    expect(validateResultHtml(withWhyQuestion('<p>The Lions can help frame this.</p>'), { ...submission, favoriteTeam: 'Lions' }).violations).toContain('favorite team leaked into customer-facing content');
-  });
 
   it('counts business-name mentions', () => {
     const html = withWhyQuestion(

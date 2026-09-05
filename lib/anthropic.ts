@@ -36,7 +36,7 @@ function researchForIndustry(industry: string, industryOther?: string): string {
   return `The business describes itself as: "${industryOther ?? industry}". No specific stat bank is available — speak generally about how businesses their size typically lose time to manual, repetitive work, without citing a fabricated statistic.`;
 }
 
-const SYSTEM_PROMPT = `You are writing a personalized "AI Action Plan" preview email on behalf of Easy AI Consulting, sent to a small business owner who just completed a free AI-readiness assessment.
+const SYSTEM_PROMPT = `You are writing a personalized "Customer Opportunity Action Plan" email on behalf of Easy AI Consulting, sent to a small business owner who completed a free business visibility and conversion assessment.
 
 Tone: warm, empathetic, specific, and grounded — never hype-y, never a hard sell, never a guaranteed-results promise. This is roughly 70% emotional connection, 30% concrete substance. Sound supportive, intelligent, practical, and human. Use plain language, avoid technical jargon, avoid fear-selling, and avoid sounding like therapy, a motivational speech, or a generic AI advertisement.
 
@@ -44,16 +44,18 @@ Structure the email using this Feel-Felt-Found arc, in this order:
 1. Personal hook — open using their first name and business name. If your web search turned up anything real and specific about the business (their site, services, reviews, location), weave in ONE concrete detail naturally. If you found nothing verifiable, skip the specific detail rather than inventing one — do not fabricate facts about their business.
 2. FEEL — reflect their stated data-privacy/security worry and their #1 AI challenge back to them empathetically, in their own terms, so they feel heard.
 3. FELT — normalize it by connecting to real founder experience. Etoyi (Easy AI's founder) has personally talked with business owners in these industries — you may write in that honest founder voice, e.g. "Owners I've spoken with often describe...", "In my years working with business owners in [industry]...", "A common concern I hear is...". Never describe these people as Easy AI clients and never claim Easy AI produced results for them — this is about shared experience, not a case study or testimonial.
-4. FOUND — where their industry is headed and what's been found to work, grounded in the research note provided below. Cite the stat naturally, not as a bullet list of data, and keep its original context/limitations intact — never present an industry-wide range as a guaranteed number for this specific business.
-5. Mirror their specific biggest time drain, framed as "businesses like yours typically..." — this must never read as a personal guarantee about their specific results.
-6. Give exactly three practical actions the reader can take for free, without buying a tool or hiring anyone. Format them as three separate paragraphs beginning exactly "Free action 1:", "Free action 2:", and "Free action 3:". Do not include any other numbered or labeled actions.
-7. Time reassurance — make clear their time is the asset being protected here, not something else being asked of them.
-8. End with the mandatory closing question described under "Closing question" below. Do not write your own call-to-action, button, or booking link — that is added automatically after your content.
+4. GET FOUND diagnosis. Start one paragraph exactly with "<strong>Get found:</strong>". Interpret their self-reported Google and AI visibility, industry, and desire for customers. Explain the likely discovery gap without claiming this assessment verified rankings, listings, or competitor performance. This assessment is directional and does not replace a verified GAP Score.
+5. GET CHOSEN diagnosis. Start one paragraph exactly with "<strong>Get chosen:</strong>". Interpret their website-conversion answer together with lead response and biggest time drain. Explain where interest may be lost after discovery. If they have no website, focus on creating one dependable path from discovery to contact.
+6. Ground the two diagnoses in the approved industry research note where it is relevant. Keep every statistic in its original context and never present an industry pattern as a result for this business.
+7. Give exactly three practical actions the reader can take for free, without buying a tool or hiring anyone. "Free action 1:" must improve discovery today. "Free action 2:" must improve the website or contact path today. "Free action 3:" must improve tracking or follow-up for the next seven days. Format them as three separate paragraphs beginning exactly "Free action 1:", "Free action 2:", and "Free action 3:". Do not include any other numbered or labeled actions.
+8. After the free actions, explain in one short paragraph that Easy AI's verified GAP Score can compare their Google and AI presence against three local competitors. Present it as an optional next step that supplies evidence, never as something this free assessment already performed.
+9. Time reassurance. Make clear their time is the asset being protected here.
+10. End with the mandatory closing question described under "Closing question" below. Do not write your own call-to-action, button, or booking link. That is added automatically after your content.
 
 Personalization requirements:
 - Use the business name naturally 4-6 times across the email, not just in the opening line.
 - Use their first name at least once beyond the initial greeting.
-- Do not simply list their answers back to them ("You said X, you said Y..."). Interpret how the answers connect to each other — e.g. how their #1 challenge relates to their time drain, or how their desired outcome depends on solving it.
+- Do not simply list their answers back to them ("You said X, you said Y..."). Interpret how discovery, website conversion, lead response, and their desired outcome connect. The email must answer both where they may be hard to find and where a found opportunity may be lost.
 
 Desired-outcome angle — expand on whichever of these matches their stated desired outcome, without claiming to know their personal reason:
 - "Make more money": don't stop at "increase revenue." Explore what the extra revenue could make possible — financial breathing room, hiring help, taking time away from the business, family experiences or vacations, education expenses, retirement savings, reinvesting in the company, giving a spouse more options, growing without personally working more hours. Then connect the revenue goal to their selected time drain.
@@ -63,8 +65,9 @@ Never guarantee any personal, financial, or operational outcome.
 
 Deeper motivation (use sparingly, at most one or two per email): business goals often connect to something deeper than the surface answer. Possible angles — working late after a normal day, losing evenings or weekends to paperwork, being physically home but mentally stuck in the business, missing time with family or friends, carrying financial uncertainty alone, feeling responsible for employees and customers, having no room for a vacation, wanting to hire help, wanting to fund a child's education, wanting to give a spouse the option to leave a job, wanting more retirement security, wanting the business to create freedom instead of another demanding job. These are possibilities, not facts — never state or imply the reader has a spouse, children, financial problems, or family conflict unless they explicitly told you so (nothing in the data provided here ever supplies that). Use hedged language: "for many owners in your position…", "that can mean…", "it might come down to…", "whether that means more time at home, room to hire help, or greater financial security…". Never stack more than one or two of these angles into one email. Never use the exact phrase "the deeper goal may be" — it's banned as a repeated formulaic tell.
 
-Recommended capabilities — pick only 2-3 that clearly match their time drain, desired outcome, and industry. Do not list the whole menu. Describe outcomes, not technology (good: "Easy AI can help create a system that responds to new leads within minutes, so fewer of them go cold." bad: "Product X connected through API Y with an LLM orchestration layer can auto-respond to leads."). Never name or recommend a specific third-party product or brand — including but not limited to CRR, Intelligent Website, GoHighLevel, Paige, or Merchynt. Describe capabilities generically, never by brand name. Approved categories:
+Recommended capabilities — pick only 2-3 that clearly match their discovery signal, website-conversion signal, lead response, time drain, desired outcome, and industry. Do not list the whole menu. Describe outcomes, not technology (good: "Easy AI can help create a system that responds to new leads within minutes, so fewer of them go cold." bad: "Product X connected through API Y with an LLM orchestration layer can auto-respond to leads."). Never name or recommend a specific third-party product or brand — including but not limited to CRR, Intelligent Website, GoHighLevel, Paige, or Merchynt. Describe capabilities generically, never by brand name. Approved categories:
 - Google/local-search growth (when marketing, new customers, or missed opportunities are relevant): improving a Google Business Profile, local-search visibility, consistent business info, review requests/responses, organized photos, accurate service areas. Never guarantee rankings, top placement, lead volume, or revenue.
+- Website conversion (always address it): making one primary next step obvious, placing the call or booking action where visitors can see it quickly, reducing competing choices, confirming submissions, and tracking whether inquiries reach a human. If there is no website, focus on one dependable contact path from the business listing.
 - Lead sourcing and organization (when new-customer growth is relevant): identifying and organizing leads from approved/public sources, capturing contact info, prioritizing follow-up. Never imply private data collection or unauthorized scraping.
 - Call answering and appointment booking (when missed calls, lead response, or front-desk overload is relevant): answering/responding to inquiries, collecting caller info, answering common questions, booking appointments, sending confirmations/reminders, transferring urgent situations to a human.
 - Lead and estimate follow-up (when follow-up is the problem): following up on missed calls and estimates, reconnecting with dormant leads, sending reminders, alerting a human when personal attention is needed.
@@ -113,14 +116,15 @@ export function stripLeakedPreamble(text: string): string | null {
 
 function buildUserPrompt(submission: AssessmentSubmission): string {
   const research = researchForIndustry(submission.industry, submission.industryOther);
-  return `Generate the personalized AI Action Plan email body for this lead.
+  return `Generate the personalized Customer Opportunity Action Plan email body for this lead.
 
 First name: ${submission.firstName}
 Last name: ${submission.lastName}
 Business name: ${submission.businessName}
 Industry: ${submission.industryOther ? `${submission.industry} — specifically: ${submission.industryOther}` : submission.industry}
 Work situation: ${submission.workSituation}
-Already using AI tools regularly: ${submission.usingAiTools}
+Self-reported Google and AI visibility: ${submission.searchVisibility}
+Website conversion path: ${submission.websiteConversion}
 Their #1 AI challenge: ${submission.aiChallenge}
 Outcome they most want: ${submission.desiredOutcome}
 Biggest time drain: ${submission.timeDrain}
@@ -130,7 +134,7 @@ Business website: ${submission.noWebsite ? 'No website provided' : submission.we
 
 Industry research note to draw on for the FOUND section: ${research}
 
-Before writing, use web search to look up "${submission.businessName}" to see if there's a real, public website, Google listing, or reviews you can reference for one specific, true detail. If you can't confidently confirm anything about this specific business, don't guess — just skip the specific detail and keep the hook centered on their name and industry. Do not write anything about the search itself, its outcome, or your reasoning about it, anywhere in the output, under any circumstances.`;
+Before writing, use web search to look up "${submission.businessName}" to see if there is a real public website, Google listing, or review source you can reference for one specific true detail. The search can enrich the hook, but it is not a verified GAP Score and must never be presented as a ranking or competitor analysis. If you cannot confidently confirm anything about this specific business, skip the detail. Do not write anything about the search process, its outcome, or your reasoning anywhere in the output.`;
 }
 
 /** Extracts the final text block, tool-search narration and all — see stripLeakedPreamble for why only the last block is used. */
@@ -230,15 +234,19 @@ export function buildFallbackResultHtml(submission: AssessmentSubmission): strin
   const businessName = escapeHtmlText(submission.businessName);
   const aiChallenge = escapeHtmlText(submission.aiChallenge.toLowerCase());
   const timeDrain = escapeHtmlText(submission.timeDrain.toLowerCase());
+  const searchVisibility = escapeHtmlText(submission.searchVisibility.toLowerCase());
+  const websiteConversion = escapeHtmlText(submission.websiteConversion.toLowerCase());
   return `
     <h2>Hi ${firstName},</h2>
-    <p>Thanks for taking the time to walk us through ${businessName}. We're putting together your full AI Action Plan now, and wanted to make sure you heard from us right away.</p>
-    <p>You mentioned ${aiChallenge}. That's an extremely common starting point, and it's exactly what a short discovery call is for.</p>
-    <p>${research.split('.')[0]}. Businesses like yours typically find the biggest win is tackling "${timeDrain}" first.</p>
-    <p>Your answer about lead response suggests a useful place to begin is making the next step visible and repeatable, while keeping people responsible for the decisions.</p>
-    <p><strong>Free action 1:</strong> Write down every step a new inquiry should follow, from first contact through the next committed step.</p>
-    <p><strong>Free action 2:</strong> Draft one reusable response that acknowledges an inquiry and clearly states when the customer should expect a human follow-up.</p>
-    <p><strong>Free action 3:</strong> Track incoming inquiries and their next steps in one shared document for a week, then review where delays or gaps appear.</p>
+    <p>Thanks for walking us through ${businessName}. Your answers point to two places where customer opportunities may be getting harder to win, discovery and the path from interest to action.</p>
+    <p>Your concern that ${aiChallenge} is common for owners who are also trying to protect time. For ${businessName}, the useful starting point is a clear customer path instead of adding more disconnected tools.</p>
+    <p><strong>Get found:</strong> You described your current Google and AI visibility this way: "${searchVisibility}." That is a directional signal, not verified ranking evidence. ${research.split('.')[0]}.</p>
+    <p><strong>Get chosen:</strong> You described the website path this way: "${websiteConversion}." Combined with "${timeDrain}," this suggests ${businessName} may benefit from making one next step obvious and consistently tracked.</p>
+    <p><strong>Free action 1:</strong> Search one important service and location phrase in Google, then ask one AI search tool for businesses that provide it. Record whether ${businessName} appears and which three competitors do.</p>
+    <p><strong>Free action 2:</strong> Open your website on a phone and make sure one primary action, such as call, book, or request information, is visible before scrolling. Remove or demote competing actions.</p>
+    <p><strong>Free action 3:</strong> Track every new call, form, and message for seven days in one shared list with the response time, owner, and next step.</p>
+    <p>A verified Easy AI GAP Score can compare ${businessName}'s Google and AI presence against three local competitors if you want evidence beyond this directional assessment.</p>
+    <p>This plan is meant to protect your time by showing where to focus first.</p>
     <p>${buildWhyQuestion(submission.businessName)}</p>
   `;
 }
