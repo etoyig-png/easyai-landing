@@ -3,8 +3,12 @@ import { buildWhyQuestion, validateResultHtml } from './resultValidator';
 
 const submission = { businessName: 'Johnson Electric', firstName: 'Taylor' };
 
+// Wraps a fragment in a minimal report that satisfies the approved standard: ordinary prose,
+// no framework labels, three actions written as First/Second/Third, and the exact WHY
+// question last. The old "Get found:" / "Free action 1:" scaffolding was removed with the
+// label rules it existed to satisfy.
 function withWhyQuestion(body: string): string {
-  return `${body}<p>Get found: Review visibility.</p><p>Get chosen: Review the website path.</p><p>Free action 1: Write down the process.</p><p>Free action 2: Draft a response.</p><p>Free action 3: Track the next step.</p><p>${buildWhyQuestion(submission.businessName)}</p>`;
+  return `${body}<p>First, check your business details. Second, add one clear way to reach you. Third, log every inquiry for seven days.</p><p>${buildWhyQuestion(submission.businessName)}</p>`;
 }
 
 describe('validateResultHtml', () => {
@@ -84,46 +88,57 @@ describe('validateResultHtml', () => {
     expect(validateResultHtml(html, submission).violations).toContain('WHY question is not the final narrative paragraph');
   });
 
-  it('requires one diagnosis for both discovery and website conversion', () => {
-    const html = withWhyQuestion('<p>Body.</p>').replace('<p>Get chosen: Review the website path.</p>', '');
-    expect(validateResultHtml(html, submission).violations).toContain('must contain exactly one Get chosen diagnosis');
+  // The forced "Get found:" / "Get chosen:" / "Free action N:" rules were deliberately
+  // removed. These two tests replace them by asserting the opposite contract: prose that
+  // carries none of those labels is valid, which is what the approved methodology produces.
+  it('accepts a diagnosis written as prose with no Get found or Get chosen labels', () => {
+    const html = withWhyQuestion(
+      '<p>Missed inquiries and an informational website create the same problem: interested customers can reach you and still disappear.</p>'
+    );
+    expect(validateResultHtml(html, submission).violations).toEqual([]);
   });
 
-  it('requires exactly one of each of three labeled free actions', () => {
+  it('accepts three actions written as First, Second and Third instead of numbered labels', () => {
     const why = `<p>${buildWhyQuestion(submission.businessName)}</p>`;
-    expect(validateResultHtml(`<p>Free action 1: One.</p><p>Free action 2: Two.</p>${why}`, submission).violations).toContain('must contain exactly three free actions');
-    expect(validateResultHtml(`<p>Free action 1: One.</p><p>Free action 2: Two.</p><p>Free action 3: Three.</p><p>Free action 4: Four.</p>${why}`, submission).violations).toContain('must contain exactly three free actions');
+    const html = `<p>First, check your business details. Second, add one clear way to reach you. Third, log every inquiry for seven days.</p>${why}`;
+    expect(validateResultHtml(html, submission).violations).toEqual([]);
   });
 
-  it('rejects unsupported money, audit, and sports content', () => {
-    for (const content of ['It costs $40 monthly.', 'We completed a business audit.', 'Use a football strategy.']) {
-      expect(validateResultHtml(withWhyQuestion(`<p>${content}</p>`), submission).violations.some((v) => v.includes('unsupported money'))).toBe(true);
+  it('rejects an invented price, a claimed inspection, and sports language', () => {
+    const cases: [string, RegExp][] = [
+      ['<p>Most tools that fit run $40-60/month.</p>', /money\/ROI claim/],
+      ['<p>The ROI on that is worth thinking about.</p>', /money\/ROI claim/],
+      ['<p>We scanned your site and found several issues.</p>', /audit\/inspection/],
+      ['<p>Use a football strategy.</p>', /sports language/],
+    ];
+    for (const [fragment, expected] of cases) {
+      const result = validateResultHtml(withWhyQuestion(fragment), submission);
+      expect(result.valid, fragment).toBe(false);
+      expect(result.violations.join(' '), fragment).toMatch(expected);
     }
   });
 
   it.each(['Smith Sports', 'ROI Advisors', 'Audit Partners', '$40 Studio'])(
-    'allows claim-pattern language in the business name only inside the required WHY question: %s',
+    'never rejects a business for claim-pattern language inside its own name: %s',
     (businessName) => {
       const customSubmission = { ...submission, businessName };
       const html = [
-        '<p>Here is a safe plan for your business.</p>',
-        '<p>Get found: Review visibility.</p>',
-        '<p>Get chosen: Review the website path.</p>',
-        '<p>Free action 1: Write down the process.</p>',
-        '<p>Free action 2: Draft a response.</p>',
-        '<p>Free action 3: Track the next step.</p>',
+        `<p>Here is a safe plan for ${businessName}.</p>`,
+        '<p>First, check your business details. Second, add one clear way to reach you. Third, log every inquiry for seven days.</p>',
         `<p>${buildWhyQuestion(businessName)}</p>`,
       ].join('');
       expect(validateResultHtml(html, customSubmission).violations).toEqual([]);
     }
   );
 
-  it.each(['sports', 'ROI', 'business audit', '$40'])(
-    'still rejects claim-pattern language everywhere before the WHY question: %s',
-    (unsafeContent) => {
-      expect(validateResultHtml(withWhyQuestion(`<p>${unsafeContent}</p>`), submission).violations.some((v) => v.includes('unsupported money'))).toBe(true);
+  it('does not reject the owner\'s own revenue band or an honest denial of an audit', () => {
+    for (const safe of [
+      '<p>You told us the business sits in the $100K-$1M range.</p>',
+      '<p>This free read is not a completed review of anything.</p>',
+    ]) {
+      expect(validateResultHtml(withWhyQuestion(safe), submission).violations, safe).toEqual([]);
     }
-  );
+  });
 
   it.each([
     'This will unlock new customers for Johnson Electric.',
