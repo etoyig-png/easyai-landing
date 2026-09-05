@@ -6,7 +6,7 @@ import { getClientIp, looksLikeSpam } from '@/lib/rateLimit';
 import { sendInternalNotification, sendResultEmail } from '@/lib/resend';
 import { generateAssessmentResult, buildFallbackResultHtml } from '@/lib/anthropic';
 import { notifyCommandCenter } from '@/lib/commandCenter';
-import { syncCompleteAssessmentToCommandCenter } from '@/lib/gary/assessmentSync';
+import { syncCompleteAssessmentToCommandCenter } from '@/lib/assessmentSync';
 import { PROVIDER_TIMEOUT_MS, readLimitedJson, withTimeout } from '@/lib/requestSafety';
 import { admitAssessment } from '@/lib/assessmentAdmission';
 
