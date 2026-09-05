@@ -116,7 +116,7 @@ export function stripLeakedPreamble(text: string): string | null {
 
 function buildUserPrompt(submission: AssessmentSubmission): string {
   const research = researchForIndustry(submission.industry, submission.industryOther);
-  return `Generate the personalized AI Action Plan email body for this lead.
+  return `Generate the personalized Customer Opportunity Action Plan email body for this lead.
 
 First name: ${submission.firstName}
 Last name: ${submission.lastName}
