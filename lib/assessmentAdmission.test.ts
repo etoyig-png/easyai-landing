@@ -25,7 +25,7 @@ describe('atomic assessment admission', () => {
     const lockQueries = tx.$queryRaw.mock.calls.map(([query]) => query.join(''));
     expect(lockQueries.every((query) => query.includes('pg_advisory_xact_lock') && query.includes('::text'))).toBe(true);
     expect(tx.submission.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({
-      searchVisibility: 'x', leadResponse: 'x', websiteConversion: 'x', websiteUrl: 'https://example.com', noWebsite: false,
+      usingAiTools: 'x', leadResponse: 'x', sportsFan: 'x', websiteUrl: 'https://example.com', noWebsite: false,
     }) }));
   });
   it('returns an existing pending/completed duplicate without new work', async () => {
