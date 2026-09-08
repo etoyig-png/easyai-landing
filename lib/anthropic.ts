@@ -77,6 +77,7 @@ REPORT SHAPE:
 Deliver all of the advice before Easy AI is named anywhere in the output.
 
 FREE ACTIONS, approved safe list. Choose three that fit their answers: confirm hours, phone number, services and service area are accurate and consistent everywhere a customer might find them; add current business or project photos; ask recent satisfied customers for honest reviews; respond to existing reviews; make the primary phone or contact button easier to find; test the website contact form from a phone and watch where the message lands; state the main service and area served near the top of the homepage; set a simple response-time goal for new inquiries; keep one shared list so every inquiry gets a follow-up; create a consistent follow-up step for estimates.
+If the owner has no website, pick three actions that do not require one. Never hand them a website task, and never phrase the missing website as a failure, a discovery problem, or something that was checked for.
 These free actions must NEVER include, hint at, or explain: making content easier for Google or AI systems to parse, AI-search optimization, keyword strategy, metadata, schema or structured data, entity optimization, content architecture, prompt testing, competitor analysis or competitor comparison, scoring methodology, or a complete content rewrite. You may say a website is not clearly communicating what the business does. You may NOT explain how to fix that technically. That method is paid work.
 
 Personalization requirements:
@@ -188,7 +189,11 @@ Outcome they most want: ${submission.desiredOutcome}
 Biggest time drain: ${submission.timeDrain}
 Current lead response: ${submission.leadResponse}
 Data privacy/security worry level: ${submission.privacyConcern}
-Business website: ${submission.noWebsite ? 'No website provided' : submission.websiteUrl}
+Business website: ${
+    submission.noWebsite
+      ? 'The owner told us this business does not currently have a website. That is a stated fact from the assessment, not something that was looked up, searched for, or found missing. Do not describe a website as broken, hard to find, or absent from search results. Treat having no website as a real customer-capture weakness and give advice that works without one: a complete and accurate business listing, one dependable way to reach a person, and a consistent follow-up habit. Never tell them to improve pages, buttons, forms, or homepage copy they do not have.'
+      : submission.websiteUrl
+  }
 
 Industry research note to draw on for the FOUND section: ${research}
 
@@ -361,7 +366,11 @@ const LEAD_SCORES: Record<string, number> = {
 
 export function rankCustomerLeak(submission: AssessmentSubmission): 'conversion' | 'discovery' {
   const discovery = DISCOVERY_SCORES[submission.searchVisibility] ?? 2;
-  const conversion = (WEBSITE_SCORES[submission.websiteConversion] ?? 2) + (LEAD_SCORES[submission.leadResponse] ?? 1);
+  // Having no website is a real customer-capture weakness regardless of how the website
+  // question was answered, so noWebsite sets the conversion score directly rather than
+  // reading a phrase about a site that does not exist.
+  const websiteScore = submission.noWebsite ? 3 : WEBSITE_SCORES[submission.websiteConversion] ?? 2;
+  const conversion = websiteScore + (LEAD_SCORES[submission.leadResponse] ?? 1);
   return discovery > conversion ? 'discovery' : 'conversion';
 }
 
@@ -407,7 +416,11 @@ export function buildFallbackResultHtml(submission: AssessmentSubmission): strin
   const timeDrain = quoteAnswer(submission.timeDrain.toLowerCase());
   const aiChallenge = quoteAnswer(submission.aiChallenge);
   const leak = rankCustomerLeak(submission);
-  const sitePhrase = WEBSITE_PHRASES[submission.websiteConversion] ?? 'a website that could be clearer';
+  // noWebsite is a stated fact and outranks the website-question phrasing, so an owner who
+  // pressed "I don't have a website" is never told about a site they do not have.
+  const sitePhrase = submission.noWebsite
+    ? 'no website yet to catch that interest'
+    : WEBSITE_PHRASES[submission.websiteConversion] ?? 'a website that could be clearer';
   const leadPhrase = LEAD_PHRASES[submission.leadResponse] ?? "follow-up that isn't always consistent";
   const visibilityPhrase = VISIBILITY_PHRASES[submission.searchVisibility] ?? 'How often you show up when customers go looking';
 
@@ -418,10 +431,14 @@ export function buildFallbackResultHtml(submission: AssessmentSubmission): strin
       : `<p>Here's what stands out when the answers are read together. ${visibilityPhrase} usually points to business details that read differently in different places, which is the quietest way for a business to go unseen. Customers who never find ${businessName} cannot choose it, so this is the leak worth closing first.</p>
     <p>What happens afterward makes it cost more. ${capitalize(leadPhrase)} and ${sitePhrase} mean the few customers who do arrive are not all landing somewhere useful. ${industryWeightSentence(submission.industry)}</p>`;
 
+  // Without a website, the third improvement becomes the listing that stands in for one.
+  const nextStepImprovement = submission.noWebsite
+    ? 'Give your business listing one obvious way to get in touch.'
+    : 'Give the website one obvious next step.';
   const improvements =
     leak === 'conversion'
-      ? 'Make it easier for customers to reach a person on the first try, so a missed call does not quietly become somebody else\'s job. Put one consistent follow-up step behind every estimate or inquiry. Give the website one obvious next step.'
-      : 'Make sure your business details read the same everywhere a customer might check. Give the website one obvious next step for someone who is ready to act. Put one consistent follow-up step behind every estimate or inquiry.';
+      ? `Make it easier for customers to reach a person on the first try, so a missed call does not quietly become somebody else's job. Put one consistent follow-up step behind every estimate or inquiry. ${nextStepImprovement}`
+      : `Make sure your business details read the same everywhere a customer might check. ${nextStepImprovement} Put one consistent follow-up step behind every estimate or inquiry.`;
 
   const secondAction = submission.noWebsite
     ? `Second, make sure one clear way to reach ${businessName} sits at the top of your business listing and anywhere else customers find you, then try it yourself and see where the message lands.`
