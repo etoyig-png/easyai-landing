@@ -3,6 +3,13 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { buildQuestions, type QuestionDef, type QuestionKey } from '@/lib/quizQuestions';
+import {
+  clearNoWebsite,
+  selectNoWebsite,
+  typeWebsiteUrl,
+  websiteFieldError,
+  websiteSubmissionValue,
+} from '@/lib/websiteAnswer';
 
 type AnswerKey = QuestionKey;
 
@@ -157,14 +164,10 @@ function AssessmentPageInner() {
     const errs: Partial<Record<keyof Answers, string>> = {};
     if (!answers.lastName.trim()) errs.lastName = 'Required';
     if (!emailLooksValid(answers.email)) errs.email = 'Enter a valid email';
-    if (!answers.noWebsite) {
-      try {
-        const url = new URL(answers.websiteUrl);
-        if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('Invalid protocol');
-      } catch {
-        errs.websiteUrl = 'Enter a valid http:// or https:// URL';
-      }
-    }
+    // Only evaluated here, on Continue, so a blank field is never flagged while it is still
+    // being filled in. Returns null whenever "I don't have a website" is selected.
+    const websiteError = websiteFieldError(answers);
+    if (websiteError) errs.websiteUrl = websiteError;
     setContactErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -204,7 +207,7 @@ function AssessmentPageInner() {
           lastName: answers.lastName,
           businessName: answers.businessName,
           email: answers.email,
-          websiteUrl: answers.noWebsite ? undefined : answers.websiteUrl,
+          websiteUrl: websiteSubmissionValue(answers),
           noWebsite: answers.noWebsite,
           funnelCorrelationId,
           consent: true,
@@ -303,7 +306,7 @@ function AssessmentPageInner() {
 
           {step === CONTACT_STEP && (
             <div>
-              <h1 className="text-xl font-bold text-slate-900 mb-1">Almost there — where should we send your plan?</h1>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Almost there. Where should we send your plan?</h1>
               <div className="space-y-4">
                 <div>
                   <label className="label">Last name</label>
@@ -325,19 +328,45 @@ function AssessmentPageInner() {
                   {contactErrors.email && <p className="text-xs text-red-600 mt-1">{contactErrors.email}</p>}
                 </div>
                 <div>
-                  <label className="label">Business website</label>
-                  <input
-                    type="url"
-                    className="input"
-                    placeholder="https://example.com"
-                    value={answers.websiteUrl}
-                    disabled={answers.noWebsite}
-                    onChange={(e) => setAnswers((p) => ({ ...p, websiteUrl: e.target.value, noWebsite: false }))}
-                  />
+                  <label className="label" htmlFor="websiteUrl">
+                    Business website (optional)
+                  </label>
+                  {/* Hidden rather than disabled while "no website" is selected: there is nothing
+                      to read in a field that has been cleared, and the button below states the
+                      choice in words. */}
+                  {!answers.noWebsite && (
+                    <input
+                      id="websiteUrl"
+                      type="url"
+                      className="input"
+                      placeholder="https://yourbusiness.com"
+                      value={answers.websiteUrl}
+                      onChange={(e) => {
+                        setAnswers((p) => ({ ...p, ...typeWebsiteUrl(e.target.value) }));
+                        setContactErrors((prev) => ({ ...prev, websiteUrl: undefined }));
+                      }}
+                    />
+                  )}
                   {contactErrors.websiteUrl && <p className="text-xs text-red-600 mt-1">{contactErrors.websiteUrl}</p>}
+                  <button
+                    type="button"
+                    aria-pressed={answers.noWebsite}
+                    onClick={() => {
+                      setAnswers((p) => ({ ...p, ...(answers.noWebsite ? clearNoWebsite() : selectNoWebsite()) }));
+                      setContactErrors((prev) => ({ ...prev, websiteUrl: undefined }));
+                    }}
+                    className={`mt-3 w-full rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
+                      answers.noWebsite
+                        ? 'border-teal bg-teal/10 text-teal'
+                        : 'border-slate-300 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-800'
+                    }`}
+                  >
+                    {answers.noWebsite ? '✓ I don’t have a website' : 'I don’t have a website'}
+                  </button>
                   {answers.noWebsite && (
-                    <p className="mt-3 text-sm text-slate-600">
-                      You selected that the business does not currently have a website. Use Back if you need to change that answer.
+                    <p className="mt-2 text-sm text-slate-600">
+                      No problem. We&rsquo;ll build your plan around getting found and reaching customers without one. Press the button
+                      again if you do have a website.
                     </p>
                   )}
                 </div>
@@ -423,7 +452,7 @@ function AssessmentPageInner() {
               <h1 className="text-2xl font-bold text-slate-900 mb-3">Thanks, {answers.firstName}!</h1>
               <p className="text-slate-600 leading-relaxed">
                 We&rsquo;re building your personalized Customer Opportunity Action Plan for <strong>{answers.businessName}</strong> right now. This
-                usually takes 15+ minutes — we&rsquo;ll email it to you at <strong>{answers.email}</strong> the moment it&rsquo;s
+                usually takes 15+ minutes. We&rsquo;ll email it to you at <strong>{answers.email}</strong> the moment it&rsquo;s
                 ready.
               </p>
             </div>

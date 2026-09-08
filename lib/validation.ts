@@ -10,6 +10,7 @@ import {
   LEAD_RESPONSE_OPTIONS,
   WEBSITE_CONVERSION_OPTIONS,
 } from './quizQuestions';
+import { isValidWebsiteUrl } from './websiteAnswer';
 
 export const assessmentSubmissionSchema = z
   .object({
@@ -47,17 +48,12 @@ export const assessmentSubmissionSchema = z
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please tell us what kind of business you run', path: ['industryOther'] });
     }
 
-    const selectedNoWebsite = data.websiteConversion === 'We do not currently have a website';
-    if (selectedNoWebsite !== data.noWebsite) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: selectedNoWebsite
-          ? 'Select no website to match your assessment answer'
-          : 'Add your website URL or update the website question',
-        path: ['noWebsite'],
-      });
-    }
-
+    // noWebsite is the single source of truth for whether a URL exists. It is deliberately NOT
+    // required to agree with the websiteConversion answer: the owner can answer that question
+    // one way and then press "I don't have a website" on the later contact screen, or undo that
+    // press and supply a real URL. The earlier cross-field consistency rule rejected both of
+    // those, which is what blocked owners without a website from finishing the assessment.
+    // Every historical submission still satisfies the rules below, so no migration is needed.
     if (data.noWebsite) {
       if (data.websiteUrl) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Remove the website URL when selecting no website', path: ['websiteUrl'] });
       return;
@@ -67,10 +63,8 @@ export const assessmentSubmissionSchema = z
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Enter a website URL or select no website', path: ['websiteUrl'] });
       return;
     }
-    try {
-      const url = new URL(data.websiteUrl);
-      if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('Unsupported protocol');
-    } catch {
+    // URL validation itself is unchanged, and shared with the form via isValidWebsiteUrl.
+    if (!isValidWebsiteUrl(data.websiteUrl)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Website URL must use http:// or https://', path: ['websiteUrl'] });
     }
   });

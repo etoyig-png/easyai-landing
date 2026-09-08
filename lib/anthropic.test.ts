@@ -180,6 +180,51 @@ describe('deterministic report — recovered methodology across every answer', (
     expect(section).not.toMatch(/\bFourth\b/);
   });
 
+  it('tells the answer engine plainly that there is no website, with no research implied', () => {
+    const noWebsite = { ...baseSubmission, noWebsite: true, websiteUrl: undefined } as AssessmentSubmission;
+    const prompt = buildUserPrompt(noWebsite);
+    expect(prompt).toContain('does not currently have a website');
+    expect(prompt).toContain('not something that was looked up, searched for, or found missing');
+    expect(prompt).toMatch(/Never tell them to improve pages, buttons, forms, or homepage copy they do not have/);
+    // A real URL is passed through untouched when one exists.
+    expect(buildUserPrompt(baseSubmission)).toContain('https://example.com');
+    expect(buildUserPrompt(baseSubmission)).not.toContain('does not currently have a website');
+  });
+
+  it('treats having no website as a real customer-capture weakness when ranking', () => {
+    // Discovery is strong here, so only the missing website can tip the ranking to conversion.
+    const strongDiscovery = {
+      ...baseSubmission,
+      searchVisibility: 'We show up consistently in Google and AI answers for the services and locations we target',
+      websiteConversion: 'Visitors have one clear action, and we can track what happens next',
+      leadResponse: 'They receive a fast response and are tracked through the next step.',
+    } as AssessmentSubmission;
+    expect(rankCustomerLeak(strongDiscovery)).toBe('conversion');
+    expect(rankCustomerLeak({ ...strongDiscovery, noWebsite: true, websiteUrl: undefined })).toBe('conversion');
+  });
+
+  it('gives advice suited to a business with no website', () => {
+    const noWebsite = {
+      ...baseSubmission,
+      websiteConversion: 'Visitors can contact us, but the next step could be clearer',
+      noWebsite: true,
+      websiteUrl: undefined,
+    } as AssessmentSubmission;
+    const html = buildFallbackResultHtml(noWebsite);
+    const text = toReaderText(html);
+    // Never describes a site they do not have, and never hands them a website task.
+    expect(text).toContain('no website yet to catch that interest');
+    expect(text).toContain('Give your business listing one obvious way to get in touch.');
+    expect(text).not.toMatch(/your website/i);
+    expect(text).not.toMatch(/homepage|contact form|web page/i);
+    // Still a complete, valid report.
+    expect(validateResultHtml(html, noWebsite).violations).toEqual([]);
+    expect(text).toMatch(/\bFirst,/);
+    expect(text).toMatch(/\bSecond,/);
+    expect(text).toMatch(/\bThird,/);
+    expect(text.trim().endsWith(buildWhyQuestion(noWebsite.businessName))).toBe(true);
+  });
+
   it('rewrites the second action when the owner has no website', () => {
     const noWebsite = {
       ...baseSubmission,
