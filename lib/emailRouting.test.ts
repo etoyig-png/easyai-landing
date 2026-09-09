@@ -42,7 +42,9 @@ const originalEnv = { ...process.env };
 beforeEach(() => {
   send.mockReset();
   send.mockResolvedValue({ data: { id: 'msg_1' }, error: null });
-  delete process.env.VERCEL_ENV;
+  // Explicit on purpose: an absent VERCEL_ENV now blocks, so a test that forgets to set it
+  // cannot accidentally assert production behaviour.
+  process.env.VERCEL_ENV = 'production';
   delete process.env.EMAIL_TEST_RECIPIENT;
   delete process.env.ASSESSMENT_NOTIFICATION_EMAIL;
   delete process.env.RESULT_EMAIL_REPLY_TO;
@@ -150,23 +152,52 @@ describe('contact message', () => {
   });
 });
 
-describe('preview safety', () => {
-  it('refuses to send from a preview deployment with no test recipient', async () => {
-    process.env.VERCEL_ENV = 'preview';
-    const { sendResultEmail } = await import('./resend');
-    await expect(
-      sendResultEmail({ to: 'customer@example.com', firstName: 'Dana', businessName: 'Riverside Plumbing', resultHtml: '<p>Body.</p>' })
-    ).rejects.toThrow(/Email blocked in preview/);
-    // Refused, not silently swallowed: nothing was handed to the provider.
-    expect(send).not.toHaveBeenCalled();
-  });
+describe('non-production email safety', () => {
+  // Preview, development, local runs and continuous integration are all non-production. Only
+  // a real production deployment may reach the intended recipient.
+  it.each(['preview', 'development', 'staging', undefined])(
+    'refuses to send when VERCEL_ENV is %s and no test recipient is configured',
+    async (environment) => {
+      if (environment === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = environment;
+      const { sendResultEmail } = await import('./resend');
+      await expect(
+        sendResultEmail({ to: 'customer@example.com', firstName: 'Dana', businessName: 'Riverside Plumbing', resultHtml: '<p>Body.</p>' })
+      ).rejects.toThrow(/Email blocked outside production/);
+      // Refused, not silently swallowed: nothing was handed to the provider.
+      expect(send).not.toHaveBeenCalled();
+    }
+  );
 
-  it('redirects preview mail to the explicit test recipient instead of the customer', async () => {
-    process.env.VERCEL_ENV = 'preview';
+  it.each(['preview', 'development', undefined])('redirects to the test recipient when VERCEL_ENV is %s', async (environment) => {
+    if (environment === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = environment;
     process.env.EMAIL_TEST_RECIPIENT = 'qa@example.com';
     const { sendResultEmail } = await import('./resend');
     await sendResultEmail({ to: 'customer@example.com', firstName: 'Dana', businessName: 'Riverside Plumbing', resultHtml: '<p>Body.</p>' });
     expect(send.mock.calls[0][0].to).toBe('qa@example.com');
+  });
+
+  it('cannot reach a customer from a local run, even with a real key present', async () => {
+    delete process.env.VERCEL_ENV;
+    process.env.NODE_ENV = 'production'; // a local production build is NOT a deployment
+    const { sendResultEmail } = await import('./resend');
+    await expect(
+      sendResultEmail({ to: 'customer@example.com', firstName: 'Dana', businessName: 'Riverside Plumbing', resultHtml: '<p>Body.</p>' })
+    ).rejects.toThrow(/Email blocked outside production/);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('never reaches the business inbox from a non-production environment unless it is the configured test recipient', async () => {
+    for (const environment of ['preview', 'development']) {
+      send.mockClear();
+      process.env.VERCEL_ENV = environment;
+      process.env.EMAIL_TEST_RECIPIENT = 'qa@example.com';
+      const { sendInternalNotification } = await import('./resend');
+      await sendInternalNotification(submission);
+      expect(send.mock.calls[0][0].to, environment).not.toBe('info@easyaiconsult.com');
+      expect(send.mock.calls[0][0].to, environment).toBe('qa@example.com');
+    }
   });
 
   it('never lets a preview notification reach the production business inbox', async () => {

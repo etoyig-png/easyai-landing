@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { contactSubmissionSchema } from '@/lib/contactValidation';
-import { getClientIp, isRateLimited, looksLikeSpam } from '@/lib/rateLimit';
+import { getClientIp, looksLikeSpam } from '@/lib/rateLimit';
+import { admitContactMessage } from '@/lib/contactRateLimit';
 import { sendContactMessage } from '@/lib/resend';
 import { PROVIDER_TIMEOUT_MS, readLimitedJson, withTimeout } from '@/lib/requestSafety';
 
@@ -12,7 +13,7 @@ export const runtime = 'nodejs';
  *
  * Reuses the existing controls rather than adding new ones: readLimitedJson caps the body,
  * looksLikeSpam applies the same honeypot and fill-timing pair as the assessment form,
- * isRateLimited applies the same per-address ceiling, and withTimeout bounds the provider
+ * admitContactMessage applies a contact-specific durable ceiling, and withTimeout bounds the provider
  * call. No new dependency and no second email provider.
  *
  * The visitor's address is validated, used as Reply-To, and never used as From.
@@ -39,14 +40,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  // Counts contact attempts specifically, in their own durable ledger. The assessment
+  // limiter counts Submission rows, which contact messages never create, so it would have
+  // counted nothing here. Applied BEFORE the provider is called.
+  let admission;
   try {
-    if (await isRateLimited(getClientIp(req.headers))) {
-      return NextResponse.json({ error: 'Too many messages from this connection. Please try again later.' }, { status: 429 });
-    }
+    admission = await admitContactMessage(getClientIp(req.headers));
   } catch (error) {
-    // A rate-limit lookup failure must not silently disable the limit or drop a real message.
+    // Fail closed. A broken limiter is not permission to send.
     console.error('Contact rate-limit check failed', error);
     return NextResponse.json({ error: 'Unable to accept the message right now. Please try again shortly.' }, { status: 503 });
+  }
+  if (admission.kind === 'limited') {
+    return NextResponse.json({ error: 'Too many messages from this connection. Please try again later.' }, { status: 429 });
   }
 
   try {

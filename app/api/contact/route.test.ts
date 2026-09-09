@@ -7,13 +7,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * and a visitor cannot influence where mail goes.
  */
 const sendContactMessage = vi.fn();
-const isRateLimited = vi.fn();
+const admitContactMessage = vi.fn();
 
 vi.mock('@/lib/resend', () => ({ sendContactMessage: (...args: unknown[]) => sendContactMessage(...args) }));
-vi.mock('@/lib/rateLimit', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/rateLimit')>('@/lib/rateLimit');
-  return { ...actual, isRateLimited: (...args: unknown[]) => isRateLimited(...args) };
-});
+// The contact-specific limiter, NOT the assessment one. lib/contactRateLimit.test.ts proves
+// the limiter itself counts contact attempts rather than Submission rows.
+vi.mock('@/lib/contactRateLimit', () => ({ admitContactMessage: (...args: unknown[]) => admitContactMessage(...args) }));
 
 import { POST } from './route';
 
@@ -38,7 +37,7 @@ function request(body: unknown): NextRequest {
 
 beforeEach(() => {
   sendContactMessage.mockReset().mockResolvedValue(undefined);
-  isRateLimited.mockReset().mockResolvedValue(false);
+  admitContactMessage.mockReset().mockResolvedValue({ kind: 'accepted' });
 });
 
 describe('POST /api/contact', () => {
@@ -73,9 +72,10 @@ describe('POST /api/contact', () => {
     expect(payload.error).toMatch(/could not send/i);
   });
 
-  it('swallows an obvious bot without sending or revealing detection', async () => {
+  it('swallows an obvious bot with a generic success, sending nothing', async () => {
     const res = await POST(request({ ...validBody, companyUrl: 'http://spam.example' }));
     expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ success: true });
     expect(sendContactMessage).not.toHaveBeenCalled();
   });
 
@@ -85,15 +85,21 @@ describe('POST /api/contact', () => {
     expect(sendContactMessage).not.toHaveBeenCalled();
   });
 
-  it('applies the existing rate limit', async () => {
-    isRateLimited.mockResolvedValue(true);
+  it('applies the contact-specific rate limit before calling the provider', async () => {
+    admitContactMessage.mockResolvedValue({ kind: 'limited' });
     const res = await POST(request(validBody));
     expect(res.status).toBe(429);
+    // The request that exceeds the limit must never reach Resend.
     expect(sendContactMessage).not.toHaveBeenCalled();
   });
 
-  it('fails closed when the rate-limit check itself errors', async () => {
-    isRateLimited.mockRejectedValue(new Error('db down'));
+  it('checks the limit before the provider, not after', async () => {
+    await POST(request(validBody));
+    expect(admitContactMessage.mock.invocationCallOrder[0]).toBeLessThan(sendContactMessage.mock.invocationCallOrder[0]);
+  });
+
+  it('fails closed when the rate-limit store itself errors', async () => {
+    admitContactMessage.mockRejectedValue(new Error('db down'));
     const res = await POST(request(validBody));
     expect(res.status).toBe(503);
     expect(sendContactMessage).not.toHaveBeenCalled();

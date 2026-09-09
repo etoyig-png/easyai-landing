@@ -222,3 +222,21 @@ model CrrOutboxEvent {
   createdAt       DateTime  @default(now())
   deliveredAt     DateTime?
 }
+
+// Durable rate-limit ledger for the public contact form.
+//
+// The assessment and Gary limiters each count rows in a table their own traffic creates
+// (Submission, PublicChatMessage). A contact message creates neither, so counting those
+// tables would never see contact traffic at all. This is the smallest durable store that
+// actually counts contact attempts.
+//
+// Only a one-way hash of the client identity is kept. The raw address is never stored here,
+// because nothing in this feature needs to know it: all the limiter has to do is recognise
+// the same caller again inside the window.
+model ContactRateLimitEvent {
+  id        String   @id @default(cuid())
+  ipHash    String
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
+}

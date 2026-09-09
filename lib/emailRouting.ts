@@ -70,7 +70,8 @@ export type DeliveryDecision =
  * internal recipient, so without a guard a preview build can email real customers and the
  * real business inbox.
  *
- * Outside production, mail is redirected to EMAIL_TEST_RECIPIENT when one is configured, and
+ * Outside production, which includes preview, development, local runs and continuous
+ * integration, mail is redirected to EMAIL_TEST_RECIPIENT when one is configured and is
  * otherwise refused. It is never silently dropped: a refusal returns allowed:false and the
  * caller raises a real error, so a blocked send is recorded as a failure rather than reported
  * as a success.
@@ -81,9 +82,12 @@ export type DeliveryDecision =
 export function resolveDelivery(intendedTo: string): DeliveryDecision {
   const environment = process.env.VERCEL_ENV;
 
-  // Not on Vercel at all (local dev, CI, tests): behave like production so unit tests can
-  // assert real routing, since nothing is actually sent without a Resend key anyway.
-  if (!environment || environment === 'production') {
+  // ONLY a real production deployment may reach the intended recipient. An absent VERCEL_ENV
+  // means local development, continuous integration, or an unknown host, and a developer
+  // holding a real Resend key must never be one careless run away from emailing a customer.
+  // NODE_ENV is deliberately not consulted: "production" there only describes a build mode
+  // and is set by ordinary local production builds, so it is not evidence of a deployment.
+  if (environment === 'production') {
     return { allowed: true, to: intendedTo, redirected: false };
   }
 
@@ -94,6 +98,6 @@ export function resolveDelivery(intendedTo: string): DeliveryDecision {
 
   return {
     allowed: false,
-    reason: `Email blocked in ${environment}: set EMAIL_TEST_RECIPIENT to receive mail from a non-production deployment.`,
+    reason: `Email blocked outside production (VERCEL_ENV=${environment ?? 'unset'}): set EMAIL_TEST_RECIPIENT to receive mail from a non-production environment.`,
   };
 }
