@@ -13,7 +13,7 @@ import {
 
 /**
  * A business without a website is a real customer path. These tests pin the behaviour the
- * contact screen depends on, so the "I don't have a website" button cannot regress into the
+ * contact screen depends on, so the skip button cannot regress into the
  * URL error it was added to remove.
  */
 describe('website field validation', () => {
@@ -64,7 +64,7 @@ describe('selecting and undoing "I don\'t have a website"', () => {
 });
 
 describe('what gets submitted', () => {
-  it('stores no fake URL when the business has no website', () => {
+  it('stores no fake URL when no address was shared', () => {
     expect(websiteSubmissionValue({ websiteUrl: '', noWebsite: true })).toBeUndefined();
     // Even if stale text somehow survived in state, nothing false is sent.
     expect(websiteSubmissionValue({ websiteUrl: 'https://example.com', noWebsite: true })).toBeUndefined();
@@ -95,8 +95,10 @@ describe('contact screen copy', () => {
     expect(page).toContain('Business website (optional)');
   });
 
-  it('offers a visible no-website button with an obvious selected state', () => {
-    expect(page).toMatch(/I don.{1,8}t have a website/);
+  it('offers a visible skip button with an obvious selected state', () => {
+    // The label offers a choice. It never asserts anything about the business, because
+    // skipping the field does not prove a website does not exist.
+    expect(page).toContain('Continue without sharing a website');
     expect(page).toContain('aria-pressed={answers.noWebsite}');
   });
 
