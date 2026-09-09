@@ -3,6 +3,7 @@ import type { AssessmentSubmission } from './validation';
 import { escapeHtmlText } from './htmlEscape';
 import { buildWhyQuestion, validateResultHtml } from './resultValidator';
 import { renderUntrustedAssessmentContent } from './safeEmailContent';
+import { WEBSITE_NOT_PROVIDED_SENTENCE, websitePromptLine, websiteStatus } from './websiteStatus';
 
 // Constructed lazily so this module can be imported at build time without ANTHROPIC_API_KEY set.
 let anthropicClient: Anthropic | undefined;
@@ -61,6 +62,8 @@ Then:
 - Separate evidence from assumption. An answer they gave is evidence and may be stated directly. Anything you infer is an assumption and must be hedged, for example "that often points to..." or "it usually means...". Never present an inference as something they told you.
 - Never write "Get found", "Get chosen", or any other framework label as a heading or paragraph opener. The two areas appear as reasoning inside ordinary sentences, never as sections.
 - This assessment reads their submitted answers only. It did NOT inspect or verify any of the following, so never state or imply that it did: Google rankings, metadata, schema, AI visibility, keyword structure, website technical performance, competitors, local rankings, review optimization, or search-engine configuration. You have no search tool in this task.
+- THE WEBSITE WAS NEVER VISITED. Even when a website address appears above, nobody opened, loaded, inspected, reviewed, or evaluated it. Never write that you looked at their site, checked a page, or saw anything on it. You may reason only from their own website-conversion answer.
+- If no website address was provided, that does NOT mean the business has no website. The owner may have one and simply chose not to share it. Never say or imply that the business has no website, that there is nothing to capture interest, or that a missing address is itself a weakness. Follow the website instruction in the user message exactly.
 
 REPORT SHAPE:
 1. Open on the central business problem in their own terms, using their first name and business name naturally. No long introduction before the problem.
@@ -189,11 +192,7 @@ Outcome they most want: ${submission.desiredOutcome}
 Biggest time drain: ${submission.timeDrain}
 Current lead response: ${submission.leadResponse}
 Data privacy/security worry level: ${submission.privacyConcern}
-Business website: ${
-    submission.noWebsite
-      ? 'The owner told us this business does not currently have a website. That is a stated fact from the assessment, not something that was looked up, searched for, or found missing. Do not describe a website as broken, hard to find, or absent from search results. Treat having no website as a real customer-capture weakness and give advice that works without one: a complete and accurate business listing, one dependable way to reach a person, and a consistent follow-up habit. Never tell them to improve pages, buttons, forms, or homepage copy they do not have.'
-      : submission.websiteUrl
-  }
+Business website: ${websitePromptLine(submission)}
 
 Industry research note to draw on for the FOUND section: ${research}
 
@@ -366,10 +365,10 @@ const LEAD_SCORES: Record<string, number> = {
 
 export function rankCustomerLeak(submission: AssessmentSubmission): 'conversion' | 'discovery' {
   const discovery = DISCOVERY_SCORES[submission.searchVisibility] ?? 2;
-  // Having no website is a real customer-capture weakness regardless of how the website
-  // question was answered, so noWebsite sets the conversion score directly rather than
-  // reading a phrase about a site that does not exist.
-  const websiteScore = submission.noWebsite ? 3 : WEBSITE_SCORES[submission.websiteConversion] ?? 2;
+  // Scored ONLY from the website question the owner actually answered. A skipped website
+  // address is not evidence of anything: the owner may have a website and simply not have
+  // shared it, so it must never be scored as a confirmed customer leak.
+  const websiteScore = WEBSITE_SCORES[submission.websiteConversion] ?? 2;
   const conversion = websiteScore + (LEAD_SCORES[submission.leadResponse] ?? 1);
   return discovery > conversion ? 'discovery' : 'conversion';
 }
@@ -416,11 +415,13 @@ export function buildFallbackResultHtml(submission: AssessmentSubmission): strin
   const timeDrain = quoteAnswer(submission.timeDrain.toLowerCase());
   const aiChallenge = quoteAnswer(submission.aiChallenge);
   const leak = rankCustomerLeak(submission);
-  // noWebsite is a stated fact and outranks the website-question phrasing, so an owner who
-  // pressed "I don't have a website" is never told about a site they do not have.
-  const sitePhrase = submission.noWebsite
-    ? 'no website yet to catch that interest'
-    : WEBSITE_PHRASES[submission.websiteConversion] ?? 'a website that could be clearer';
+  // Three states, never conflated. A skipped website address proves nothing about whether a
+  // website exists, so it never produces a claim about one either way.
+  const status = websiteStatus(submission);
+  const sitePhrase =
+    status === 'declared-none'
+      ? 'no website yet to catch that interest'
+      : WEBSITE_PHRASES[submission.websiteConversion] ?? 'a website that could be clearer';
   const leadPhrase = LEAD_PHRASES[submission.leadResponse] ?? "follow-up that isn't always consistent";
   const visibilityPhrase = VISIBILITY_PHRASES[submission.searchVisibility] ?? 'How often you show up when customers go looking';
 
@@ -431,18 +432,26 @@ export function buildFallbackResultHtml(submission: AssessmentSubmission): strin
       : `<p>Here's what stands out when the answers are read together. ${visibilityPhrase} usually points to business details that read differently in different places, which is the quietest way for a business to go unseen. Customers who never find ${businessName} cannot choose it, so this is the leak worth closing first.</p>
     <p>What happens afterward makes it cost more. ${capitalize(leadPhrase)} and ${sitePhrase} mean the few customers who do arrive are not all landing somewhere useful. ${industryWeightSentence(submission.industry)}</p>`;
 
-  // Without a website, the third improvement becomes the listing that stands in for one.
-  const nextStepImprovement = submission.noWebsite
-    ? 'Give your business listing one obvious way to get in touch.'
-    : 'Give the website one obvious next step.';
+  // Only when the owner said they have no website does the listing stand in for one. When the
+  // address was merely skipped, the advice stays neutral about whether a website exists.
+  const nextStepImprovement =
+    status === 'declared-none'
+      ? 'Give your business listing one obvious way to get in touch.'
+      : 'Give whichever page or listing customers land on one obvious next step.';
   const improvements =
     leak === 'conversion'
       ? `Make it easier for customers to reach a person on the first try, so a missed call does not quietly become somebody else's job. Put one consistent follow-up step behind every estimate or inquiry. ${nextStepImprovement}`
       : `Make sure your business details read the same everywhere a customer might check. ${nextStepImprovement} Put one consistent follow-up step behind every estimate or inquiry.`;
 
-  const secondAction = submission.noWebsite
-    ? `Second, make sure one clear way to reach ${businessName} sits at the top of your business listing and anywhere else customers find you, then try it yourself and see where the message lands.`
-    : `Second, put one clear way to reach ${businessName} near the top of your website, then send yourself a message through it and see where it lands.`;
+  const secondAction =
+    status === 'provided'
+      ? `Second, put one clear way to reach ${businessName} near the top of your website, then send yourself a message through it and see where it lands.`
+      : `Second, make sure one clear way to reach ${businessName} sits at the top of your business listing and anywhere else customers find you, then try it yourself and see where the message lands.`;
+
+  // Said plainly, once, only when no address was supplied. Honest about what was not looked
+  // at, and it turns the gap into a next step rather than a fault.
+  const websiteNote =
+    status === 'not-provided' ? `\n    <p>${WEBSITE_NOT_PROVIDED_SENTENCE}</p>` : '';
 
   return `
     <h2>${firstName}, a quick read on ${businessName}</h2>
@@ -453,7 +462,7 @@ export function buildFallbackResultHtml(submission: AssessmentSubmission): strin
     <p>${outcomeOpening(submission.desiredOutcome)} For a lot of owners in your position, what that really buys is room. Room to hire the help you keep putting off, room to take a week off without the phone deciding otherwise.</p>
     <h2>Three things you can do this week, free</h2>
     <p>First, check that your hours, phone number, services, and service area read the same everywhere a customer might find them. ${secondAction} Third, log every call, message, and form for seven days with how long each took to answer, then count the ones that never got a reply.</p>
-    <p>On cost, this isn't the part where anyone tells you to buy something. Easy AI looks for practical improvements that fit how ${businessName} already runs, and the work should give you time back rather than another system to babysit.</p>
+    <p>On cost, this isn't the part where anyone tells you to buy something. Easy AI looks for practical improvements that fit how ${businessName} already runs, and the work should give you time back rather than another system to babysit.</p>${websiteNote}
     <p>If you'd rather have evidence than a read like this one, Easy AI measures how ${businessName} shows up in Google and in Artificial Intelligence (AI) answers next to three local competitors. That's the Google + AI Presence (GAP) Score. This free read isn't that. It's what your own answers already say.</p>
     <p>${buildWhyQuestion(submission.businessName)}</p>
   `;

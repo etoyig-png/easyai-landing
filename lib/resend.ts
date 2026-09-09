@@ -1,6 +1,15 @@
 import { Resend } from 'resend';
 import type { AssessmentSubmission } from './validation';
+import type { ContactSubmission } from './contactValidation';
+import { websiteNotificationValue } from './websiteStatus';
 import { escapeHtml } from './htmlEscape';
+import {
+  internalRecipient,
+  notificationFromAddress,
+  resolveDelivery,
+  resultFromAddress,
+  resultReplyToAddress,
+} from './emailRouting';
 
 // Constructed lazily (not at module load) so the API route can still be built
 // and imported without RESEND_API_KEY set — the key is only required at send time.
@@ -17,15 +26,14 @@ function getResend(): Resend {
 export const RESULT_EMAIL_LOGO_URL = 'https://www.easyaiconsult.com/easy-ai-logo.png';
 export const RESULT_EMAIL_CTA_URL = 'https://www.easyaiconsult.com/assessment/complete';
 
-const NOTIFICATION_FROM = process.env.NOTIFICATION_EMAIL_FROM ?? 'Easy AI Assessments <assessments@mail.easyaiconsult.com>';
-const RESULT_FROM = process.env.RESULT_EMAIL_FROM ?? 'Easy AI <hello@mail.easyaiconsult.com>';
-const NOTIFICATION_TO = process.env.ASSESSMENT_NOTIFICATION_EMAIL;
-// mail.easyaiconsult.com is a sending-only subdomain — route lead replies to a real, monitored inbox instead.
-const RESULT_REPLY_TO = process.env.RESULT_EMAIL_REPLY_TO;
 
-/** Internal notification to the Easy AI team — a new assessment came in. */
+/**
+ * Internal notification that a new assessment came in. Delivered to the one Easy AI business
+ * inbox, with the lead as Reply-To so the notification can be answered directly.
+ */
 export async function sendInternalNotification(submission: AssessmentSubmission & { id: string }) {
-  if (!NOTIFICATION_TO) return; // not configured yet — don't block the request
+  const delivery = resolveDelivery(internalRecipient());
+  if (!delivery.allowed) throw new Error(delivery.reason);
 
   const rows: [string, string][] = [
     ['Business', submission.businessName],
@@ -40,7 +48,7 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
     ['Industry', submission.industryOther ? `${submission.industry} — ${submission.industryOther}` : submission.industry],
     ['Lead response', submission.leadResponse],
     ['Website conversion', submission.websiteConversion],
-    ['Website', submission.noWebsite ? 'No website' : (submission.websiteUrl ?? '')],
+    ['Website', websiteNotificationValue(submission)],
   ];
 
   const rowsHtml = rows
@@ -51,8 +59,12 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
     .join('');
 
   const { error } = await getResend().emails.send({
-    from: NOTIFICATION_FROM,
-    to: NOTIFICATION_TO,
+    from: notificationFromAddress(),
+    to: delivery.to,
+    // The lead, so replying to this notification answers the customer rather than the
+    // send-only subdomain. The address is schema-validated before it reaches here and is
+    // never used as From.
+    replyTo: submission.email,
     subject: `New assessment: ${submission.businessName}`,
     html: `
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;">
@@ -110,17 +122,71 @@ export function buildResultEmailText(resultHtml: string): string {
   return `${body}\n\nWatch Your Next-Step Video: ${RESULT_EMAIL_CTA_URL}\n\nYou're receiving this because you completed the Easy AI assessment. Easy AI Consulting.`;
 }
 
-/** Sends the personalized Customer Opportunity Action Plan to the lead. resultHtml is the Claude-generated body content. */
+/**
+ * Sends the personalized Customer Opportunity Action Plan to the lead. resultHtml is the
+ * Claude-generated body content. The customer's address is only ever the recipient: From is
+ * always an authenticated Easy AI sender, and Reply-To is the one business inbox.
+ */
 export async function sendResultEmail(params: { to: string; firstName: string; businessName: string; resultHtml: string }) {
   const { to, firstName, businessName, resultHtml } = params;
+  const delivery = resolveDelivery(to);
+  if (!delivery.allowed) throw new Error(delivery.reason);
 
   const { error } = await getResend().emails.send({
-    from: RESULT_FROM,
-    to,
-    ...(RESULT_REPLY_TO ? { replyTo: RESULT_REPLY_TO } : {}),
+    from: resultFromAddress(),
+    to: delivery.to,
+    replyTo: resultReplyToAddress(),
     subject: `${firstName}, your Customer Opportunity Action Plan for ${businessName} is ready`,
     html: buildResultEmailHtml(resultHtml),
     text: buildResultEmailText(resultHtml),
   });
   if (error) throw new Error(`Resend result email failed: ${error.message}`);
+}
+
+/**
+ * Contact and consultation requests from the public form. Delivered to the one Easy AI
+ * business inbox with the visitor as Reply-To.
+ *
+ * The visitor never appears in From: that would be an unauthenticated sender on a domain we
+ * do not control, and it is how open relays and spoofed mail happen. From is always an
+ * authenticated Easy AI address, and every visitor value is HTML-escaped before rendering.
+ */
+export async function sendContactMessage(submission: ContactSubmission) {
+  const delivery = resolveDelivery(internalRecipient());
+  if (!delivery.allowed) throw new Error(delivery.reason);
+
+  const rows: [string, string][] = [
+    ['Name', submission.name],
+    ['Email', submission.email],
+    ...(submission.phone ? ([['Phone', submission.phone]] as [string, string][]) : []),
+    ...(submission.businessName ? ([['Business', submission.businessName]] as [string, string][]) : []),
+  ];
+
+  const rowsHtml = rows
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:8px 12px;color:#8b9aaa;font-size:13px;white-space:nowrap;vertical-align:top;">${escapeHtml(label)}</td><td style="padding:8px 12px;color:#0b1d3a;font-size:14px;">${escapeHtml(value)}</td></tr>`
+    )
+    .join('');
+
+  const { error } = await getResend().emails.send({
+    from: notificationFromAddress(),
+    to: delivery.to,
+    replyTo: submission.email,
+    subject: `Contact form: ${submission.name}`,
+    html: `
+      <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;">
+        <div style="background:#0b1d3a;padding:20px 24px;">
+          <span style="color:#ffffff;font-size:16px;font-weight:bold;">Easy AI, New Contact Message</span>
+        </div>
+        <div style="padding:20px 24px;background:#f8f4ed;">
+          <table style="width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #ede5d4;">
+            ${rowsHtml}
+          </table>
+          <p style="color:#0b1d3a;font-size:14px;margin-top:16px;white-space:pre-wrap;">${escapeHtml(submission.message)}</p>
+        </div>
+      </div>
+    `,
+  });
+  if (error) throw new Error(`Resend contact message failed: ${error.message}`);
 }

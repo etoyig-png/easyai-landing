@@ -3,8 +3,7 @@
  * the server-side submission schema so the two can never disagree about what a valid website
  * answer looks like.
  *
- * A business without a website is a real customer path, not an edge case. The owner declares
- * it by pressing "I don't have a website" on the contact screen, which sets noWebsite and
+ * A visitor may continue without sharing a website address. The visitor declares that by pressing "Continue without sharing a website" on the contact screen, which
  * clears the URL. Nothing is ever stored in its place: no placeholder, no example.com, no
  * empty string pretending to be a URL.
  */
@@ -39,7 +38,7 @@ export function websiteFieldError(answer: WebsiteAnswer): string | null {
   return isValidWebsiteUrl(answer.websiteUrl) ? null : WEBSITE_URL_ERROR;
 }
 
-/** Pressing "I don't have a website": mark it and drop whatever was typed. */
+/** Pressing "Continue without sharing a website": mark it and drop whatever was typed. */
 export function selectNoWebsite(): WebsiteAnswer {
   return { websiteUrl: '', noWebsite: true };
 }

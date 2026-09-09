@@ -165,7 +165,7 @@ function AssessmentPageInner() {
     if (!answers.lastName.trim()) errs.lastName = 'Required';
     if (!emailLooksValid(answers.email)) errs.email = 'Enter a valid email';
     // Only evaluated here, on Continue, so a blank field is never flagged while it is still
-    // being filled in. Returns null whenever "I don't have a website" is selected.
+    // being filled in. Returns null whenever the visitor continued without sharing one.
     const websiteError = websiteFieldError(answers);
     if (websiteError) errs.websiteUrl = websiteError;
     setContactErrors(errs);
@@ -361,12 +361,12 @@ function AssessmentPageInner() {
                         : 'border-slate-300 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-800'
                     }`}
                   >
-                    {answers.noWebsite ? '✓ I don’t have a website' : 'I don’t have a website'}
+                    {answers.noWebsite ? '✓ Continuing without a website address' : 'Continue without sharing a website'}
                   </button>
                   {answers.noWebsite && (
                     <p className="mt-2 text-sm text-slate-600">
-                      No problem. We&rsquo;ll build your plan around getting found and reaching customers without one. Press the button
-                      again if you do have a website.
+                      No problem. Your plan will be built from your answers, and it will not include a website review. Press the
+                      button again if you want to add an address.
                     </p>
                   )}
                 </div>

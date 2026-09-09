@@ -7,6 +7,7 @@ import {
   stripLeakedPreamble,
 } from './anthropic';
 import { buildWhyQuestion, validateResultHtml } from './resultValidator';
+import { WEBSITE_NOT_PROVIDED_SENTENCE } from './websiteStatus';
 import {
   AI_CHALLENGE_OPTIONS,
   DESIRED_OUTCOME_OPTIONS,
@@ -180,61 +181,69 @@ describe('deterministic report — recovered methodology across every answer', (
     expect(section).not.toMatch(/\bFourth\b/);
   });
 
-  it('tells the answer engine plainly that there is no website, with no research implied', () => {
-    const noWebsite = { ...baseSubmission, noWebsite: true, websiteUrl: undefined } as AssessmentSubmission;
-    const prompt = buildUserPrompt(noWebsite);
-    expect(prompt).toContain('does not currently have a website');
-    expect(prompt).toContain('not something that was looked up, searched for, or found missing');
-    expect(prompt).toMatch(/Never tell them to improve pages, buttons, forms, or homepage copy they do not have/);
-    // A real URL is passed through untouched when one exists.
-    expect(buildUserPrompt(baseSubmission)).toContain('https://example.com');
-    expect(buildUserPrompt(baseSubmission)).not.toContain('does not currently have a website');
+  // A skipped website address is NOT proof that the business has no website. The owner may
+  // have one and simply not have shared it. These three tests pin the distinction.
+  const skippedAddress = { ...baseSubmission, noWebsite: true, websiteUrl: undefined } as AssessmentSubmission;
+  const declaredNone = {
+    ...baseSubmission,
+    websiteConversion: 'We do not currently have a website',
+    noWebsite: true,
+    websiteUrl: undefined,
+  } as AssessmentSubmission;
+
+  it('never tells the engine the business has no website when the address was only skipped', () => {
+    const prompt = buildUserPrompt(skippedAddress);
+    expect(prompt).toContain('No website address was provided');
+    expect(prompt).toContain('does NOT mean the business has no website');
+    expect(prompt).toContain(WEBSITE_NOT_PROVIDED_SENTENCE);
+    expect(prompt).not.toMatch(/the business does not currently have a website/i);
   });
 
-  it('treats having no website as a real customer-capture weakness when ranking', () => {
-    // Discovery is strong here, so only the missing website can tip the ranking to conversion.
-    const strongDiscovery = {
+  it('passes on the stated no-website answer only when the owner actually gave it', () => {
+    expect(buildUserPrompt(declaredNone)).toContain('does not currently have a website');
+  });
+
+  it('never claims the live website was inspected, even when an address was supplied', () => {
+    const prompt = buildUserPrompt(baseSubmission);
+    expect(prompt).toContain('https://example.com');
+    expect(prompt).toContain('was NOT visited, opened, inspected, or evaluated');
+    expect(ASSESSMENT_SYSTEM_PROMPT).toContain('THE WEBSITE WAS NEVER VISITED');
+  });
+
+  it('does not score a skipped website address as a confirmed customer leak', () => {
+    // Every provided answer is strong, so only the skipped address could tip the ranking.
+    const strongEverywhere = {
       ...baseSubmission,
-      searchVisibility: 'We show up consistently in Google and AI answers for the services and locations we target',
+      searchVisibility: 'We rarely show up when customers search or ask AI for businesses like ours',
       websiteConversion: 'Visitors have one clear action, and we can track what happens next',
       leadResponse: 'They receive a fast response and are tracked through the next step.',
     } as AssessmentSubmission;
-    expect(rankCustomerLeak(strongDiscovery)).toBe('conversion');
-    expect(rankCustomerLeak({ ...strongDiscovery, noWebsite: true, websiteUrl: undefined })).toBe('conversion');
+    const ranked = rankCustomerLeak(strongEverywhere);
+    // Skipping the address must not change the verdict at all.
+    expect(rankCustomerLeak({ ...strongEverywhere, noWebsite: true, websiteUrl: undefined })).toBe(ranked);
+    expect(ranked).toBe('discovery');
   });
 
-  it('gives advice suited to a business with no website', () => {
-    const noWebsite = {
-      ...baseSubmission,
-      websiteConversion: 'Visitors can contact us, but the next step could be clearer',
-      noWebsite: true,
-      websiteUrl: undefined,
-    } as AssessmentSubmission;
-    const html = buildFallbackResultHtml(noWebsite);
+  it('says plainly that the website was not included, and offers a next step', () => {
+    const html = buildFallbackResultHtml(skippedAddress);
     const text = toReaderText(html);
-    // Never describes a site they do not have, and never hands them a website task.
-    expect(text).toContain('no website yet to catch that interest');
-    expect(text).toContain('Give your business listing one obvious way to get in touch.');
-    expect(text).not.toMatch(/your website/i);
-    expect(text).not.toMatch(/homepage|contact form|web page/i);
-    // Still a complete, valid report.
-    expect(validateResultHtml(html, noWebsite).violations).toEqual([]);
-    expect(text).toMatch(/\bFirst,/);
-    expect(text).toMatch(/\bSecond,/);
-    expect(text).toMatch(/\bThird,/);
-    expect(text.trim().endsWith(buildWhyQuestion(noWebsite.businessName))).toBe(true);
+    expect(text).toContain(WEBSITE_NOT_PROVIDED_SENTENCE);
+    // Never asserts the business has no website, and never claims an evaluation happened.
+    expect(text).not.toMatch(/no website yet|do not have a website|does not have a website/i);
+    expect(text).not.toMatch(/we (?:looked at|reviewed|checked|evaluated|inspected) your (?:site|website)/i);
+    expect(validateResultHtml(html, skippedAddress).violations).toEqual([]);
+    expect(text.trim().endsWith(buildWhyQuestion(skippedAddress.businessName))).toBe(true);
   });
 
-  it('rewrites the second action when the owner has no website', () => {
-    const noWebsite = {
-      ...baseSubmission,
-      websiteConversion: 'We do not currently have a website',
-      noWebsite: true,
-      websiteUrl: undefined,
-    } as AssessmentSubmission;
-    const html = buildFallbackResultHtml(noWebsite);
+  it('still gives no-website advice when the owner said they have none', () => {
+    const html = buildFallbackResultHtml(declaredNone);
+    const text = toReaderText(html);
+    expect(text).toContain('no website yet to catch that interest');
     expect(html).toMatch(/sits at the top of your business listing/);
     expect(html).not.toMatch(/near the top of your website/);
+    // The not-provided sentence belongs only to the skipped state.
+    expect(text).not.toContain(WEBSITE_NOT_PROVIDED_SENTENCE);
+    expect(validateResultHtml(html, declaredNone).violations).toEqual([]);
   });
 
   it('teaches none of the paid Google + AI Presence method in the free actions', () => {
