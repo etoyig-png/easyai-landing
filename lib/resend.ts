@@ -151,13 +151,26 @@ export async function sendResultEmail(params: { to: string; firstName: string; b
  * do not control, and it is how open relays and spoofed mail happen. From is always an
  * authenticated Easy AI address, and every visitor value is HTML-escaped before rendering.
  */
-export async function sendContactMessage(submission: ContactSubmission) {
+export interface ContactMessageInput {
+  name: string;
+  /** Optional because a Gary visitor may give only a phone number. Used as Reply-To when present. */
+  email?: string;
+  phone?: string;
+  businessName?: string;
+  message: string;
+  /** Optional channel label for the subject line, so the inbox can tell request sources apart. */
+  channelLabel?: string;
+}
+
+export async function sendContactMessage(submission: ContactMessageInput | ContactSubmission) {
   const delivery = resolveDelivery(internalRecipient());
   if (!delivery.allowed) throw new Error(delivery.reason);
+  const channel = ('channelLabel' in submission && submission.channelLabel?.trim()) || 'Contact form';
+  const email = submission.email?.trim() || undefined;
 
   const rows: [string, string][] = [
     ['Name', submission.name],
-    ['Email', submission.email],
+    ...(email ? ([['Email', email]] as [string, string][]) : []),
     ...(submission.phone ? ([['Phone', submission.phone]] as [string, string][]) : []),
     ...(submission.businessName ? ([['Business', submission.businessName]] as [string, string][]) : []),
   ];
@@ -172,8 +185,9 @@ export async function sendContactMessage(submission: ContactSubmission) {
   const { error } = await getResend().emails.send({
     from: notificationFromAddress(),
     to: delivery.to,
-    replyTo: submission.email,
-    subject: `Contact form: ${submission.name}`,
+    // Reply-To is the visitor only when they gave an email. Never the sender, never invented.
+    ...(email ? { replyTo: email } : {}),
+    subject: `${channel}: ${submission.name}`,
     html: `
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;">
         <div style="background:#0b1d3a;padding:20px 24px;">
