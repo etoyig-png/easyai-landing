@@ -146,6 +146,36 @@ describe('contact request', () => {
     expect(send.mock.calls[0][0].to).toBe('hello@easyaiconsult.com');
   });
 
+  it('passes a server-supplied idempotency key to Resend as the second argument, and none when absent', async () => {
+    const { sendContactMessage } = await import('./resend');
+    await sendContactMessage(contact, { idempotencyKey: 'contact-notification:easy-ai:session-1' });
+    expect(send.mock.calls[0][1]).toEqual({ idempotencyKey: 'contact-notification:easy-ai:session-1' });
+    await sendContactMessage(contact);
+    expect(send.mock.calls[1][1]).toBeUndefined();
+  });
+
+  it('reuses the same key on a retry, so the provider sees one logical request', async () => {
+    const { sendContactMessage } = await import('./resend');
+    send.mockResolvedValueOnce({ data: null, error: { name: 'application_error', message: 'try later' } });
+    await expect(sendContactMessage(contact, { idempotencyKey: 'k-1' })).rejects.toThrow('try later');
+    await expect(sendContactMessage(contact, { idempotencyKey: 'k-1' })).resolves.toEqual({ accepted: 'sent' });
+    expect(send.mock.calls.map((c) => c[1]?.idempotencyKey)).toEqual(['k-1', 'k-1']);
+  });
+
+  it('treats invalid_idempotent_request as proof the original was accepted, without a second send', async () => {
+    const { sendContactMessage } = await import('./resend');
+    send.mockResolvedValueOnce({ data: null, error: { name: 'invalid_idempotent_request', message: 'key reused with different payload' } });
+    await expect(sendContactMessage({ ...contact, message: 'edited' }, { idempotencyKey: 'k-1' })).resolves.toEqual({ accepted: 'already-accepted' });
+  });
+
+  it('still throws on a concurrent idempotent request and on every other provider error', async () => {
+    const { sendContactMessage } = await import('./resend');
+    send.mockResolvedValueOnce({ data: null, error: { name: 'concurrent_idempotent_requests', message: 'in flight' } });
+    await expect(sendContactMessage(contact, { idempotencyKey: 'k-1' })).rejects.toThrow('in flight');
+    send.mockResolvedValueOnce({ data: null, error: { name: 'invalid_idempotent_request', message: 'no key given' } });
+    await expect(sendContactMessage(contact)).rejects.toThrow('no key given');
+  });
+
   it('honours CONTACT_NOTIFICATION_EMAIL as the one configurable destination', async () => {
     process.env.CONTACT_NOTIFICATION_EMAIL = 'partner-inbox@example.com';
     const { sendContactMessage } = await import('./resend');

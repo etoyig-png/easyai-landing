@@ -4,17 +4,24 @@ import { drainFunnelEventOutbox, funnelOutboxHealth } from '@/lib/gary/funnelEve
 import { SENDING_LEASE_MS } from '@/lib/gary/contactSubmission';
 
 export const runtime = 'nodejs';
+// Up to GET_DRAIN_LIMIT webhook calls at 8 s each must fit inside one invocation.
+export const maxDuration = 60;
 
 // Protected operations endpoint for the Command Center handoff.
-//   POST  retries due, undelivered outbox rows (a future Vercel Cron target; the opportunistic
-//         drain in lib/gary/funnelEvents.ts covers normal traffic).
-//   GET   durable health of the contact pipeline: what is waiting, what is exhausted, and
-//         which contacts never had their notification sent. Returns 503 when something needs a
-//         human, so any uptime checker can alert on it without a log platform.
-// Both require the bearer secret; neither exposes visitor details.
+//   POST  retries up to 25 due, undelivered outbox rows (manual or scripted).
+//   GET   the scheduled retry AND the health check: drains a few due rows first, then reports
+//         durable state (what is waiting, what is exhausted, which contacts never had their
+//         notification sent). Returns 503 when something needs a human. Vercel Cron only issues
+//         GET, which is why the retry lives here; vercel.json schedules it (see
+//         docs/gary-contact-pipeline.md for the plan-dependent frequency).
+// Callers: Vercel Cron (bearer = CRON_SECRET, added by Vercel automatically) or an operator /
+// uptime checker (bearer = GARY_FUNNEL_DRAIN_SECRET). Neither response exposes visitor details.
+const GET_DRAIN_LIMIT = 5;
+
 function authorized(request: NextRequest): boolean {
-  const secret = process.env.GARY_FUNNEL_DRAIN_SECRET;
-  return Boolean(secret && request.headers.get('authorization') === `Bearer ${secret}`);
+  const header = request.headers.get('authorization');
+  const accepted = [process.env.GARY_FUNNEL_DRAIN_SECRET, process.env.CRON_SECRET].filter((s): s is string => Boolean(s));
+  return accepted.some((secret) => header === `Bearer ${secret}`);
 }
 
 export async function POST(request: NextRequest) {
@@ -32,6 +39,8 @@ export async function GET(request: NextRequest) {
   if (!authorized(request)) {
     return NextResponse.json({ message: 'Unauthorized.' }, { status: 401 });
   }
+  // Retry first, so the numbers below describe what is still stuck after this attempt.
+  const drained = await drainFunnelEventOutbox({ limit: GET_DRAIN_LIMIT });
   const now = new Date();
   const [outbox, notificationFailed, sendingStale] = await Promise.all([
     funnelOutboxHealth(now),
@@ -47,7 +56,7 @@ export async function GET(request: NextRequest) {
   if (sendingStale > 0) problems.push(`${sendingStale} contact(s) stuck in sending`);
 
   return NextResponse.json(
-    { ok: problems.length === 0, checkedAt: now.toISOString(), outbox, contacts: { notificationFailed, sendingStale }, problems },
+    { ok: problems.length === 0, checkedAt: now.toISOString(), drained, outbox, contacts: { notificationFailed, sendingStale }, problems },
     { status: problems.length === 0 ? 200 : 503 }
   );
 }

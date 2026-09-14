@@ -172,13 +172,14 @@ export async function deliverFunnelEvent(idempotencyKey: string): Promise<Funnel
 }
 
 /**
- * Attempts delivery of due, undelivered rows. Real retry state (attempts/nextAttemptAt/lastError)
- * with exponential backoff — exercised two ways: opportunistically, best-effort, right after
- * enqueue and at the start of the next chat message request (this function, called inline); and
- * via app/api/gary/funnel-outbox/drain/route.ts for a future scheduled trigger. What this does
- * NOT include: an actual cron/queue schedule calling that route automatically — that's a
- * deployment decision, not built in this pass. Don't describe delivery as fully automated
- * end-to-end without that piece.
+ * Attempts delivery of due, undelivered rows, with real retry state (attempts/nextAttemptAt/
+ * lastError) and exponential backoff. WHO CALLS IT, honestly:
+ *   - enqueueFunnelEvent, right after it creates a NEW row (so any new Gary session or handoff
+ *     also retries up to 5 older rows) — traffic-triggered, not guaranteed;
+ *   - GET/POST app/api/gary/funnel-outbox/drain — GET is the Vercel Cron target declared in
+ *     vercel.json (daily on the Hobby plan) and the health check; POST is a manual retry.
+ * Nothing else. A quiet site with an undelivered row waits for the next cron run or the next
+ * visitor; docs/gary-contact-pipeline.md states the exact guarantee per plan.
  */
 export async function drainFunnelEventOutbox(options: { limit?: number } = {}): Promise<{ delivered: number; failed: number }> {
   if (!FUNNEL_WEBHOOK_URL || !FUNNEL_WEBHOOK_SECRET) return { delivered: 0, failed: 0 };

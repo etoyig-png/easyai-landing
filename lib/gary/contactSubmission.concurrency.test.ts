@@ -1,4 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+
+// The Prisma client reads DATABASE_URL when lib/prisma.ts is first imported, which happens
+// with the static imports below, so the disposable database must be selected before them.
+vi.hoisted(() => {
+  const url = process.env.TEST_DATABASE_URL;
+  if (url) {
+    process.env.DATABASE_URL = url;
+    process.env.DIRECT_URL = url;
+  }
+});
 import {
   decideClaim,
   submitAssistantContact,
@@ -59,8 +69,9 @@ function makeModel() {
   const withLock = makeLock();
   const deps: ContactSubmissionDeps = {
     admit: vi.fn(async () => { await tick(); return { kind: 'accepted' } as const; }),
-    send: vi.fn(async () => { await tick(); }),
+    send: vi.fn(async () => { await tick(); return { accepted: 'sent' } as const; }),
     deliver: vi.fn(async () => { await tick(); return 'delivered' as const; }),
+    background: (task) => { void task(); },
     now: () => new Date(),
     claim: (sessionId, record, event, now) =>
       withLock(sessionId, async (): Promise<ClaimResult> => {
@@ -143,16 +154,15 @@ describe.skipIf(!TEST_DATABASE_URL)('two simultaneous confirmations against a re
   const sessionId = `race-${Date.now()}`;
 
   beforeAll(async () => {
-    process.env.DATABASE_URL = TEST_DATABASE_URL;
-    process.env.DIRECT_URL = TEST_DATABASE_URL;
-    const { PrismaClient } = await import('@prisma/client');
-    prisma = new PrismaClient();
+    const { prisma: shared } = await import('@/lib/prisma');
+    prisma = shared;
     const { productionContactSubmissionDeps } = await import('./contactSubmission');
     deps = {
       ...productionContactSubmissionDeps,
       admit: vi.fn(async () => ({ kind: 'accepted' } as const)),
-      send: vi.fn(async () => { await new Promise((r) => setTimeout(r, 50)); }),
+      send: vi.fn(async () => { await new Promise((r) => setTimeout(r, 50)); return { accepted: 'sent' } as const; }),
       deliver: vi.fn(async () => 'not-configured' as const),
+      background: (task) => { void task(); },
     };
     await prisma.publicChatSession.create({ data: { id: sessionId, anonymousId: `anon-${sessionId}` } });
   });
@@ -163,18 +173,59 @@ describe.skipIf(!TEST_DATABASE_URL)('two simultaneous confirmations against a re
     await prisma.publicChatSession.update({ where: { id: sessionId }, data: { identifiedContactId: null } });
     await prisma.publicContact.deleteMany({ where: { sourceSessionId: sessionId } });
     await prisma.publicChatSession.delete({ where: { id: sessionId } });
-    await prisma.$disconnect();
   });
 
   it('the real claim transaction admits one sender; the database holds one contact and one event', async () => {
     const p = { ...params, sessionId };
-    const outcomes = await Promise.all(Array.from({ length: 5 }, () => submitAssistantContact(p, deps)));
-    expect(outcomes.filter((o) => o.kind === 'sent')).toHaveLength(1);
+    const outcomes = await Promise.all(Array.from({ length: 6 }, () => submitAssistantContact(p, deps)));
+    const kinds = outcomes.map((o) => o.kind);
+    expect(kinds.filter((k) => k === 'sent')).toHaveLength(1);
+    expect(kinds.filter((k) => k === 'in-progress' || k === 'already-processed')).toHaveLength(5);
     expect(deps.send).toHaveBeenCalledTimes(1);
     expect(await prisma.publicContact.count({ where: { sourceSessionId: sessionId } })).toBe(1);
     expect(await prisma.funnelEventOutbox.count({ where: { idempotencyKey: `contact.captured:${sessionId}:assistant-contact-flow` } })).toBe(1);
     const contact = await prisma.publicContact.findUniqueOrThrow({ where: { sourceSessionId: sessionId } });
     expect(contact.notificationStatus).toBe('sent');
     expect(contact.siteKey).toBe('easy-ai');
+    expect(contact.notificationAttempts).toBe(1);
+  });
+
+  it('a later confirmation is already-processed and sends nothing', async () => {
+    await expect(submitAssistantContact({ ...params, sessionId }, deps)).resolves.toMatchObject({ kind: 'already-processed' });
+    expect(deps.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('the unique index refuses a second contact for the session even outside the pipeline', async () => {
+    await expect(
+      prisma.publicContact.create({ data: { firstName: 'Dup', sourceSessionId: sessionId } })
+    ).rejects.toMatchObject({ code: 'P2002' });
+  });
+
+  it('a failed notification then a retry reuse the same contact, the same event, and the same provider key', async () => {
+    const retrySession = `${sessionId}-retry`;
+    await prisma.publicChatSession.create({ data: { id: retrySession, anonymousId: `anon-${retrySession}` } });
+    const p = { ...params, sessionId: retrySession };
+    (deps.send as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('provider down'));
+    await expect(submitAssistantContact(p, deps)).resolves.toMatchObject({ kind: 'saved-not-notified', handoff: 'created' });
+    const afterFailure = await prisma.publicContact.findUniqueOrThrow({ where: { sourceSessionId: retrySession } });
+    expect(afterFailure.notificationStatus).toBe('failed');
+    expect(afterFailure.notificationError).toContain('provider down');
+
+    await expect(submitAssistantContact({ ...p, send: { ...p.send, reason: 'Call me, corrected' } }, deps)).resolves.toMatchObject({ kind: 'sent', handoff: 'existing' });
+    const afterRetry = await prisma.publicContact.findUniqueOrThrow({ where: { sourceSessionId: retrySession } });
+    expect(afterRetry.id).toBe(afterFailure.id);
+    expect(afterRetry.notificationStatus).toBe('sent');
+    expect(afterRetry.notificationAttempts).toBe(2);
+    expect(afterRetry.reason).toBe('Call me, corrected');
+    expect(await prisma.publicContact.count({ where: { sourceSessionId: retrySession } })).toBe(1);
+    expect(await prisma.funnelEventOutbox.count({ where: { idempotencyKey: `contact.captured:${retrySession}:assistant-contact-flow` } })).toBe(1);
+    const keys = (deps.send as ReturnType<typeof vi.fn>).mock.calls.slice(-2).map((c) => c[1].idempotencyKey);
+    expect(keys).toEqual([`contact-notification:easy-ai:${retrySession}`, `contact-notification:easy-ai:${retrySession}`]);
+
+    await prisma.publicChatMessage.deleteMany({ where: { sessionId: retrySession } });
+    await prisma.funnelEventOutbox.deleteMany({ where: { idempotencyKey: `contact.captured:${retrySession}:assistant-contact-flow` } });
+    await prisma.publicChatSession.update({ where: { id: retrySession }, data: { identifiedContactId: null } });
+    await prisma.publicContact.deleteMany({ where: { sourceSessionId: retrySession } });
+    await prisma.publicChatSession.delete({ where: { id: retrySession } });
   });
 });

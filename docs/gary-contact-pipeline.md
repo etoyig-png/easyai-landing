@@ -5,7 +5,7 @@ Intelligence Interaction Manager) is Easy AI's primary contact interaction layer
 covers what happens after a visitor confirms a contact request, where it can fail, how Easy AI
 finds out, and how to recover. Update it with any material change to the files it names.
 
-Last verified against: branch `fix/gary-primary-contact-pipeline` (PR #15), 2026-09-14.
+Last verified against: branch `fix/gary-primary-contact-pipeline` (PR #15), 2026-09-14 (final correction pass).
 
 ## 1. As-built flow and status
 
@@ -14,12 +14,13 @@ Last verified against: branch `fix/gary-primary-contact-pipeline` (PR #15), 2026
 | Contact intent → Name → Contact → Reason → Confirm | `lib/gary/contactFlow.ts`, `components/gary/GaryPanel.tsx`, `app/api/gary/message/route.ts` | READY | Deterministic script, no model. Server holds no flow state; the panel echoes the draft. Intent only enters the flow when `SiteConfig.actions.contactFlow` is on. |
 | Rate limit | `lib/contactRateLimit.ts` → `ContactRateLimitEvent` | BROKEN IN PRODUCTION | Code is sound (hashed identity, Serializable + advisory lock, fails closed). Migration `20260909000000_contact_rate_limit` is **not applied** in production, so every send currently fails closed. |
 | Claim: `PublicContact` + session link + outbox row | `lib/gary/contactSubmission.ts` (`productionContactSubmissionDeps.claim`) | READY (code) / PENDING (schema) | One Serializable transaction under `pg_advisory_xact_lock(hashtext('contact-flow:<sessionId>'))`. Requires migrations `20260914000000_public_contact_reason_channel` and `20260914120000_public_contact_session_idempotency`. |
-| Email notification | `lib/resend.ts` `sendContactMessage` → `contactRecipient()` | READY | To `hello@easyaiconsult.com` (or `CONTACT_NOTIFICATION_EMAIL`). Reply-To only when the visitor gave an email. Non-production redirects to `EMAIL_TEST_RECIPIENT` or refuses. |
+| Email notification | `lib/resend.ts` `sendContactMessage` → `contactRecipient()` | READY | To `hello@easyaiconsult.com` (or `CONTACT_NOTIFICATION_EMAIL`). Reply-To only when the visitor gave an email. Non-production redirects to `EMAIL_TEST_RECIPIENT` or refuses. Provider idempotency key `contact-notification:<siteKey>:<sessionId>` (ADR-002). |
 | Settle notification state | `contactSubmission.ts` `settle` | READY | `notificationStatus` → `sent` (+ transcript marker) or `failed` (+ error). |
 | `FunnelEventOutbox` row | `lib/gary/funnelEvents.ts` `recordFunnelEvent` (inside the claim transaction) | READY | Unique `idempotencyKey`; created before any email; a concurrent insert is reported `existing`. |
-| Webhook delivery | `funnelEvents.ts` `deliverFunnelEvent` / `drainFunnelEventOutbox` | BROKEN IN PRODUCTION | Envelope now matches the receiver. `GARY_FUNNEL_WEBHOOK_URL/SECRET` are **not set** in production, so every row waits (`not-configured`). 8 attempts, exponential backoff (30 s → 1 h cap), 8 s timeout per call. |
+| Webhook delivery | `funnelEvents.ts` `deliverFunnelEvent` (after the response via `waitUntil`, ADR-003) / `drainFunnelEventOutbox` | BROKEN IN PRODUCTION | Envelope matches the receiver. `GARY_FUNNEL_WEBHOOK_URL/SECRET` are **not set** in production, so every row waits (`not-configured`). 8 attempts, exponential backoff (30 s → 1 h cap), 8 s timeout per call. |
+| Scheduled retry of undelivered rows | `vercel.json` cron → `GET /api/gary/funnel-outbox/drain` | PREPARED, NOT ACTIVE | Declared in the repository; takes effect only when PR #15 deploys **and** `CRON_SECRET` is set in production. Hobby plan: once per day. Until then retries are traffic-triggered only (§7). |
 | Command Center event storage | `mr-life-command-center` `/api/easy-ai/public-funnel/events` → `easy_ai_public_funnel_events` | READY (receiver) | Bearer token, envelope-validated, unique on `event_id`. |
-| Lead / Prospect creation | `mr-life-command-center` | **MISSING** | Nothing consumes `contact.captured` into a Client Record. Events are listed for founder visibility only. This is the break after event storage. |
+| Lead / Prospect creation | `mr-life-command-center` | **MISSING** | Nothing consumes `contact.captured` into a Client Record. Events are listed for founder visibility only. This is the break after event storage; the website→Command Center lead flow is **not operational** until it exists (§10). |
 | Human follow-up | Command Center Client Records | MANUAL | Founder reads the inbox / event list and works the record. |
 
 ## 2. Boundaries
@@ -39,6 +40,7 @@ Last verified against: branch `fix/gary-primary-contact-pipeline` (PR #15), 2026
 | `GARY_*` secrets | set | **not set** → Gary API returns 500 on every preview | set locally to placeholders |
 | Email | real, to `contactRecipient()` | redirected to `EMAIL_TEST_RECIPIENT` or refused (never a real inbox) | refused unless `EMAIL_TEST_RECIPIENT` |
 | Funnel webhook | **not configured** | not configured | not configured |
+| Scheduled drain (`CRON_SECRET` + `vercel.json`) | **not configured** | n/a (cron runs on production only) | n/a |
 | Migrations | applied manually with `prisma migrate deploy` (Vercel build is `next build` only) | shares prod schema | `prisma migrate deploy` against the disposable database |
 
 Consequence: a preview deployment cannot exercise Gary's server path, and if it could, it would write to the production database. Verify the server path with unit tests plus the gated integration test against a disposable database; verify the client on a preview with a stubbed `/api/gary/message`.
@@ -73,6 +75,22 @@ Consequence: a preview deployment cannot exercise Gary's server path, and if it 
 
 **Rejected.** In-memory locks (Vercel Functions share no memory). Relying on the IP limiter for idempotency (limits a connection, not a session). Email before storage (strands the opportunity). A new queue or email-retry service (nothing in the repo needs one yet; the outbox already carries retry state).
 
+### ADR-002: provider-side idempotency for the notification email
+
+**Context.** Resend can accept the email and our settlement can still fail (function killed, database blip). After the 60 s lease expires the visitor's retry would legitimately re-send. Database state alone cannot close that window because the provider, not the database, knows whether the email went out.
+
+**Decision.** `sendContactMessage` sends Resend's `Idempotency-Key` header (SDK 4.8.0, second argument of `emails.send`). The key is generated on the server only: `contact-notification:<siteKey>:<sessionId>` — one per logical contact request, identical on every retry, never read from the browser. Resend returns the original result for a repeat with the same key and payload; the same key with a **different** payload (the visitor edited before retrying) returns `invalid_idempotent_request` (409), which is proof the original was accepted and is reported as `already-accepted`, not thrown, so the contact settles to `sent`. `concurrent_idempotent_requests` (409) and every other error still throw and stay retryable.
+
+**Limits.** Resend keeps keys for 24 hours after an *accepted* request; after that only the database state (`notificationStatus='sent'` → `already-processed`) prevents a second send, and that state is what a settlement crash may have missed. So the residual window is: settlement failed **and** the lease expired **and** the retry came more than 24 hours later. A request Resend never accepted stores no key, so a genuine provider failure is retryable with the same key. Assessment and result emails are unchanged (they have their own single-write paths).
+
+### ADR-003: deliver the handoff after the response, not on the visitor's clock
+
+**Context.** Awaiting the webhook inside the confirmation request was measured on 2026-09-14 (local receiver stub, mocked database): success **+28 ms**, slow receiver **+3,012 ms**, timeout **+8,010 ms**, not configured **+0 ms**. Against a confirmation path that otherwise takes roughly 0.5–1 s (limiter transaction, claim transaction, Resend call, settle), a realistic Command Center round trip of 150–400 ms is a >5 % regression, and a slow or unreachable receiver holds Gary's reply for seconds — a direct hit to time-to-task.
+
+**Decision.** The delivery attempt runs through `waitUntil` from `@vercel/functions`, the pattern `app/api/assessment/route.ts` already uses to finish work after responding. The outbox row is still committed inside the claim transaction, so durability does not depend on this; the visitor's outcome reports `delivery: 'scheduled'`, and the attempt's result lands on the outbox row. Baseline restored to +0 ms on the confirmation path. Locally and in tests `waitUntil` is a no-op that still runs the promise.
+
+**Not done.** No new queue; no change to what the visitor is told; nothing about durability moved out of the request.
+
 ## 6. CRR outbox decision
 
 - **Search evidence.** `grep -rn "crrOutboxEvent\|CrrOutboxEvent" app lib components` (non-test): one writer, `app/api/gary/handoff/route.ts:93` (best-effort, after the LLM summary). Zero readers. No drain, no route, no cron, no Command Center endpoint reads it. No retention rule; rows accumulate with `status='pending'` forever.
@@ -92,9 +110,11 @@ Durable indicators (queryable, not log-only):
 | Webhook not configured | `GET …/drain` → `outbox.configured=false` | — |
 | Nothing durable stored | none by design — the visitor is told to retry; log line `[contact-pipeline] stage=storage` | `sessionId` in the log |
 
-Health endpoint: `GET /api/gary/funnel-outbox/drain` with `Authorization: Bearer <GARY_FUNNEL_DRAIN_SECRET>` → `200 {ok:true}` or `503 {ok:false, problems:[…]}`. Counts only; no visitor data.
+Health endpoint: `GET /api/gary/funnel-outbox/drain` with `Authorization: Bearer <GARY_FUNNEL_DRAIN_SECRET>` (or the Vercel Cron bearer `CRON_SECRET`) → drains up to 5 due rows, then `200 {ok:true}` or `503 {ok:false, problems:[…]}`. Counts only; no visitor data.
 
-Alerting (to be configured — not built here, needs an env/uptime-checker decision): point any uptime checker at the health endpoint every 15 minutes with the bearer header; alert on non-200.
+**Retry reality (state this accurately).** Undelivered handoffs are retried by exactly three things: (1) any `enqueueFunnelEvent` that creates a *new* row (a new Gary session, an assessment handoff) also drains up to 5 older due rows — traffic-triggered, no guarantee on a quiet site; (2) the Vercel Cron declared in `vercel.json` calling `GET …/drain` — **not active until PR #15 deploys and `CRON_SECRET` is set in production**, and on the Hobby plan it runs **once per day** (hourly needs Pro); (3) a human calling `POST …/drain`. There is no always-on worker. The outbox's 30 s→1 h backoff describes *eligibility*, not when an attempt actually happens.
+
+**Alerting reality.** Nothing calls the health endpoint on a schedule for the purpose of alerting a person. Until an uptime checker is pointed at it with the bearer header (every 15 minutes; alert on non-200), the endpoint is visibility on demand, not alerting. The daily cron will *run* the check but nobody is notified of a 503 unless Vercel's cron-failure notifications are enabled for the project (they email the project owner on failed cron invocations; a 503 counts as failed).
 
 | Condition | Severity | Owner | Expected response |
 |---|---|---|---|
@@ -133,7 +153,18 @@ update "FunnelEventOutbox" set attempts = 0, "nextAttemptAt" = now() where "idem
 **Deployment compatibility.** Code on `main` never writes `PublicContact`, so applying the migrations before deploy is safe. Deploying PR #15 before the migrations would make every contact send fail closed (`storage`) — honest to the visitor, but a dead contact path. Order: migrate → merge → Vercel deploys `main`.
 
 **Environment variables by scope.**
-- Production, required for delivery to the Command Center: `GARY_FUNNEL_WEBHOOK_URL`, `GARY_FUNNEL_WEBHOOK_SECRET` (= Command Center `EASY_AI_PUBLIC_FUNNEL_WEBHOOK_TOKEN`). Required for operations: `GARY_FUNNEL_DRAIN_SECRET`. Optional: `CONTACT_NOTIFICATION_EMAIL` (defaults to `hello@`), `SITE_*`, `ASSISTANT_*`. Review the hidden values of `RESULT_EMAIL_REPLY_TO` and `ASSESSMENT_NOTIFICATION_EMAIL` (set 2026-07, before PR #12).
+
+| Variable | Scope | Purpose | Without it |
+|---|---|---|---|
+| `GARY_FUNNEL_WEBHOOK_URL` | Production | Command Center `/api/easy-ai/public-funnel/events` | every handoff waits as `not-configured`; health reports it |
+| `GARY_FUNNEL_WEBHOOK_SECRET` | Production | bearer, = Command Center `EASY_AI_PUBLIC_FUNNEL_WEBHOOK_TOKEN` | same |
+| `GARY_FUNNEL_DRAIN_SECRET` | Production | bearer for operator / uptime-checker calls to `/api/gary/funnel-outbox/drain` | no manual drain or health check |
+| `CRON_SECRET` | Production | Vercel adds it as the bearer on the scheduled `GET …/drain` | the cron runs and is rejected 401: no scheduled retry |
+| `CONTACT_NOTIFICATION_EMAIL` | optional | overrides `hello@easyaiconsult.com` | default applies |
+| `SITE_*`, `ASSISTANT_*` | optional | white-label identity | Easy AI defaults |
+| `RESULT_EMAIL_REPLY_TO`, `ASSESSMENT_NOTIFICATION_EMAIL` | Production (hidden, set 2026-07) | review: they override the code defaults | — |
+
+**Drain / retry contract.** Who calls: Vercel Cron (`vercel.json`, `0 11 * * *` UTC — Hobby allows one run per day and may shift it within the hour; change to hourly only on Pro), plus traffic-triggered drains, plus manual `POST`. Auth: bearer `CRON_SECRET` or `GARY_FUNNEL_DRAIN_SECRET`. Timeout: 8 s per webhook call, at most 5 calls per GET (route `maxDuration` 60 s), 25 per POST. Exhaustion: after 8 failed attempts the row stays undelivered with `lastError "… (max attempts reached)"`, leaves the due set, and is counted as `exhausted` by the health check; re-arm with the SQL in §7. Alert recipient: Toy, via whichever checker is pointed at the health endpoint (none yet) or Vercel's cron-failure email. Manual recovery: §7.
 - Preview: `EMAIL_TEST_RECIPIENT` (a controlled inbox) if previews should ever send; the `GARY_*` secrets if previews should ever run Gary. Do **not** point previews at a separate database without also separating `DATABASE_URL`.
 
 **Rollback.** Code: revert the merge commit; `main`'s contact page returns (its form also depends on migration 1). Schema: the migrations are additive; rolling back code does not require dropping them. To drop anyway: `DROP INDEX "PublicContact_sourceSessionId_key"; DROP INDEX "PublicContact_notificationStatus_updatedAt_idx"; ALTER TABLE "PublicContact" DROP COLUMN "notificationStatus", DROP COLUMN "notificationAttempts", DROP COLUMN "notifiedAt", DROP COLUMN "notificationError";` and delete the row from `_prisma_migrations`.
@@ -148,7 +179,7 @@ update "FunnelEventOutbox" set attempts = 0, "nextAttemptAt" = now() where "idem
 2. On the production site, open Gary via Contact, complete the four steps with Toy's own details and reason `Smoke test <date>`, press "Yes, send it" → Gary reports sent.
 3. Database: exactly one `PublicContact` for that session with `notificationStatus='sent'`, `siteKey='easy-ai'`, `channel='assistant-contact-flow'`; one `FunnelEventOutbox` row keyed `contact.captured:<session>:assistant-contact-flow`.
 4. External: one email in `hello@easyaiconsult.com` with subject `Gary contact request: <name>`.
-5. Duplicate action: press "Yes, send it" again (or replay the request) → "already reached the Easy AI team"; still one row, one email.
+5. Duplicate action: press "Yes, send it" again (or replay the request) → "already reached the Easy AI team"; still one row, one email. Resend's dashboard shows one email with `Idempotency-Key` `contact-notification:easy-ai:<session>`.
 6. Monitoring: health endpoint still `ok:true`; if the webhook is configured, the outbox row shows `deliveredAt` and the Command Center event list shows the event.
 
 ## 9. Active risks
@@ -162,4 +193,18 @@ update "FunnelEventOutbox" set attempts = 0, "nextAttemptAt" = now() where "idem
 | Other `void enqueueFunnelEvent(...)` calls (session started, rollup, assessment started) may not complete in a serverless request | OPEN, analytics only, not lead-critical | fold into a later pass; same `enqueueFunnelEvent` contract now returns a result |
 | `CrrOutboxEvent` still written by the handoff route with no reader | OPEN | separate removal decision |
 | Vercel Hobby log retention ~1 h | ACCEPTED | durable indicators + health endpoint |
-| No alert wired to the health endpoint | OPEN | uptime checker decision |
+| No alert wired to the health endpoint | OPEN — visibility on demand only | uptime checker decision (Toy) |
+| Scheduled retry not active | OPEN, release-relevant | needs PR #15 deployed + `CRON_SECRET`; Hobby = daily |
+| Resend key expiry (24 h) leaves a residual duplicate window after a settlement crash | ACCEPTED, narrow | ADR-002 |
+| Disposable-database concurrency test runs only locally (`TEST_DATABASE_URL`), not in CI | ACCEPTED | run before each release; result recorded in PR #15 |
+
+## 10. Two `contact.captured` producers — unresolved Command Center contract
+
+Two different producers emit `contact.captured` for the same Gary session, each with its own `eventId`:
+
+| Producer | Key | Payload | When |
+|---|---|---|---|
+| Assessment handoff (`app/api/gary/handoff/route.ts`, pre-existing, unchanged) | `contact.captured:<sessionId>` | whatever contact was known + an LLM conversation `summary`; contact fields may be null | first handoff into the assessment |
+| Gary confirmed contact flow (`lib/gary/contactSubmission.ts`) | `contact.captured:<sessionId>:assistant-contact-flow` | name, normalised email/phone, `summary` = the visitor's reason, `siteKey`, `channel`, `contactId` | "Yes, send it" |
+
+Both are accepted by the receiver (unique on `event_id`), so the Command Center can hold two `contact.captured` rows per session. **Contract requirement for the future consumer (not built; belongs in `mr-life-command-center`):** update **one** Lead/Prospect per `sessionId` / `funnelCorrelationId` — create on first sight, enrich on later events, never create a second person or lead for the same session; treat `channel = assistant-contact-flow` as the authoritative contact details when present. Until that consumer exists, the website→Command Center lead flow is **not operational**: events land in `easy_ai_public_funnel_events` for founder visibility only.

@@ -1,3 +1,4 @@
+import { waitUntil } from '@vercel/functions';
 import { prisma } from '@/lib/prisma';
 import { admitContactMessage } from '@/lib/contactRateLimit';
 import { sendContactMessage } from '@/lib/resend';
@@ -32,9 +33,14 @@ import type { SiteConfig } from '@/lib/siteConfig';
  *                   'failed' (+ error, retryable by the visitor). Either way the durable
  *                   record and the handoff already exist.
  *
- *   5. DELIVER      One awaited, time-bounded delivery attempt of the outbox row. A failure
- *                   here is scheduled for retry by the existing outbox; it never changes what
- *                   the visitor is told about their message.
+ *   5. DELIVER      One time-bounded delivery attempt of the outbox row, run AFTER the
+ *                   response through waitUntil (the pattern app/api/assessment/route.ts already
+ *                   uses), so the visitor is not held for the Command Center's round trip or
+ *                   an 8 s timeout. Measured 2026-09-14: awaiting it added +28 ms (local
+ *                   receiver), +3 s (slow receiver), +8 s (timeout) to the confirmation. The
+ *                   outbox row is already committed, so this is delivery, not durability; a
+ *                   failure is scheduled for retry by the outbox and never changes what the
+ *                   visitor is told.
  *
  * Ownership (siteKey, channel, brand, destination) comes from SiteConfig, resolved on the
  * server. Nothing from the request body can choose which site a contact belongs to.
@@ -67,7 +73,8 @@ export type ContactSubmissionOutcome =
   /** Nothing durable exists: limiter error, or the claim transaction (contact + handoff) rolled back. */
   | { kind: 'failed'; stage: 'rate-limit' | 'storage' };
 
-export type DeliveryState = FunnelDeliveryResult | 'delivered-earlier' | 'not-due' | 'error';
+/** 'scheduled' means the attempt runs after the response; its result lands in the outbox row. */
+export type DeliveryState = 'scheduled' | FunnelDeliveryResult | 'delivered-earlier' | 'not-due' | 'error';
 
 export interface ContactRecordData {
   firstName: string;
@@ -105,7 +112,17 @@ export interface ContactSubmissionDeps {
   /** Records the notification result on the contact (and the transcript marker on success). */
   settle(contactId: string, sessionId: string, result: { status: 'sent' } | { status: 'failed'; error: string }, now: Date): Promise<void>;
   deliver: typeof deliverFunnelEvent;
+  /**
+   * Runs work after the response is sent without letting the invocation end first
+   * (Vercel's waitUntil in production). The task must never throw into the caller.
+   */
+  background(task: () => Promise<unknown>): void;
   now: () => Date;
+}
+
+/** One provider idempotency key per logical contact request; derived on the server only. */
+export function notificationIdempotencyKey(siteKey: string, sessionId: string): string {
+  return `contact-notification:${siteKey}:${sessionId}`;
 }
 
 /** Digits and a leading plus only, the same shape the handoff path stores. */
@@ -137,6 +154,7 @@ export const productionContactSubmissionDeps: ContactSubmissionDeps = {
   admit: admitContactMessage,
   send: sendContactMessage,
   deliver: deliverFunnelEvent,
+  background: (task) => waitUntil(task()),
   now: () => new Date(),
 
   claim(sessionId, record, event, now) {
@@ -248,16 +266,22 @@ export async function submitAssistantContact(
   const { contactId, handoff } = claimed;
 
   // 3. Notify. Reply-To is the visitor only when they gave an email (sendContactMessage).
+  //    The provider idempotency key is server-generated from the logical contact (site +
+  //    session) and is the same on every retry, so the crash window between "provider
+  //    accepted" and "state settled" cannot produce a second email (see lib/resend.ts).
   let notified = true;
   try {
-    await deps.send({
-      name: send.name,
-      email: send.email,
-      phone: send.phone,
-      message: send.reason,
-      channelLabel: config.contact.channelLabel,
-      brandName: config.brand.name,
-    });
+    await deps.send(
+      {
+        name: send.name,
+        email: send.email,
+        phone: send.phone,
+        message: send.reason,
+        channelLabel: config.contact.channelLabel,
+        brandName: config.brand.name,
+      },
+      { idempotencyKey: notificationIdempotencyKey(config.siteKey, sessionId) }
+    );
   } catch (error) {
     notified = false;
     logFailure('notification', sessionId, error);
@@ -278,14 +302,16 @@ export async function submitAssistantContact(
     }
   }
 
-  // 5. One awaited, bounded delivery attempt. Retry state lives in the outbox row.
-  let delivery: DeliveryState;
-  try {
-    delivery = await deps.deliver(event.idempotencyKey);
-  } catch (error) {
-    delivery = 'error';
-    logFailure('webhook', sessionId, error);
-  }
+  // 5. One bounded delivery attempt after the response. The row is durable already; retry
+  //    state lives on it, and the health endpoint reports anything left undelivered.
+  const delivery: DeliveryState = 'scheduled';
+  deps.background(async () => {
+    try {
+      await deps.deliver(event.idempotencyKey);
+    } catch (error) {
+      logFailure('webhook', sessionId, error);
+    }
+  });
 
   return notified
     ? { kind: 'sent', contactId, handoff, delivery }

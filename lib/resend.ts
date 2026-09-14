@@ -166,7 +166,30 @@ export interface ContactMessageInput {
   brandName?: string;
 }
 
-export async function sendContactMessage(submission: ContactMessageInput) {
+export interface ContactMessageSendOptions {
+  /**
+   * Server-generated key identifying the logical contact request (one per assistant session).
+   * Sent to Resend as the Idempotency-Key header so a retry after an uncertain response
+   * (provider accepted, our settlement failed) cannot produce a second email. Never taken
+   * from the browser.
+   */
+  idempotencyKey?: string;
+}
+
+export type ContactMessageSendResult = { accepted: 'sent' } | { accepted: 'already-accepted' };
+
+/**
+ * Provider idempotency, and its limits. Resend stores an idempotency key for 24 hours after
+ * a request it ACCEPTED. A repeat with the same key and payload returns the original result;
+ * the same key with a DIFFERENT payload returns `invalid_idempotent_request` (409), which is
+ * therefore proof the original email went out and is reported here as 'already-accepted'
+ * rather than thrown. A request Resend never accepted (network failure, 5xx, validation)
+ * stores nothing, so the same key stays usable for the retry. Two in-flight requests with one
+ * key return `concurrent_idempotent_requests` (409); that is thrown so the caller retries
+ * later. After 24 hours the key expires and the database-side notification state is the only
+ * guard against a second send.
+ */
+export async function sendContactMessage(submission: ContactMessageInput, options: ContactMessageSendOptions = {}): Promise<ContactMessageSendResult> {
   const delivery = resolveDelivery(contactRecipient());
   if (!delivery.allowed) throw new Error(delivery.reason);
   const channel = submission.channelLabel?.trim() || 'Contact request';
@@ -206,6 +229,10 @@ export async function sendContactMessage(submission: ContactMessageInput) {
         </div>
       </div>
     `,
-  });
-  if (error) throw new Error(`Resend contact message failed: ${error.message}`);
+  }, options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined);
+  if (error) {
+    if (options.idempotencyKey && error.name === 'invalid_idempotent_request') return { accepted: 'already-accepted' };
+    throw new Error(`Resend contact message failed: ${error.message}`);
+  }
+  return { accepted: 'sent' };
 }

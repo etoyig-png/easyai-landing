@@ -53,4 +53,8 @@ session-idempotency and outbox-before-email decision). Open items that need Toy:
 - `GARY_FUNNEL_WEBHOOK_URL` / `GARY_FUNNEL_WEBHOOK_SECRET` unset in production: no handoff reaches
   the Command Center.
 - Wire an uptime checker to `GET /api/gary/funnel-outbox/drain` (bearer) so an unsent notification
-  or an exhausted handoff pages a human.
+  or an exhausted handoff pages a human. Until then the health endpoint is visibility on demand.
+- Set `CRON_SECRET` in production so the daily Vercel Cron declared in `vercel.json` can retry
+  undelivered handoffs; without it there is no scheduled retry at all.
+- Command Center: build the `contact.captured` consumer (one Lead/Prospect per `sessionId`, two
+  producers). The website-to-Command-Center lead flow is not operational until it exists.
