@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import TalkToGaryButton from '@/components/TalkToGaryButton';
+import { getSiteConfig } from '@/lib/siteConfig';
 
 export const metadata: Metadata = { title: 'Contact' };
 
@@ -11,6 +12,8 @@ export const metadata: Metadata = { title: 'Contact' };
  * lib/gary/contactFlow.ts and delivers through the same route and inbox as everything else.
  */
 export default function ContactPage() {
+  const site = getSiteConfig();
+  const contactEmail = site.contact.notificationEmail;
   return (
     <>
       <section className="bg-navy-900 text-white py-20 border-b border-navy-800">
@@ -31,13 +34,19 @@ export default function ContactPage() {
             <p className="font-sans text-xs text-silver-dark mt-4">We respond within one business day.</p>
           </div>
 
-          {/* Always-present alternate path, so the page is never a dead end even if the chat
-              widget fails to load at all. */}
-          <div className="mt-14 max-w-2xl border border-navy-800 rounded-xl p-5">
+          {/* Always-present alternate paths, so the page is never a dead end even if the chat
+              widget fails to load at all. The address is the configured contact destination,
+              rendered on the server; the client never learns any email configuration. */}
+          <div className="mt-14 max-w-2xl border border-navy-800 rounded-xl p-5 space-y-3">
             <p className="font-sans text-sm text-silver-light">
-              Prefer not to chat? The{' '}
+              Prefer not to chat? Email{' '}
+              <a href={`mailto:${contactEmail}`} className="underline text-white font-medium">{contactEmail}</a>{' '}
+              and a person will reply.
+            </p>
+            <p className="font-sans text-sm text-silver-light">
+              Or take the{' '}
               <Link href="/assessment" className="underline text-white font-medium">free assessment</Link>{' '}
-              reaches the same place and tells us more about your business before we talk.
+              first. It reaches the same place and tells us more about your business before we talk.
             </p>
           </div>
         </div>

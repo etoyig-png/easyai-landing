@@ -50,6 +50,7 @@ beforeEach(() => {
   delete process.env.RESULT_EMAIL_REPLY_TO;
   delete process.env.RESULT_EMAIL_FROM;
   delete process.env.NOTIFICATION_EMAIL_FROM;
+  delete process.env.CONTACT_NOTIFICATION_EMAIL;
 });
 
 afterEach(() => {
@@ -63,10 +64,10 @@ describe('customer result email', () => {
     expect(send.mock.calls[0][0].to).toBe('customer@example.com');
   });
 
-  it('replies to the one Easy AI business inbox', async () => {
+  it('replies to the primary contact address, hello@', async () => {
     const { sendResultEmail } = await import('./resend');
     await sendResultEmail({ to: 'customer@example.com', firstName: 'Dana', businessName: 'Riverside Plumbing', resultHtml: '<p>Body.</p>' });
-    expect(send.mock.calls[0][0].replyTo).toBe('info@easyaiconsult.com');
+    expect(send.mock.calls[0][0].replyTo).toBe('hello@easyaiconsult.com');
   });
 
   it('never puts the customer in the From field', async () => {
@@ -87,7 +88,7 @@ describe('customer result email', () => {
 });
 
 describe('internal assessment notification', () => {
-  it('goes only to the one business inbox', async () => {
+  it('goes only to the internal notification address, info@ (not the contact address)', async () => {
     const { sendInternalNotification } = await import('./resend');
     await sendInternalNotification(submission);
     const to = send.mock.calls[0][0].to;
@@ -110,23 +111,46 @@ describe('internal assessment notification', () => {
   });
 });
 
-describe('contact message', () => {
+describe('contact request', () => {
   const contact = {
     name: 'Dana Reyes',
     email: 'visitor@example.com',
     phone: '555-0100',
     businessName: 'Riverside Plumbing',
     message: 'Please call me about the assessment.',
-    companyUrl: '',
-    formLoadedAt: 1,
+    channelLabel: 'Gary contact request',
   };
 
-  it('goes to the business inbox with the visitor as Reply-To', async () => {
+  it('goes to the primary contact address, hello@, with the visitor as Reply-To', async () => {
     const { sendContactMessage } = await import('./resend');
     await sendContactMessage(contact);
     const call = send.mock.calls[0][0];
-    expect(call.to).toBe('info@easyaiconsult.com');
+    expect(call.to).toBe('hello@easyaiconsult.com');
     expect(call.replyTo).toBe('visitor@example.com');
+    expect(call.subject).toBe('Gary contact request: Dana Reyes');
+  });
+
+  it('sets no Reply-To when the visitor gave only a phone number', async () => {
+    const { sendContactMessage } = await import('./resend');
+    await sendContactMessage({ ...contact, email: undefined });
+    const call = send.mock.calls[0][0];
+    expect(call.replyTo).toBeUndefined();
+    expect(call.to).toBe('hello@easyaiconsult.com');
+    expect(call.html).toContain('555-0100');
+  });
+
+  it('is never routed to the internal assessment notification address', async () => {
+    process.env.ASSESSMENT_NOTIFICATION_EMAIL = 'assessments-only@example.com';
+    const { sendContactMessage } = await import('./resend');
+    await sendContactMessage(contact);
+    expect(send.mock.calls[0][0].to).toBe('hello@easyaiconsult.com');
+  });
+
+  it('honours CONTACT_NOTIFICATION_EMAIL as the one configurable destination', async () => {
+    process.env.CONTACT_NOTIFICATION_EMAIL = 'partner-inbox@example.com';
+    const { sendContactMessage } = await import('./resend');
+    await sendContactMessage(contact);
+    expect(send.mock.calls[0][0].to).toBe('partner-inbox@example.com');
   });
 
   it('never puts visitor input in the From field', async () => {
@@ -200,6 +224,15 @@ describe('non-production email safety', () => {
     }
   });
 
+  it('never lets a preview contact request reach the primary contact address', async () => {
+    process.env.VERCEL_ENV = 'preview';
+    process.env.EMAIL_TEST_RECIPIENT = 'qa@example.com';
+    const { sendContactMessage } = await import('./resend');
+    await sendContactMessage({ name: 'Dana', email: 'visitor@example.com', message: 'Hi' });
+    expect(send.mock.calls[0][0].to).toBe('qa@example.com');
+    expect(send.mock.calls[0][0].to).not.toBe('hello@easyaiconsult.com');
+  });
+
   it('never lets a preview notification reach the production business inbox', async () => {
     process.env.VERCEL_ENV = 'preview';
     process.env.EMAIL_TEST_RECIPIENT = 'qa@example.com';
@@ -232,23 +265,30 @@ describe('address hygiene across the active repository', () => {
   it('contains no retired Easy AI destination', () => {
     for (const rel of activeFiles) {
       const source = fs.readFileSync(path.join(repoRoot, rel), 'utf8');
-      for (const retired of ['sales@easyaiconsult.com', 'team@easyaiconsult.com', 'hello@easyaiconsult.com', 'etoyi@easyaiconsult.com', 'etoyi.g@easyaiconsult.com']) {
+      for (const retired of ['sales@easyaiconsult.com', 'team@easyaiconsult.com', 'etoyi@easyaiconsult.com', 'etoyi.g@easyaiconsult.com']) {
         expect(source, `${rel} contains ${retired}`).not.toContain(retired);
       }
     }
   });
 
-  it('no longer posts a form anywhere but our own route', () => {
-    const contactPage = fs.readFileSync(path.join(repoRoot, 'app/contact/page.tsx'), 'utf8');
-    expect(contactPage).not.toContain('REPLACE_WITH_YOUR_FORM_ID');
-    expect(contactPage).not.toMatch(/formspree/i);
-    const form = fs.readFileSync(path.join(repoRoot, 'components/ContactForm.tsx'), 'utf8');
-    expect(form).toContain("fetch('/api/contact'");
+  it('has no traditional contact form or contact API route left in the repository', () => {
+    // Gary is the contact experience. The old form, its route and its validator were removed
+    // once nothing depended on them; this keeps them from quietly returning.
+    for (const gone of ['components/ContactForm.tsx', 'app/api/contact/route.ts', 'lib/contactValidation.ts']) {
+      expect(fs.existsSync(path.join(repoRoot, gone)), `${gone} should not exist`).toBe(false);
+    }
+    for (const rel of activeFiles) {
+      const source = fs.readFileSync(path.join(repoRoot, rel), 'utf8');
+      expect(source, rel).not.toContain('/api/contact');
+      expect(source, rel).not.toContain('ContactForm');
+    }
   });
 
-  it('keeps the business address in one module rather than scattered literals', () => {
-    const owners = activeFiles.filter((rel) => fs.readFileSync(path.join(repoRoot, rel), 'utf8').includes('info@easyaiconsult.com'));
-    expect(owners).toEqual(['lib/emailRouting.ts']);
+  it('keeps both business addresses in one module rather than scattered literals', () => {
+    for (const address of ['info@easyaiconsult.com', 'hello@easyaiconsult.com']) {
+      const owners = activeFiles.filter((rel) => fs.readFileSync(path.join(repoRoot, rel), 'utf8').includes(address));
+      expect(owners, address).toEqual(['lib/emailRouting.ts']);
+    }
   });
 
   it('never exposes email configuration to client JavaScript', () => {
@@ -258,6 +298,7 @@ describe('address hygiene across the active repository', () => {
       // The server-only routing module must never be pulled into a client component.
       if (source.startsWith("'use client'")) {
         expect(source, `${rel} is a client component importing emailRouting`).not.toMatch(/from '@?\/?\.*lib\/emailRouting'/);
+        expect(source, `${rel} is a client component importing siteConfig`).not.toMatch(/from '@?\/?\.*lib\/siteConfig'/);
       }
     }
   });

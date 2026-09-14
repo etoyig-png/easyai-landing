@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { getSiteConfig } from '@/lib/siteConfig';
 export const metadata: Metadata = { title: 'Book a Consultation' };
 
 export default function BookConsultationPage() {
+  const contactEmail = getSiteConfig().contact.notificationEmail;
   return (
     <>
       <section className="bg-navy-900 text-white border-b border-navy-800 py-20">
@@ -46,6 +48,9 @@ export default function BookConsultationPage() {
               <h3 className="text-xl font-serif font-semibold text-white mb-3">Select a time</h3>
               <p className="text-silver-light text-sm mb-6 max-w-xs mx-auto">Our booking calendar will appear here. In the meantime, reach out directly and we will schedule a time.</p>
               <Link href="/contact" className="btn-green inline-block">Contact us to schedule</Link>
+              <p className="text-sm text-silver-light mt-4">
+                Or email <a href={`mailto:${contactEmail}`} className="underline text-white">{contactEmail}</a> and we will reply with times.
+              </p>
               <p className="text-xs text-silver-dark mt-4">Calendar booking coming soon.</p>
             </div>
           </div>
