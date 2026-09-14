@@ -40,3 +40,17 @@ email-existence oracle, cosmetic named-entity email rendering, and broader dead-
 - Branch-protection settings and production Vercel configuration.
 - Preview/production database separation, retention/deletion periods, and migration/deployment coupling.
 - Production Supabase changes and production deployment.
+
+## Gary / AIM contact pipeline (2026-09-14)
+
+Architecture, trust boundaries, environment matrix, monitoring, recovery, and the release plan
+for the public contact path live in `docs/gary-contact-pipeline.md` (ADR-001 there records the
+session-idempotency and outbox-before-email decision). Open items that need Toy:
+
+- Three production migrations pending: `20260909000000_contact_rate_limit`,
+  `20260914000000_public_contact_reason_channel`, `20260914120000_public_contact_session_idempotency`.
+  Every contact send fails closed until the first is applied.
+- `GARY_FUNNEL_WEBHOOK_URL` / `GARY_FUNNEL_WEBHOOK_SECRET` unset in production: no handoff reaches
+  the Command Center.
+- Wire an uptime checker to `GET /api/gary/funnel-outbox/drain` (bearer) so an unsent notification
+  or an exhausted handoff pages a human.
