@@ -41,6 +41,33 @@ function backoffDelayMs(attempts: number): number {
 }
 
 /**
+ * Shapes a stored outbox row into the exact envelope the Command Center's
+ * /api/easy-ai/public-funnel/events route accepts: {eventType, eventId, sessionId,
+ * funnelCorrelationId, payload}. That receiver rejects ANY other top-level key with a 400, so
+ * everything else the event carries — including eventVersion — belongs inside `payload`, which
+ * the receiver deliberately leaves schema-flexible per event type.
+ *
+ * Done here at drain time rather than at enqueue time so rows already sitting in the outbox in
+ * the old flat shape are reshaped on their next delivery attempt instead of being stranded.
+ * `eventId` stays the row's idempotencyKey, which is what makes the receiver's unique-on-event_id
+ * upsert idempotent — that mapping is unchanged.
+ */
+function buildEventEnvelope(row: { idempotencyKey: string; eventType: string; eventVersion: number; payload: unknown }) {
+  const stored = (row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload)
+    ? row.payload
+    : {}) as Record<string, unknown>;
+  const { sessionId, funnelCorrelationId, ...rest } = stored;
+
+  return {
+    eventType: row.eventType,
+    eventId: row.idempotencyKey,
+    sessionId,
+    ...(funnelCorrelationId === undefined ? {} : { funnelCorrelationId }),
+    payload: { ...rest, eventVersion: row.eventVersion },
+  };
+}
+
+/**
  * Attempts delivery of due, undelivered rows. Real retry state (attempts/nextAttemptAt/lastError)
  * with exponential backoff — exercised two ways: opportunistically, best-effort, right after
  * enqueue and at the start of the next chat message request (this function, called inline); and
@@ -66,7 +93,7 @@ export async function drainFunnelEventOutbox(options: { limit?: number } = {}): 
       const response = await fetch(FUNNEL_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${FUNNEL_WEBHOOK_SECRET}` },
-        body: JSON.stringify({ eventId: row.idempotencyKey, eventType: row.eventType, eventVersion: row.eventVersion, ...(row.payload as object) }),
+        body: JSON.stringify(buildEventEnvelope(row)),
       });
       if (!response.ok) throw new Error(`Command Center responded ${response.status}`);
       await prisma.funnelEventOutbox.update({ where: { id: row.id }, data: { deliveredAt: new Date() } });

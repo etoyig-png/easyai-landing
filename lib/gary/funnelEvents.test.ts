@@ -94,6 +94,101 @@ describe('drainFunnelEventOutbox', () => {
     expect(call.data.nextAttemptAt).toBeUndefined(); // no further retry scheduled
   });
 
+  // The Command Center's /api/easy-ai/public-funnel/events route accepts ONLY these five
+  // top-level keys and 400s on anything else, which previously made every delivery fail and
+  // retry to exhaustion. These tests pin the wire format so it cannot drift back.
+  const ENVELOPE_KEYS = ['eventType', 'eventId', 'sessionId', 'funnelCorrelationId', 'payload'];
+
+  it('sends only the envelope keys the Command Center accepts', async () => {
+    const row = {
+      id: 'row-4',
+      idempotencyKey: 'contact.captured:s1',
+      eventType: 'contact.captured',
+      eventVersion: 1,
+      payload: {
+        sessionId: 's1',
+        funnelCorrelationId: 's1',
+        firstName: 'Dana',
+        summary: { mainProblem: 'Missed calls' },
+        transcriptReference: 's1',
+        occurredAt: '2026-08-11T12:00:00.000Z',
+      },
+      attempts: 0,
+    };
+    mockOutbox.findMany.mockResolvedValue([row]);
+    mockOutbox.update.mockResolvedValue({});
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const { drainFunnelEventOutbox } = await import('./funnelEvents');
+    await drainFunnelEventOutbox();
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(Object.keys(body).sort()).toEqual([...ENVELOPE_KEYS].sort());
+    expect(body).toMatchObject({
+      eventType: 'contact.captured',
+      eventId: 'contact.captured:s1',
+      sessionId: 's1',
+      funnelCorrelationId: 's1',
+    });
+    // Everything else — including eventVersion — moves inside the flexible payload, nothing lost.
+    expect(body.payload).toEqual({
+      firstName: 'Dana',
+      summary: { mainProblem: 'Missed calls' },
+      transcriptReference: 's1',
+      occurredAt: '2026-08-11T12:00:00.000Z',
+      eventVersion: 1,
+    });
+  });
+
+  it('omits funnelCorrelationId entirely when the event has none, rather than sending null', async () => {
+    const row = {
+      id: 'row-5',
+      idempotencyKey: 'chat.session.started:s2',
+      eventType: 'chat.session.started',
+      eventVersion: 1,
+      payload: { sessionId: 's2', anonymousId: 'anon-1', page: '/', occurredAt: '2026-08-11T12:00:00.000Z' },
+      attempts: 0,
+    };
+    mockOutbox.findMany.mockResolvedValue([row]);
+    mockOutbox.update.mockResolvedValue({});
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const { drainFunnelEventOutbox } = await import('./funnelEvents');
+    await drainFunnelEventOutbox();
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect('funnelCorrelationId' in body).toBe(false);
+    expect(body.sessionId).toBe('s2');
+    expect(body.payload).toMatchObject({ anonymousId: 'anon-1', page: '/' });
+  });
+
+  it('reshapes an already-queued legacy row on its next delivery attempt', async () => {
+    // A row enqueued before this fix is stored in the same flat payload shape, so nothing needs
+    // backfilling — draining it now produces the correct envelope.
+    const row = {
+      id: 'row-6',
+      idempotencyKey: 'assessment.started:s3',
+      eventType: 'assessment.started',
+      eventVersion: 1,
+      payload: { sessionId: 's3', funnelCorrelationId: 's3', occurredAt: '2026-08-11T12:00:00.000Z' },
+      attempts: 3,
+    };
+    mockOutbox.findMany.mockResolvedValue([row]);
+    mockOutbox.update.mockResolvedValue({});
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const { drainFunnelEventOutbox } = await import('./funnelEvents');
+    const result = await drainFunnelEventOutbox();
+
+    expect(result.delivered).toBe(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(Object.keys(body).sort()).toEqual([...ENVELOPE_KEYS].sort());
+    expect(body.eventId).toBe('assessment.started:s3');
+  });
+
   it('is a no-op when the webhook URL/secret are not configured', async () => {
     delete process.env.GARY_FUNNEL_WEBHOOK_URL;
     const { drainFunnelEventOutbox } = await import('./funnelEvents');
