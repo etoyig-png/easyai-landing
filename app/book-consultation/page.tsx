@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { EASY_AI_CONTACT_EMAIL } from '@/lib/emailRouting';
 export const metadata: Metadata = { title: 'Book a Consultation' };
 
 export default function BookConsultationPage() {
@@ -46,6 +47,9 @@ export default function BookConsultationPage() {
               <h3 className="text-xl font-serif font-semibold text-white mb-3">Select a time</h3>
               <p className="text-silver-light text-sm mb-6 max-w-xs mx-auto">Our booking calendar will appear here. In the meantime, reach out directly and we will schedule a time.</p>
               <Link href="/contact" className="btn-green inline-block">Contact us to schedule</Link>
+              <p className="text-sm text-silver-light mt-4">
+                Or email <a href={`mailto:${EASY_AI_CONTACT_EMAIL}`} className="underline text-white">{EASY_AI_CONTACT_EMAIL}</a> and we will reply with times.
+              </p>
               <p className="text-xs text-silver-dark mt-4">Calendar booking coming soon.</p>
             </div>
           </div>

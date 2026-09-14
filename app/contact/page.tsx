@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import ContactForm from '@/components/ContactForm';
+import { EASY_AI_CONTACT_EMAIL } from '@/lib/emailRouting';
 
 export const metadata: Metadata = { title: 'Contact' };
 
@@ -34,10 +35,16 @@ export default function ContactPage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-6 mt-14 max-w-2xl">
+          <div className="grid sm:grid-cols-3 gap-6 mt-14 max-w-2xl">
             <div className="border-l-2 border-teal pl-5">
               <h2 className="font-serif font-semibold text-white text-lg mb-1">Location</h2>
               <p className="font-sans text-sm text-silver-light">Tampa, Florida &mdash; serving clients remotely.</p>
+            </div>
+            <div className="border-l-2 border-teal pl-5">
+              <h2 className="font-serif font-semibold text-white text-lg mb-1">Email</h2>
+              <p className="font-sans text-sm text-silver-light">
+                <a href={`mailto:${EASY_AI_CONTACT_EMAIL}`} className="underline text-white">{EASY_AI_CONTACT_EMAIL}</a>
+              </p>
             </div>
             <div className="border-l-2 border-teal pl-5">
               <h2 className="font-serif font-semibold text-white text-lg mb-1">Response time</h2>
@@ -47,7 +54,7 @@ export default function ContactPage() {
 
           <div className="mt-14 max-w-2xl">
             <h2 className="font-serif font-semibold text-white text-2xl mb-6">Send a message</h2>
-            <ContactForm />
+            <ContactForm fallbackEmail={EASY_AI_CONTACT_EMAIL} />
           </div>
 
           {/* Always-present alternate path, so the page is never a dead end even if the chat
