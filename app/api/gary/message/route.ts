@@ -12,19 +12,15 @@ import type { ChatMessage } from '@/lib/gary/llm/types';
 import { createSessionCapability, verifySessionCapability } from '@/lib/gary/sessionCapability';
 import { GARY_MAX_MESSAGES, GARY_MAX_TRANSCRIPT_CHARS, readLimitedJson } from '@/lib/requestSafety';
 import {
-  CONTACT_ALREADY_SENT_TEXT,
-  CONTACT_FAILED_TEXT,
-  CONTACT_LIMITED_TEXT,
-  CONTACT_SENT_MARKER,
-  CONTACT_SENT_TEXT,
   advanceContactFlow,
+  contactOutcomeTexts,
   detectContactIntent,
   type ContactDraft,
   type ContactFlowReply,
   type ContactFlowRequest,
 } from '@/lib/gary/contactFlow';
-import { admitContactMessage } from '@/lib/contactRateLimit';
-import { sendContactMessage } from '@/lib/resend';
+import { submitAssistantContact } from '@/lib/gary/contactSubmission';
+import { getSiteConfig } from '@/lib/siteConfig';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -57,11 +53,6 @@ const requestSchema = z.object({
 });
 
 const NEUTRAL_INPUT = { options: undefined, freeText: true, placeholder: 'Type a message...' } as const;
-
-/** Digits and a leading plus only, the same shape the handoff path stores. */
-function normalizePhone(phone: string | undefined): string | undefined {
-  return phone ? phone.replace(/[^\d+]/g, '') : undefined;
-}
 
 /** Records Gary's scripted turn in the transcript and shapes the response the panel expects. */
 async function respondWithContactFlow(sessionId: string, sessionCapability: string, reply: ContactFlowReply, done = false) {
@@ -136,9 +127,14 @@ export async function POST(req: NextRequest) {
 
   const capability = data.sessionCapability ?? createSessionCapability(session.id);
 
-  // Gary's contact flow: four scripted steps, no model, no qualification. The panel echoes the
-  // draft back each turn so the server holds no flow state. Persistence happens only on send.
+  // The assistant's contact flow: four scripted steps, no model, no qualification. The panel
+  // echoes the draft back each turn so the server holds no flow state. Persistence happens
+  // only on send, inside submitAssistantContact, in a fixed order: rate limit, durable record,
+  // notification, then the Command Center handoff. Which site owns the contact, where it is
+  // delivered, and what the assistant is called all come from server-side SiteConfig.
+  const site = getSiteConfig();
   if (data.contactFlow) {
+    if (!site.actions.contactFlow) return NextResponse.json({ error: 'Contact flow is not enabled' }, { status: 404 });
     const flowRequest = toFlowRequest(data.contactFlow);
     if (!flowRequest) return NextResponse.json({ error: 'Invalid contact flow request' }, { status: 400 });
 
@@ -149,79 +145,19 @@ export async function POST(req: NextRequest) {
     const reply = advanceContactFlow(flowRequest);
     if (!reply.send) return respondWithContactFlow(session.id, capability, reply);
 
-    // Final step. One contact request per session, the contact-form rate limit applies before
-    // anything is sent, and success is only reported after the provider accepts the message.
-    const alreadySent = await prisma.publicChatMessage.findFirst({ where: { sessionId: session.id, role: 'system', content: CONTACT_SENT_MARKER }, select: { id: true } });
-    if (alreadySent) return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: CONTACT_ALREADY_SENT_TEXT }, true);
-
-    let admission;
-    try {
-      admission = await admitContactMessage(ipAddress);
-    } catch (error) {
-      console.error('Gary contact rate-limit check failed', error);
-      return respondWithContactFlow(session.id, capability, { ...reply, text: CONTACT_FAILED_TEXT });
+    const texts = contactOutcomeTexts(site.brand.name);
+    const outcome = await submitAssistantContact({ sessionId: session.id, clientIdentity: ipAddress, send: reply.send, config: site });
+    switch (outcome.kind) {
+      case 'sent':
+        return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.sent }, true);
+      case 'already-sent':
+        return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.alreadySent }, true);
+      case 'limited':
+        return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.limited }, true);
+      case 'failed':
+        // Stay on the confirmation so the visitor can try again. Never claim it was sent.
+        return respondWithContactFlow(session.id, capability, { ...reply, text: texts.failed });
     }
-    if (admission.kind === 'limited') return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: CONTACT_LIMITED_TEXT }, true);
-
-    try {
-      await sendContactMessage({ name: reply.send.name, email: reply.send.email, phone: reply.send.phone, message: reply.send.reason, channelLabel: 'Gary contact request' });
-    } catch (error) {
-      console.error('Gary contact request delivery failed', error);
-      // Stay on the confirmation so the visitor can try again. Never claim it was sent.
-      return respondWithContactFlow(session.id, capability, { ...reply, text: CONTACT_FAILED_TEXT });
-    }
-
-    // Delivered. Persistence below is best-effort: a database hiccup must not turn a message
-    // that already reached the inbox into a reported failure.
-    const emailNormalized = reply.send.email?.toLowerCase() ?? null;
-    const phoneNormalized = normalizePhone(reply.send.phone) ?? null;
-    try {
-      const contact = await prisma.publicContact.create({
-        data: {
-          firstName: reply.send.name,
-          emailNormalized,
-          phoneNormalized,
-          sourceSessionId: session.id,
-          consentGivenAt: new Date(),
-          consentText: 'Confirmed "Yes, send it" in the Gary contact flow.',
-        },
-        select: { id: true },
-      });
-      await prisma.publicChatSession.update({ where: { id: session.id }, data: { identifiedContactId: contact.id } });
-      await prisma.publicChatMessage.create({ data: { sessionId: session.id, role: 'system', content: CONTACT_SENT_MARKER } });
-      void enqueueFunnelEvent({
-        eventType: 'contact.captured',
-        idempotencyKey: `contact.captured:${session.id}`,
-        payload: {
-          sessionId: session.id,
-          funnelCorrelationId: session.id,
-          firstName: reply.send.name,
-          businessName: null,
-          emailNormalized,
-          phoneNormalized,
-          preferredContactTime: null,
-          summary: reply.send.reason,
-          transcriptReference: session.id,
-          occurredAt: new Date().toISOString(),
-        },
-      });
-      await prisma.crrOutboxEvent.create({
-        data: {
-          contactSnapshot: {
-            firstName: reply.send.name,
-            businessName: null,
-            emailNormalized,
-            phoneNormalized,
-            sourceSessionId: session.id,
-            reason: reply.send.reason,
-          } as never,
-        },
-      });
-    } catch (error) {
-      console.error('Gary contact request sent but persistence failed', error);
-    }
-
-    return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: CONTACT_SENT_TEXT }, true);
   }
 
   // The very first call for a brand-new session (no message yet) returns the fixed opening
@@ -253,7 +189,7 @@ export async function POST(req: NextRequest) {
 
   // "I need to talk to the owner", "have someone call me", "can someone email me": straight
   // into the four-step contact flow. No goals, no company, no service, no discovery first.
-  if (detectContactIntent(visitorMessage)) {
+  if (site.actions.contactFlow && detectContactIntent(visitorMessage)) {
     return respondWithContactFlow(session.id, capability, advanceContactFlow({ action: 'start' }));
   }
 

@@ -166,6 +166,14 @@ model PublicContact {
 
   sourceSessionId String?
 
+  // Added 2026-09-14 for the assistant's contact flow. `reason` is what the visitor asked for
+  // in their own words; `channel` names the path that captured them (see SiteConfig); `siteKey`
+  // records which site/organisation owns the record, derived on the server and never from the
+  // browser. All nullable so rows captured before this existed remain valid.
+  reason   String? @db.Text
+  channel  String?
+  siteKey  String?
+
   sessions PublicChatSession[]
 
   createdAt DateTime @default(now())
@@ -173,6 +181,7 @@ model PublicContact {
 
   @@index([emailNormalized])
   @@index([phoneNormalized])
+  @@index([siteKey, createdAt])
 }
 
 model AssessmentHandoff {

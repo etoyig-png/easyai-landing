@@ -75,13 +75,24 @@ export const CONTACT_CHANGE_OPTIONS: Array<{ label: string; field: ContactField 
 /** Marker stored as a system-role message so a session can send exactly one contact request. */
 export const CONTACT_SENT_MARKER = 'contact-request:sent';
 
-export const CONTACT_SENT_TEXT =
-  'Sent. Your message is with the Easy AI team, and someone will reach out using the contact info you gave.';
-export const CONTACT_ALREADY_SENT_TEXT =
-  'That message already reached the Easy AI team. If you want to add something, press Start Over and send a new one.';
-export const CONTACT_LIMITED_TEXT =
-  "I can't send another message from here right now. Please try again in a little while, or take the free assessment and we'll follow up.";
-export const CONTACT_FAILED_TEXT = "I couldn't send that just now. Please try again in a moment.";
+/**
+ * Outcome messages, parameterised by brand so a white-label site reads naturally. The bare
+ * constants are the Easy AI wording and remain the source of truth for tests.
+ */
+export function contactOutcomeTexts(brandName: string) {
+  return {
+    sent: `Sent. Your message is with the ${brandName} team, and someone will reach out using the contact info you gave.`,
+    alreadySent: `That message already reached the ${brandName} team. If you want to add something, press Start Over and send a new one.`,
+    limited: "I can't send another message from here right now. Please try again in a little while, or take the free assessment and we'll follow up.",
+    failed: "I couldn't send that just now. Please try again in a moment.",
+  } as const;
+}
+
+const EASY_AI_TEXTS = contactOutcomeTexts('Easy AI');
+export const CONTACT_SENT_TEXT = EASY_AI_TEXTS.sent;
+export const CONTACT_ALREADY_SENT_TEXT = EASY_AI_TEXTS.alreadySent;
+export const CONTACT_LIMITED_TEXT = EASY_AI_TEXTS.limited;
+export const CONTACT_FAILED_TEXT = EASY_AI_TEXTS.failed;
 
 const NAME_MAX = 120;
 const CONTACT_MAX = 200;

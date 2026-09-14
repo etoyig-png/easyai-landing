@@ -1,9 +1,9 @@
 import { Resend } from 'resend';
 import type { AssessmentSubmission } from './validation';
-import type { ContactSubmission } from './contactValidation';
 import { websiteNotificationValue } from './websiteStatus';
 import { escapeHtml } from './htmlEscape';
 import {
+  contactRecipient,
   internalRecipient,
   notificationFromAddress,
   resolveDelivery,
@@ -144,8 +144,10 @@ export async function sendResultEmail(params: { to: string; firstName: string; b
 }
 
 /**
- * Contact and consultation requests from the public form. Delivered to the one Easy AI
- * business inbox with the visitor as Reply-To.
+ * A visitor's contact request. Delivered to the primary contact address (contactRecipient)
+ * with the visitor as Reply-To when they gave an email. The caller names the channel and the
+ * brand so this module knows nothing about who is asking; today the only caller is the
+ * assistant's contact flow.
  *
  * The visitor never appears in From: that would be an unauthenticated sender on a domain we
  * do not control, and it is how open relays and spoofed mail happen. From is always an
@@ -158,14 +160,17 @@ export interface ContactMessageInput {
   phone?: string;
   businessName?: string;
   message: string;
-  /** Optional channel label for the subject line, so the inbox can tell request sources apart. */
+  /** Channel label for the subject line, so the inbox can tell request sources apart. */
   channelLabel?: string;
+  /** Brand shown in the notification header. Defaults to Easy AI. */
+  brandName?: string;
 }
 
-export async function sendContactMessage(submission: ContactMessageInput | ContactSubmission) {
-  const delivery = resolveDelivery(internalRecipient());
+export async function sendContactMessage(submission: ContactMessageInput) {
+  const delivery = resolveDelivery(contactRecipient());
   if (!delivery.allowed) throw new Error(delivery.reason);
-  const channel = ('channelLabel' in submission && submission.channelLabel?.trim()) || 'Contact form';
+  const channel = submission.channelLabel?.trim() || 'Contact request';
+  const brand = submission.brandName?.trim() || 'Easy AI';
   const email = submission.email?.trim() || undefined;
 
   const rows: [string, string][] = [
@@ -191,7 +196,7 @@ export async function sendContactMessage(submission: ContactMessageInput | Conta
     html: `
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;">
         <div style="background:#0b1d3a;padding:20px 24px;">
-          <span style="color:#ffffff;font-size:16px;font-weight:bold;">Easy AI, New Contact Message</span>
+          <span style="color:#ffffff;font-size:16px;font-weight:bold;">${escapeHtml(brand)}, New Contact Message</span>
         </div>
         <div style="padding:20px 24px;background:#f8f4ed;">
           <table style="width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #ede5d4;">
