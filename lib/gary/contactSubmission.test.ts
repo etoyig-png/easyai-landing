@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { normalizePhone, submitAssistantContact, type ContactSubmissionDeps } from './contactSubmission';
+import {
+  SENDING_LEASE_MS,
+  decideClaim,
+  normalizePhone,
+  submitAssistantContact,
+  type ClaimResult,
+  type ContactSubmissionDeps,
+} from './contactSubmission';
 import type { SiteConfig } from '@/lib/siteConfig';
 
 const config: SiteConfig = {
@@ -15,26 +22,18 @@ const config: SiteConfig = {
   actions: { contactFlow: true, assessmentHandoff: true },
 };
 
-function makeDeps(overrides: Partial<ContactSubmissionDeps> & { db?: Partial<ContactSubmissionDeps['db']> } = {}) {
+const NOW = new Date('2026-09-14T12:00:00Z');
+
+function makeDeps(overrides: Partial<ContactSubmissionDeps> = {}) {
   const calls: string[] = [];
-  const db: ContactSubmissionDeps['db'] = {
-    findSentMarker: vi.fn(async () => { calls.push('findSentMarker'); return false; }),
-    findContactForSession: vi.fn(async () => { calls.push('findContactForSession'); return null; }),
-    createContact: vi.fn(async () => { calls.push('createContact'); return { id: 'contact-1' }; }),
-    updateContact: vi.fn(async () => { calls.push('updateContact'); }),
-    linkSession: vi.fn(async () => { calls.push('linkSession'); }),
-    writeSentMarker: vi.fn(async () => { calls.push('writeSentMarker'); }),
-    writeCrrOutbox: vi.fn(async () => { calls.push('writeCrrOutbox'); }),
-    ...overrides.db,
-  };
-  const { db: _dbOverride, ...rest } = overrides;
   const deps: ContactSubmissionDeps = {
     admit: vi.fn(async () => { calls.push('admit'); return { kind: 'accepted' } as const; }),
+    claim: vi.fn(async (): Promise<ClaimResult> => { calls.push('claim'); return { claim: 'claimed', contactId: 'contact-1', handoff: 'created' }; }),
     send: vi.fn(async () => { calls.push('send'); }),
-    enqueue: vi.fn(async () => { calls.push('enqueue'); }),
-    now: () => new Date('2026-09-14T12:00:00Z'),
-    ...rest,
-    db,
+    settle: vi.fn(async (_id, _session, result) => { calls.push(`settle:${result.status}`); }),
+    deliver: vi.fn(async () => { calls.push('deliver'); return 'delivered' as const; }),
+    now: () => NOW,
+    ...overrides,
   };
   return { deps, calls };
 }
@@ -42,79 +41,93 @@ function makeDeps(overrides: Partial<ContactSubmissionDeps> & { db?: Partial<Con
 const send = { name: 'Dana Reyes', email: 'Dana@Example.com', phone: '(555) 010-0100', reason: 'I want to talk about my business' };
 const params = { sessionId: 'session-1', clientIdentity: '203.0.113.9', send, config };
 
-describe('submitAssistantContact ordering', () => {
-  it('rate-limits, stores the durable record, notifies, then marks and hands off, in that order', async () => {
+describe('ordering: rate limit, claim (contact + handoff), notify, settle, deliver', () => {
+  it('runs the stages in that order and reports sent with the handoff and delivery state', async () => {
     const { deps, calls } = makeDeps();
     const outcome = await submitAssistantContact(params, deps);
-    expect(outcome).toEqual({ kind: 'sent', contactId: 'contact-1' });
-    expect(calls).toEqual(['findSentMarker', 'admit', 'findContactForSession', 'createContact', 'linkSession', 'send', 'writeSentMarker', 'enqueue', 'writeCrrOutbox']);
+    expect(outcome).toEqual({ kind: 'sent', contactId: 'contact-1', handoff: 'created', delivery: 'delivered' });
+    expect(calls).toEqual(['admit', 'claim', 'send', 'settle:sent', 'deliver']);
   });
 
-  it('stores the durable record before the notification is attempted', async () => {
-    const { deps, calls } = makeDeps({ send: vi.fn(async () => { calls.push('send'); throw new Error('provider down'); }) });
+  it('awaits outbox delivery instead of firing it and forgetting', async () => {
+    let resolved = false;
+    const { deps } = makeDeps({ deliver: vi.fn(async () => { await new Promise((r) => setTimeout(r, 20)); resolved = true; return 'retry-scheduled' as const; }) });
     const outcome = await submitAssistantContact(params, deps);
-    expect(outcome).toEqual({ kind: 'failed', stage: 'delivery' });
-    expect(calls.indexOf('createContact')).toBeLessThan(calls.indexOf('send'));
-    expect(deps.db.writeSentMarker).not.toHaveBeenCalled();
-    expect(deps.enqueue).not.toHaveBeenCalled();
+    expect(resolved).toBe(true);
+    expect(outcome).toMatchObject({ kind: 'sent', delivery: 'retry-scheduled' });
   });
 });
 
-describe('the durable record', () => {
-  it('carries name, contact details, reason, channel, site ownership, consent and the session', async () => {
+describe('the claim carries the durable record, session link, and handoff together', () => {
+  it('passes name, contact details, reason, channel, site ownership, consent and session, plus one contact.captured event', async () => {
     const { deps } = makeDeps();
     await submitAssistantContact(params, deps);
-    expect(deps.db.createContact).toHaveBeenCalledWith({
-      firstName: 'Dana Reyes',
-      emailNormalized: 'dana@example.com',
-      phoneNormalized: '5550100100',
-      reason: 'I want to talk about my business',
-      channel: 'assistant-contact-flow',
-      siteKey: 'easy-ai',
-      sourceSessionId: 'session-1',
-      consentGivenAt: new Date('2026-09-14T12:00:00Z'),
-      consentText: 'Confirmed "Yes, send it" in the Gary contact flow.',
-    });
-    expect(deps.db.linkSession).toHaveBeenCalledWith('session-1', 'contact-1');
+    expect(deps.claim).toHaveBeenCalledWith(
+      'session-1',
+      {
+        firstName: 'Dana Reyes',
+        emailNormalized: 'dana@example.com',
+        phoneNormalized: '5550100100',
+        reason: 'I want to talk about my business',
+        channel: 'assistant-contact-flow',
+        siteKey: 'easy-ai',
+        sourceSessionId: 'session-1',
+        consentGivenAt: NOW,
+        consentText: 'Confirmed "Yes, send it" in the Gary contact flow.',
+      },
+      {
+        eventType: 'contact.captured',
+        idempotencyKey: 'contact.captured:session-1:assistant-contact-flow',
+        payload: expect.objectContaining({
+          sessionId: 'session-1',
+          funnelCorrelationId: 'session-1',
+          siteKey: 'easy-ai',
+          channel: 'assistant-contact-flow',
+          firstName: 'Dana Reyes',
+          emailNormalized: 'dana@example.com',
+          phoneNormalized: '5550100100',
+          summary: 'I want to talk about my business',
+          occurredAt: NOW.toISOString(),
+        }),
+      },
+      NOW
+    );
   });
 
   it('derives ownership from server config, never from the request', async () => {
     const { deps } = makeDeps();
     await submitAssistantContact({ ...params, send: { ...send, reason: 'siteKey=other-tenant' } }, deps);
-    const stored = (deps.db.createContact as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    expect(stored.siteKey).toBe('easy-ai');
+    const [, record, event] = (deps.claim as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(record.siteKey).toBe('easy-ai');
+    expect(event.payload.siteKey).toBe('easy-ai');
   });
 
-  it('never stores the raw client identity', async () => {
+  it('uses one idempotency key per session, whatever the visitor typed', async () => {
+    const { deps } = makeDeps();
+    await submitAssistantContact({ ...params, send: { ...send, reason: 'first' } }, deps);
+    await submitAssistantContact({ ...params, send: { ...send, reason: 'second' } }, deps);
+    const keys = (deps.claim as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[2].idempotencyKey);
+    expect(new Set(keys)).toEqual(new Set(['contact.captured:session-1:assistant-contact-flow']));
+  });
+
+  it('never passes the raw client identity anywhere but the limiter', async () => {
     const { deps } = makeDeps();
     await submitAssistantContact(params, deps);
     const everything = JSON.stringify([
-      (deps.db.createContact as ReturnType<typeof vi.fn>).mock.calls,
-      (deps.db.writeCrrOutbox as ReturnType<typeof vi.fn>).mock.calls,
-      (deps.enqueue as ReturnType<typeof vi.fn>).mock.calls,
+      (deps.claim as ReturnType<typeof vi.fn>).mock.calls,
       (deps.send as ReturnType<typeof vi.fn>).mock.calls,
+      (deps.settle as ReturnType<typeof vi.fn>).mock.calls,
     ]);
     expect(everything).not.toContain('203.0.113.9');
   });
 
-  it('updates the existing record on a retry in the same session instead of creating a duplicate', async () => {
-    const { deps } = makeDeps({ db: { findContactForSession: vi.fn(async () => ({ id: 'contact-existing' })) } });
-    const outcome = await submitAssistantContact(params, deps);
-    expect(outcome).toEqual({ kind: 'sent', contactId: 'contact-existing' });
-    expect(deps.db.createContact).not.toHaveBeenCalled();
-    expect(deps.db.updateContact).toHaveBeenCalledWith('contact-existing', expect.objectContaining({ reason: send.reason }));
-  });
-
-  it('stores an email-only contact with no phone', async () => {
+  it('stores an email-only contact with no phone, and a phone-only contact with no email', async () => {
     const { deps } = makeDeps();
-    await submitAssistantContact({ ...params, send: { name: 'Dana', email: 'dana@example.com', reason: 'Question' } }, deps);
-    expect(deps.db.createContact).toHaveBeenCalledWith(expect.objectContaining({ emailNormalized: 'dana@example.com', phoneNormalized: null }));
-  });
-
-  it('stores a phone-only contact with no email', async () => {
-    const { deps } = makeDeps();
-    await submitAssistantContact({ ...params, send: { name: 'Dana', phone: '555-010-0100', reason: 'Question' } }, deps);
-    expect(deps.db.createContact).toHaveBeenCalledWith(expect.objectContaining({ emailNormalized: null, phoneNormalized: '5550100100' }));
+    await submitAssistantContact({ ...params, send: { name: 'Dana', email: 'dana@example.com', reason: 'Q' } }, deps);
+    await submitAssistantContact({ ...params, send: { name: 'Dana', phone: '555-010-0100', reason: 'Q' } }, deps);
+    const records = (deps.claim as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[1]);
+    expect(records[0]).toMatchObject({ emailNormalized: 'dana@example.com', phoneNormalized: null });
+    expect(records[1]).toMatchObject({ emailNormalized: null, phoneNormalized: '5550100100' });
   });
 });
 
@@ -139,64 +152,100 @@ describe('notification', () => {
   });
 });
 
-describe('guards and honest failure', () => {
-  it('blocks a second send in the same session before touching the limiter', async () => {
-    const { deps } = makeDeps({ db: { findSentMarker: vi.fn(async () => true) } });
-    const outcome = await submitAssistantContact(params, deps);
-    expect(outcome).toEqual({ kind: 'already-sent' });
-    expect(deps.admit).not.toHaveBeenCalled();
-    expect(deps.send).not.toHaveBeenCalled();
-  });
-
-  it('fails closed when the rate limiter itself fails, storing and sending nothing', async () => {
+describe('the eight states', () => {
+  it('1. contact not stored: limiter error fails closed before anything is stored or sent', async () => {
     const { deps } = makeDeps({ admit: vi.fn(async () => { throw new Error('relation "ContactRateLimitEvent" does not exist'); }) });
     const outcome = await submitAssistantContact(params, deps);
     expect(outcome).toEqual({ kind: 'failed', stage: 'rate-limit' });
-    expect(deps.db.createContact).not.toHaveBeenCalled();
+    expect(deps.claim).not.toHaveBeenCalled();
     expect(deps.send).not.toHaveBeenCalled();
   });
 
-  it('reports limited and sends nothing when the ceiling is reached', async () => {
-    const { deps } = makeDeps({ admit: vi.fn(async () => ({ kind: 'limited' } as const)) });
-    const outcome = await submitAssistantContact(params, deps);
-    expect(outcome).toEqual({ kind: 'limited' });
-    expect(deps.db.createContact).not.toHaveBeenCalled();
-    expect(deps.send).not.toHaveBeenCalled();
-  });
-
-  it('reports a storage failure honestly and does not notify', async () => {
-    const { deps } = makeDeps({ db: { createContact: vi.fn(async () => { throw new Error('db down'); }) } });
+  it('1b. contact not stored: a claim failure (contact + handoff roll back together) sends nothing', async () => {
+    const { deps } = makeDeps({ claim: vi.fn(async () => { throw new Error('db down'); }) });
     const outcome = await submitAssistantContact(params, deps);
     expect(outcome).toEqual({ kind: 'failed', stage: 'storage' });
     expect(deps.send).not.toHaveBeenCalled();
+    expect(deps.deliver).not.toHaveBeenCalled();
   });
 
-  it('still reports sent when only the handoff bookkeeping fails after delivery', async () => {
-    const { deps } = makeDeps({ db: { writeCrrOutbox: vi.fn(async () => { throw new Error('outbox down'); }) } });
+  it('2. stored and handoff queued, but notification failed: honest outcome, contact marked failed, handoff still attempted', async () => {
+    const { deps, calls } = makeDeps({ send: vi.fn(async () => { calls.push('send'); throw new Error('provider down'); }) });
     const outcome = await submitAssistantContact(params, deps);
-    expect(outcome).toEqual({ kind: 'sent', contactId: 'contact-1' });
+    expect(outcome).toEqual({ kind: 'saved-not-notified', contactId: 'contact-1', handoff: 'created', delivery: 'delivered' });
+    expect(deps.settle).toHaveBeenCalledWith('contact-1', 'session-1', { status: 'failed', error: 'provider down' }, NOW);
+    expect(calls).toEqual(['admit', 'claim', 'send', 'settle:failed', 'deliver']);
+  });
+
+  it('3. stored, handoff queued, notification accepted', async () => {
+    const { deps } = makeDeps();
+    await expect(submitAssistantContact(params, deps)).resolves.toMatchObject({ kind: 'sent' });
+    expect(deps.settle).toHaveBeenCalledWith('contact-1', 'session-1', { status: 'sent' }, NOW);
+  });
+
+  it('4. contact already processed: nothing re-sent, nothing re-delivered', async () => {
+    const { deps } = makeDeps({ claim: vi.fn(async () => ({ claim: 'already-processed', contactId: 'contact-1' }) as ClaimResult) });
+    const outcome = await submitAssistantContact(params, deps);
+    expect(outcome).toEqual({ kind: 'already-processed', contactId: 'contact-1' });
+    expect(deps.send).not.toHaveBeenCalled();
+    expect(deps.deliver).not.toHaveBeenCalled();
+  });
+
+  it('4b. another request holds the lease: in-progress, nothing duplicated', async () => {
+    const { deps } = makeDeps({ claim: vi.fn(async () => ({ claim: 'in-progress' }) as ClaimResult) });
+    await expect(submitAssistantContact(params, deps)).resolves.toEqual({ kind: 'in-progress' });
+    expect(deps.send).not.toHaveBeenCalled();
+  });
+
+  it('5. contact limited: nothing stored or sent', async () => {
+    const { deps } = makeDeps({ admit: vi.fn(async () => ({ kind: 'limited' } as const)) });
+    await expect(submitAssistantContact(params, deps)).resolves.toEqual({ kind: 'limited' });
+    expect(deps.claim).not.toHaveBeenCalled();
+    expect(deps.send).not.toHaveBeenCalled();
+  });
+
+  it('6. handoff storage failure is a claim failure: it cannot masquerade as a durable handoff', async () => {
+    const { deps } = makeDeps({ claim: vi.fn(async () => { throw new Error('funnelEventOutbox insert failed'); }) });
+    await expect(submitAssistantContact(params, deps)).resolves.toEqual({ kind: 'failed', stage: 'storage' });
+    expect(deps.send).not.toHaveBeenCalled();
+  });
+
+  it('7. webhook delivery pending retry is reported and does not change what the visitor is told', async () => {
+    const { deps } = makeDeps({ deliver: vi.fn(async () => 'retry-scheduled' as const) });
+    await expect(submitAssistantContact(params, deps)).resolves.toEqual({ kind: 'sent', contactId: 'contact-1', handoff: 'created', delivery: 'retry-scheduled' });
+  });
+
+  it('8. webhook retries exhausted is reported the same way', async () => {
+    const { deps } = makeDeps({ deliver: vi.fn(async () => 'exhausted' as const) });
+    await expect(submitAssistantContact(params, deps)).resolves.toMatchObject({ kind: 'sent', delivery: 'exhausted' });
+  });
+
+  it('a delivery exception is contained and reported as error', async () => {
+    const { deps } = makeDeps({ deliver: vi.fn(async () => { throw new Error('boom'); }) });
+    await expect(submitAssistantContact(params, deps)).resolves.toMatchObject({ kind: 'sent', delivery: 'error' });
+  });
+
+  it('a settle failure after a successful send is contained: the visitor is still told the truth (sent)', async () => {
+    const { deps } = makeDeps({ settle: vi.fn(async () => { throw new Error('settle failed'); }) });
+    await expect(submitAssistantContact(params, deps)).resolves.toMatchObject({ kind: 'sent' });
   });
 });
 
-describe('Command Center handoff', () => {
-  it('enqueues one contact.captured event per session with the contact and ownership fields', async () => {
-    const { deps } = makeDeps();
-    await submitAssistantContact(params, deps);
-    expect(deps.enqueue).toHaveBeenCalledWith({
-      eventType: 'contact.captured',
-      idempotencyKey: 'contact.captured:session-1',
-      payload: expect.objectContaining({
-        sessionId: 'session-1',
-        funnelCorrelationId: 'session-1',
-        siteKey: 'easy-ai',
-        channel: 'assistant-contact-flow',
-        contactId: 'contact-1',
-        firstName: 'Dana Reyes',
-        emailNormalized: 'dana@example.com',
-        phoneNormalized: '5550100100',
-        summary: 'I want to talk about my business',
-      }),
-    });
+describe('decideClaim (evaluated under the session lock)', () => {
+  it('claims when there is no contact yet', () => {
+    expect(decideClaim(null, NOW)).toBe('claimable');
+  });
+  it('refuses when the notification was already sent', () => {
+    expect(decideClaim({ id: 'c', notificationStatus: 'sent', updatedAt: NOW }, NOW)).toBe('already-processed');
+  });
+  it('reports in-progress while a fresh sending lease is held', () => {
+    expect(decideClaim({ id: 'c', notificationStatus: 'sending', updatedAt: new Date(NOW.getTime() - 5_000) }, NOW)).toBe('in-progress');
+  });
+  it('lets a stale sending lease be reclaimed (a request that died mid-send)', () => {
+    expect(decideClaim({ id: 'c', notificationStatus: 'sending', updatedAt: new Date(NOW.getTime() - SENDING_LEASE_MS - 1) }, NOW)).toBe('claimable');
+  });
+  it('lets a failed notification be retried', () => {
+    expect(decideClaim({ id: 'c', notificationStatus: 'failed', updatedAt: NOW }, NOW)).toBe('claimable');
   });
 });
 

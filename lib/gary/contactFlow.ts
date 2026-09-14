@@ -85,6 +85,10 @@ export function contactOutcomeTexts(brandName: string) {
     alreadySent: `That message already reached the ${brandName} team. If you want to add something, press Start Over and send a new one.`,
     limited: "I can't send another message from here right now. Please try again in a little while, or take the free assessment and we'll follow up.",
     failed: "I couldn't send that just now. Please try again in a moment.",
+    // The contact and its handoff are saved; only the email to the team failed. Say exactly that.
+    savedNotSent: `I've saved your details for the ${brandName} team, but the message itself didn't go through just now. Please press Yes, send it again in a moment.`,
+    // A second confirmation arrived while the first is still being sent. Nothing is duplicated.
+    inProgress: "I'm sending that now. Give me a moment.",
   } as const;
 }
 

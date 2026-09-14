@@ -150,12 +150,18 @@ export async function POST(req: NextRequest) {
     switch (outcome.kind) {
       case 'sent':
         return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.sent }, true);
-      case 'already-sent':
+      case 'already-processed':
         return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.alreadySent }, true);
+      case 'in-progress':
+        return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.inProgress }, true);
       case 'limited':
         return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.limited }, true);
+      case 'saved-not-notified':
+        // Contact and handoff are durable; only the email failed. Stay on the confirmation so
+        // the visitor can retry, and never claim the message was sent.
+        return respondWithContactFlow(session.id, capability, { ...reply, text: texts.savedNotSent });
       case 'failed':
-        // Stay on the confirmation so the visitor can try again. Never claim it was sent.
+        // Nothing durable exists. Stay on the confirmation so the visitor can try again.
         return respondWithContactFlow(session.id, capability, { ...reply, text: texts.failed });
     }
   }

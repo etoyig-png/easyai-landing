@@ -5,6 +5,8 @@ const mockOutbox = {
   create: vi.fn(),
   findMany: vi.fn(),
   update: vi.fn(),
+  count: vi.fn(),
+  findFirst: vi.fn(),
 };
 
 vi.mock('../prisma', () => ({
@@ -27,11 +29,21 @@ afterEach(() => {
 });
 
 describe('enqueueFunnelEvent', () => {
-  it('is a no-op when the idempotency key already exists', async () => {
+  it('reports an existing key without creating a second row', async () => {
     mockOutbox.findUnique.mockResolvedValue({ id: 'existing' });
     const { enqueueFunnelEvent } = await import('./funnelEvents');
-    await enqueueFunnelEvent({ eventType: 'chat.session.started', payload: {}, idempotencyKey: 'dup-key' });
+    const result = await enqueueFunnelEvent({ eventType: 'chat.session.started', payload: {}, idempotencyKey: 'dup-key' });
+    expect(result).toEqual({ stored: 'existing' });
     expect(mockOutbox.create).not.toHaveBeenCalled();
+  });
+
+  it('reports a storage failure as failed instead of resolving silently', async () => {
+    mockOutbox.findUnique.mockResolvedValue(null);
+    mockOutbox.create.mockRejectedValue(new Error('connection refused'));
+    const { enqueueFunnelEvent } = await import('./funnelEvents');
+    const result = await enqueueFunnelEvent({ eventType: 'contact.captured', payload: {}, idempotencyKey: 'k-fail' });
+    expect(result).toEqual({ stored: 'failed', error: 'connection refused' });
+    expect(mockOutbox.findMany).not.toHaveBeenCalled();
   });
 
   it('creates a new row and attempts delivery when the key is new', async () => {
@@ -195,5 +207,81 @@ describe('drainFunnelEventOutbox', () => {
     const result = await drainFunnelEventOutbox();
     expect(result).toEqual({ delivered: 0, failed: 0 });
     expect(mockOutbox.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('recordFunnelEvent (transactional writer)', () => {
+  it('creates the row through the client it is given and reports created', async () => {
+    const tx = { funnelEventOutbox: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({}) } };
+    const { recordFunnelEvent } = await import('./funnelEvents');
+    const result = await recordFunnelEvent(tx as never, { eventType: 'contact.captured', payload: { sessionId: 's1' }, idempotencyKey: 'contact.captured:s1' });
+    expect(result).toEqual({ stored: 'created' });
+    expect(tx.funnelEventOutbox.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a concurrent unique violation as existing, never as a second row', async () => {
+    const tx = { funnelEventOutbox: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' })) } };
+    const { recordFunnelEvent } = await import('./funnelEvents');
+    await expect(recordFunnelEvent(tx as never, { eventType: 'contact.captured', payload: {}, idempotencyKey: 'k' })).resolves.toEqual({ stored: 'existing' });
+  });
+
+  it('throws on any other storage failure so a surrounding transaction rolls back', async () => {
+    const tx = { funnelEventOutbox: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockRejectedValue(new Error('disk full')) } };
+    const { recordFunnelEvent } = await import('./funnelEvents');
+    await expect(recordFunnelEvent(tx as never, { eventType: 'contact.captured', payload: {}, idempotencyKey: 'k' })).rejects.toThrow('disk full');
+  });
+});
+
+describe('deliverFunnelEvent (targeted, awaited attempt)', () => {
+  const row = { id: 'row-c', idempotencyKey: 'contact.captured:s1', eventType: 'contact.captured', eventVersion: 1, payload: { sessionId: 's1' }, attempts: 0, deliveredAt: null, nextAttemptAt: new Date(0) };
+
+  it('delivers a due row and marks it delivered', async () => {
+    mockOutbox.findUnique.mockResolvedValue(row);
+    mockOutbox.update.mockResolvedValue({});
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 201 }) as never;
+    const { deliverFunnelEvent } = await import('./funnelEvents');
+    await expect(deliverFunnelEvent(row.idempotencyKey)).resolves.toBe('delivered');
+    expect(mockOutbox.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ deliveredAt: expect.any(Date) }) }));
+  });
+
+  it('schedules a retry when the receiver fails, and reports it', async () => {
+    mockOutbox.findUnique.mockResolvedValue(row);
+    mockOutbox.update.mockResolvedValue({});
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 502 }) as never;
+    const { deliverFunnelEvent } = await import('./funnelEvents');
+    await expect(deliverFunnelEvent(row.idempotencyKey)).resolves.toBe('retry-scheduled');
+    expect(mockOutbox.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ attempts: 1, nextAttemptAt: expect.any(Date) }) }));
+  });
+
+  it('reports exhausted without another attempt once the ceiling is reached', async () => {
+    mockOutbox.findUnique.mockResolvedValue({ ...row, attempts: 8 });
+    global.fetch = vi.fn() as never;
+    const { deliverFunnelEvent } = await import('./funnelEvents');
+    await expect(deliverFunnelEvent(row.idempotencyKey)).resolves.toBe('exhausted');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('reports not-configured without touching the row when the webhook is unset', async () => {
+    delete process.env.GARY_FUNNEL_WEBHOOK_URL;
+    const { deliverFunnelEvent } = await import('./funnelEvents');
+    await expect(deliverFunnelEvent(row.idempotencyKey)).resolves.toBe('not-configured');
+    expect(mockOutbox.findUnique).not.toHaveBeenCalled();
+  });
+});
+
+describe('exhausted rows and health', () => {
+  it('excludes rows at the attempt ceiling from the due set so they no longer block the queue', async () => {
+    mockOutbox.findMany.mockResolvedValue([]);
+    const { drainFunnelEventOutbox } = await import('./funnelEvents');
+    await drainFunnelEventOutbox();
+    expect(mockOutbox.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ attempts: { lt: 8 } }) }));
+  });
+
+  it('reports undelivered, exhausted, and the oldest wait as durable indicators', async () => {
+    mockOutbox.count.mockResolvedValueOnce(3).mockResolvedValueOnce(1);
+    mockOutbox.findFirst.mockResolvedValue({ createdAt: new Date('2026-09-14T10:00:00Z') });
+    const { funnelOutboxHealth } = await import('./funnelEvents');
+    const health = await funnelOutboxHealth(new Date('2026-09-14T12:00:00Z'));
+    expect(health).toEqual({ configured: true, undelivered: 3, exhausted: 1, oldestUndeliveredAgeSeconds: 7200 });
   });
 });

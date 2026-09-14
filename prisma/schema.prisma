@@ -174,14 +174,27 @@ model PublicContact {
   channel  String?
   siteKey  String?
 
+  // Notification state for the assistant's contact flow, so an unsent notification is a
+  // durable, queryable fact rather than a log line. pending | sending | sent | failed.
+  // `sending` is a short lease taken inside the session-locked transaction; `updatedAt`
+  // (already maintained) is the lease timestamp. See docs/gary-contact-pipeline.md.
+  notificationStatus   String    @default("pending")
+  notificationAttempts Int       @default(0)
+  notifiedAt           DateTime?
+  notificationError    String?   @db.Text
+
   sessions PublicChatSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // One logical contact per assistant session, enforced by the database (same pattern as
+  // AssessmentHandoff.sessionId). NULLs are exempt, so rows without a session are unaffected.
+  @@unique([sourceSessionId])
   @@index([emailNormalized])
   @@index([phoneNormalized])
   @@index([siteKey, createdAt])
+  @@index([notificationStatus, updatedAt])
 }
 
 model AssessmentHandoff {
