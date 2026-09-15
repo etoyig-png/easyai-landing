@@ -7,14 +7,25 @@
  * inline it into client JavaScript, and lib/emailRouting.test.ts asserts that no client
  * component imports this module.
  *
- * ONE BUSINESS INBOX. Every business path (customer replies, internal notifications,
- * contact and consultation requests) points at EASY_AI_CONTACT_EMAIL and nothing else.
- * A future email response assistant is meant to watch that one mailbox, so a second Easy AI
- * recipient anywhere would produce duplicate threads and duplicate automated replies.
+ * TWO DELIBERATE DESTINATIONS, EACH WITH ONE PURPOSE.
+ *
+ * - EASY_AI_CONTACT_EMAIL is the PRIMARY CONTACT address. Anything a person sends to reach
+ *   Easy AI lands here: Gary's contact requests, and replies to the customer-facing result
+ *   email (its Reply-To). Product direction 2026-09-14: this is hello@easyaiconsult.com.
+ * - EASY_AI_INTERNAL_NOTIFICATION_EMAIL is where the system tells Easy AI that an assessment
+ *   was completed. That is an internal notification, not a person reaching out, and it keeps
+ *   the address PR #12 routed it to. Production overrides it through
+ *   ASSESSMENT_NOTIFICATION_EMAIL, so changing this constant alone does not move it.
+ *
+ * Every other Easy AI recipient must resolve through one of the two functions below
+ * (contactRecipient, internalRecipient); no route may name an address itself.
  */
 
-/** The public Easy AI business address. Replies, internal notifications and contact requests all land here. */
-export const EASY_AI_CONTACT_EMAIL = 'info@easyaiconsult.com';
+/** PRIMARY CONTACT. Gary contact requests and customer replies land here. */
+export const EASY_AI_CONTACT_EMAIL = 'hello@easyaiconsult.com';
+
+/** INTERNAL NOTIFICATIONS ONLY (assessment completed). Not a contact address. */
+export const EASY_AI_INTERNAL_NOTIFICATION_EMAIL = 'info@easyaiconsult.com';
 
 /**
  * SENDER AUTHENTICATION, READ THIS BEFORE CHANGING THE FROM ADDRESS.
@@ -41,7 +52,7 @@ export function resultFromAddress(): string {
   return process.env.RESULT_EMAIL_FROM ?? AUTHENTICATED_RESULT_FROM;
 }
 
-/** From on internal notifications and contact-form messages. */
+/** From on internal notifications and contact requests. */
 export function notificationFromAddress(): string {
   return process.env.NOTIFICATION_EMAIL_FROM ?? AUTHENTICATED_NOTIFICATION_FROM;
 }
@@ -54,9 +65,17 @@ export function resultReplyToAddress(): string {
   return process.env.RESULT_EMAIL_REPLY_TO ?? EASY_AI_CONTACT_EMAIL;
 }
 
-/** The only Easy AI recipient for internal notifications and contact requests. */
+/** Where the system notifies Easy AI that an assessment was completed. */
 export function internalRecipient(): string {
-  return process.env.ASSESSMENT_NOTIFICATION_EMAIL ?? EASY_AI_CONTACT_EMAIL;
+  return process.env.ASSESSMENT_NOTIFICATION_EMAIL ?? EASY_AI_INTERNAL_NOTIFICATION_EMAIL;
+}
+
+/**
+ * Where a visitor's contact request goes. This is the one destination a white-label site
+ * would configure differently; CONTACT_NOTIFICATION_EMAIL overrides the Easy AI default.
+ */
+export function contactRecipient(): string {
+  return process.env.CONTACT_NOTIFICATION_EMAIL?.trim() || EASY_AI_CONTACT_EMAIL;
 }
 
 export type DeliveryDecision =

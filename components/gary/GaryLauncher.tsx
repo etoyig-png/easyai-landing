@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic';
 import { hasPlayedLaunchAnimation, markLaunchAnimationPlayed } from '@/lib/gary/clientSession';
 import { ROUTINE_STEPS } from '@/lib/gary/routineSteps';
 import GaryCharacter, { type GaryPose } from './GaryCharacter';
+import type { GaryIntent } from './GaryPanel';
+import { OPEN_GARY_EVENT } from '@/lib/gary/openGary';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
 // initial page rendering never downloads the heavier chat bundle. Gary's own character is plain
@@ -36,6 +38,9 @@ export default function GaryLauncher() {
   const [visible, setVisible] = useState(false);
   const [entering, setEntering] = useState(false);
   const [open, setOpen] = useState(false);
+  // Set when a page button opened Gary for a specific purpose (the contact flow). Cleared on close
+  // so a later manual open starts a normal chat.
+  const [intent, setIntent] = useState<GaryIntent>(null);
   const [pose, setPose] = useState<GaryPose>('seated');
   const [routineFinished, setRoutineFinished] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
@@ -98,6 +103,20 @@ export default function GaryLauncher() {
     // Intentionally runs once on mount — the delay and once-per-session check are both evaluated
     // at that single point, not re-derived on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Page content opens Gary through one event rather than mounting a second Gary. Making him
+  // visible first matters: before LAUNCH_DELAY_MS the launcher renders nothing, so an open
+  // request that arrives early would otherwise flip state on an invisible component.
+  useEffect(() => {
+    function handleOpenRequest(event: Event) {
+      const requested = (event as CustomEvent<{ intent?: string | null }>).detail?.intent;
+      setVisible(true);
+      setIntent(requested === 'contact' ? 'contact' : null);
+      setOpen(true);
+    }
+    window.addEventListener(OPEN_GARY_EVENT, handleOpenRequest);
+    return () => window.removeEventListener(OPEN_GARY_EVENT, handleOpenRequest);
   }, []);
 
   // Opening the chat interrupts whatever part of the routine is still playing (jump/wave/point/
@@ -176,7 +195,15 @@ export default function GaryLauncher() {
         </div>
       )}
 
-      {open && <GaryPanel onClose={() => setOpen(false)} />}
+      {open && (
+        <GaryPanel
+          initialIntent={intent}
+          onClose={() => {
+            setOpen(false);
+            setIntent(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { Resend } from 'resend';
 import type { AssessmentSubmission } from './validation';
-import type { ContactSubmission } from './contactValidation';
 import { websiteNotificationValue } from './websiteStatus';
 import { escapeHtml } from './htmlEscape';
 import {
+  contactRecipient,
   internalRecipient,
   notificationFromAddress,
   resolveDelivery,
@@ -144,20 +144,61 @@ export async function sendResultEmail(params: { to: string; firstName: string; b
 }
 
 /**
- * Contact and consultation requests from the public form. Delivered to the one Easy AI
- * business inbox with the visitor as Reply-To.
+ * A visitor's contact request. Delivered to the primary contact address (contactRecipient)
+ * with the visitor as Reply-To when they gave an email. The caller names the channel and the
+ * brand so this module knows nothing about who is asking; today the only caller is the
+ * assistant's contact flow.
  *
  * The visitor never appears in From: that would be an unauthenticated sender on a domain we
  * do not control, and it is how open relays and spoofed mail happen. From is always an
  * authenticated Easy AI address, and every visitor value is HTML-escaped before rendering.
  */
-export async function sendContactMessage(submission: ContactSubmission) {
-  const delivery = resolveDelivery(internalRecipient());
+export interface ContactMessageInput {
+  name: string;
+  /** Optional because a Gary visitor may give only a phone number. Used as Reply-To when present. */
+  email?: string;
+  phone?: string;
+  businessName?: string;
+  message: string;
+  /** Channel label for the subject line, so the inbox can tell request sources apart. */
+  channelLabel?: string;
+  /** Brand shown in the notification header. Defaults to Easy AI. */
+  brandName?: string;
+}
+
+export interface ContactMessageSendOptions {
+  /**
+   * Server-generated key identifying the logical contact request (one per assistant session).
+   * Sent to Resend as the Idempotency-Key header so a retry after an uncertain response
+   * (provider accepted, our settlement failed) cannot produce a second email. Never taken
+   * from the browser.
+   */
+  idempotencyKey?: string;
+}
+
+export type ContactMessageSendResult = { accepted: 'sent' } | { accepted: 'already-accepted' };
+
+/**
+ * Provider idempotency, and its limits. Resend stores an idempotency key for 24 hours after
+ * a request it ACCEPTED. A repeat with the same key and payload returns the original result;
+ * the same key with a DIFFERENT payload returns `invalid_idempotent_request` (409), which is
+ * therefore proof the original email went out and is reported here as 'already-accepted'
+ * rather than thrown. A request Resend never accepted (network failure, 5xx, validation)
+ * stores nothing, so the same key stays usable for the retry. Two in-flight requests with one
+ * key return `concurrent_idempotent_requests` (409); that is thrown so the caller retries
+ * later. After 24 hours the key expires and the database-side notification state is the only
+ * guard against a second send.
+ */
+export async function sendContactMessage(submission: ContactMessageInput, options: ContactMessageSendOptions = {}): Promise<ContactMessageSendResult> {
+  const delivery = resolveDelivery(contactRecipient());
   if (!delivery.allowed) throw new Error(delivery.reason);
+  const channel = submission.channelLabel?.trim() || 'Contact request';
+  const brand = submission.brandName?.trim() || 'Easy AI';
+  const email = submission.email?.trim() || undefined;
 
   const rows: [string, string][] = [
     ['Name', submission.name],
-    ['Email', submission.email],
+    ...(email ? ([['Email', email]] as [string, string][]) : []),
     ...(submission.phone ? ([['Phone', submission.phone]] as [string, string][]) : []),
     ...(submission.businessName ? ([['Business', submission.businessName]] as [string, string][]) : []),
   ];
@@ -172,12 +213,13 @@ export async function sendContactMessage(submission: ContactSubmission) {
   const { error } = await getResend().emails.send({
     from: notificationFromAddress(),
     to: delivery.to,
-    replyTo: submission.email,
-    subject: `Contact form: ${submission.name}`,
+    // Reply-To is the visitor only when they gave an email. Never the sender, never invented.
+    ...(email ? { replyTo: email } : {}),
+    subject: `${channel}: ${submission.name}`,
     html: `
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;">
         <div style="background:#0b1d3a;padding:20px 24px;">
-          <span style="color:#ffffff;font-size:16px;font-weight:bold;">Easy AI, New Contact Message</span>
+          <span style="color:#ffffff;font-size:16px;font-weight:bold;">${escapeHtml(brand)}, New Contact Message</span>
         </div>
         <div style="padding:20px 24px;background:#f8f4ed;">
           <table style="width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #ede5d4;">
@@ -187,6 +229,10 @@ export async function sendContactMessage(submission: ContactSubmission) {
         </div>
       </div>
     `,
-  });
-  if (error) throw new Error(`Resend contact message failed: ${error.message}`);
+  }, options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined);
+  if (error) {
+    if (options.idempotencyKey && error.name === 'invalid_idempotent_request') return { accepted: 'already-accepted' };
+    throw new Error(`Resend contact message failed: ${error.message}`);
+  }
+  return { accepted: 'sent' };
 }

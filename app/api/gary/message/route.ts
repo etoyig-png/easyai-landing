@@ -5,12 +5,23 @@ import { getClientIp, isGaryRateLimited } from '@/lib/rateLimit';
 import { createGaryLlmAdapter } from '@/lib/gary/llm/providerFactory';
 import { generateGaryReply } from '@/lib/gary/replyPipeline';
 import { classifyVisitorMessageSafety } from '@/lib/gary/safetyClassifier';
-import { GARY_OPENING_OPTIONS, GARY_OPENING_QUESTION } from '@/lib/gary/openingQuestion';
+import { GARY_OPENING_OPTIONS, garyOpeningMessage } from '@/lib/gary/openingQuestion';
 import { enqueueFunnelEvent } from '@/lib/gary/funnelEvents';
 import type { GaryConversationState } from '@/lib/gary/systemPrompt';
 import type { ChatMessage } from '@/lib/gary/llm/types';
 import { createSessionCapability, verifySessionCapability } from '@/lib/gary/sessionCapability';
 import { GARY_MAX_MESSAGES, GARY_MAX_TRANSCRIPT_CHARS, readLimitedJson } from '@/lib/requestSafety';
+import {
+  advanceContactFlow,
+  contactOutcomeTexts,
+  detectContactIntent,
+  withOpeningDisclosure,
+  type ContactDraft,
+  type ContactFlowReply,
+  type ContactFlowRequest,
+} from '@/lib/gary/contactFlow';
+import { submitAssistantContact } from '@/lib/gary/contactSubmission';
+import { getSiteConfig } from '@/lib/siteConfig';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -24,7 +35,48 @@ const requestSchema = z.object({
   currentPage: z.string().max(500).optional(),
   referrer: z.string().max(500).optional(),
   utm: z.record(z.string()).optional(),
+  // Gary's four-step contact flow. Bounded, and every value is re-validated in contactFlow.ts.
+  contactFlow: z
+    .object({
+      action: z.enum(['start', 'answer', 'change', 'confirm']),
+      draft: z
+        .object({
+          step: z.enum(['name', 'contact', 'reason', 'confirm']),
+          name: z.string().max(120).optional(),
+          contact: z.string().max(200).optional(),
+          reason: z.string().max(1000).optional(),
+        })
+        .optional(),
+      text: z.string().max(1000).optional(),
+      field: z.enum(['name', 'contact', 'reason']).optional(),
+    })
+    .optional(),
 });
+
+const NEUTRAL_INPUT = { options: undefined, freeText: true, placeholder: 'Type a message...' } as const;
+
+/** Records Gary's scripted turn in the transcript and shapes the response the panel expects. */
+async function respondWithContactFlow(sessionId: string, sessionCapability: string, reply: ContactFlowReply, done = false) {
+  await prisma.publicChatMessage.create({
+    data: { sessionId, role: 'gary', content: reply.text, model: 'contact-flow', optionPayload: reply.options ? (reply.options as never) : undefined },
+  });
+  return NextResponse.json({
+    sessionId,
+    sessionCapability,
+    reply: { text: reply.text, options: reply.options },
+    offerAssessment: false,
+    contactFlow: { draft: reply.draft, freeText: reply.freeText, placeholder: reply.placeholder, done },
+  });
+}
+
+function toFlowRequest(input: NonNullable<z.infer<typeof requestSchema>['contactFlow']>): ContactFlowRequest | null {
+  const draft = input.draft as ContactDraft | undefined;
+  if (input.action === 'start') return { action: 'start' };
+  if (!draft) return null;
+  if (input.action === 'answer') return { action: 'answer', draft, text: input.text ?? '' };
+  if (input.action === 'change') return input.field ? { action: 'change', draft, field: input.field } : null;
+  return { action: 'confirm', draft };
+}
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -74,16 +126,63 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const capability = data.sessionCapability ?? createSessionCapability(session.id);
+
+  // The assistant's contact flow: four scripted steps, no model, no qualification. The panel
+  // echoes the draft back each turn so the server holds no flow state. Persistence happens
+  // only on send, inside submitAssistantContact, in a fixed order: rate limit, durable record,
+  // notification, then the Command Center handoff. Which site owns the contact, where it is
+  // delivered, and what the assistant is called all come from server-side SiteConfig.
+  const site = getSiteConfig();
+  if (data.contactFlow) {
+    if (!site.actions.contactFlow) return NextResponse.json({ error: 'Contact flow is not enabled' }, { status: 404 });
+    const flowRequest = toFlowRequest(data.contactFlow);
+    if (!flowRequest) return NextResponse.json({ error: 'Invalid contact flow request' }, { status: 400 });
+
+    if (flowRequest.action === 'answer' && flowRequest.text.trim()) {
+      await prisma.publicChatMessage.create({ data: { sessionId: session.id, role: 'visitor', content: flowRequest.text.trim().slice(0, 1000) } });
+    }
+
+    const advanced = advanceContactFlow(flowRequest);
+    // The AI disclosure opens the flow when it is entered directly from a contact button, so it
+    // is visible before any personal information is asked for. Step one is unchanged.
+    const reply = flowRequest.action === 'start' ? withOpeningDisclosure(advanced, site.assistant.disclosure) : advanced;
+    if (!reply.send) return respondWithContactFlow(session.id, capability, reply);
+
+    const texts = contactOutcomeTexts(site.brand.name);
+    const outcome = await submitAssistantContact({ sessionId: session.id, clientIdentity: ipAddress, send: reply.send, config: site });
+    switch (outcome.kind) {
+      case 'sent':
+        return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.sent }, true);
+      case 'already-processed':
+        return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.alreadySent }, true);
+      case 'in-progress':
+        return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.inProgress }, true);
+      case 'limited':
+        return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.limited }, true);
+      case 'saved-not-notified':
+        // Contact and handoff are durable; only the email failed. Stay on the confirmation so
+        // the visitor can retry, and never claim the message was sent.
+        return respondWithContactFlow(session.id, capability, { ...reply, text: texts.savedNotSent });
+      case 'failed':
+        // Nothing durable exists. Stay on the confirmation so the visitor can try again.
+        return respondWithContactFlow(session.id, capability, { ...reply, text: texts.failed });
+    }
+  }
+
   // The very first call for a brand-new session (no message yet) returns the fixed opening
   // question deterministically — no LLM call, matching the master spec's exact wording.
   if (isNewSession && !data.message) {
+    // Disclosure first, then the fixed opening question: the visitor is told they are talking
+    // to an AI assistant before anything else happens.
+    const opening = garyOpeningMessage(site.assistant.disclosure);
     await prisma.publicChatMessage.create({
-      data: { sessionId: session.id, role: 'gary', content: GARY_OPENING_QUESTION, optionPayload: GARY_OPENING_OPTIONS as never },
+      data: { sessionId: session.id, role: 'gary', content: opening, optionPayload: GARY_OPENING_OPTIONS as never },
     });
     return NextResponse.json({
       sessionId: session.id,
       sessionCapability: createSessionCapability(session.id),
-      reply: { text: GARY_OPENING_QUESTION, options: GARY_OPENING_OPTIONS },
+      reply: { text: opening, options: GARY_OPENING_OPTIONS },
       offerAssessment: false,
     });
   }
@@ -100,6 +199,12 @@ export async function POST(req: NextRequest) {
   await prisma.publicChatMessage.create({
     data: { sessionId: session.id, role: 'visitor', content: visitorMessage, safetyClass, optionPayload: data.optionSelected ? { optionSelected: data.optionSelected } : undefined },
   });
+
+  // "I need to talk to the owner", "have someone call me", "can someone email me": straight
+  // into the four-step contact flow. No goals, no company, no service, no discovery first.
+  if (site.actions.contactFlow && detectContactIntent(visitorMessage)) {
+    return respondWithContactFlow(session.id, capability, advanceContactFlow({ action: 'start' }));
+  }
 
   const priorMessages = await prisma.publicChatMessage.findMany({ where: { sessionId: session.id }, orderBy: { createdAt: 'asc' } });
   const history: ChatMessage[] = priorMessages
@@ -136,7 +241,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     sessionId: session.id,
-    sessionCapability: data.sessionCapability ?? createSessionCapability(session.id),
+    sessionCapability: capability,
     reply: { text: reply.text },
     offerAssessment: reply.offerAssessment,
   });
