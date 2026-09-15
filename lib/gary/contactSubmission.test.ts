@@ -13,7 +13,7 @@ import type { SiteConfig } from '@/lib/siteConfig';
 const config: SiteConfig = {
   siteKey: 'easy-ai',
   brand: { name: 'Easy AI' },
-  assistant: { name: 'Gary', programName: 'AIM' },
+  assistant: { name: 'Gary', programName: 'AIM', disclosure: "Hi, I'm Gary, Easy AI's AI assistant." },
   contact: {
     notificationEmail: 'hello@easyaiconsult.com',
     channelLabel: 'Gary contact request',

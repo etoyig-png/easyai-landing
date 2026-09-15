@@ -427,9 +427,11 @@ test.describe('Gary character — mobile viewport usability', () => {
   });
 });
 
-// The hero's own "See How Easy AI Works" ghost button — the CTA the launcher was measured
-// overlapping on the shortest required viewport before the compact-mode fix.
-const HOMEPAGE_CTA_TEXT = 'See How Easy AI Works';
+// The hero's own ghost button (today "Book a Consultation"; formerly "See How Easy AI Works")
+// — the CTA the launcher was measured overlapping on the shortest required viewport before the
+// compact-mode fix. Located by accessible name so copy changes surface here, not in layout.
+const HOMEPAGE_CTA_TEXT = 'Book a Consultation';
+const HOMEPAGE_CTA_HREF = /\/assessment\?intent=consultation$/;
 
 test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
   const REQUIRED_MOBILE_VIEWPORTS = [
@@ -446,7 +448,7 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const cta = page.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      const cta = page.locator('section.bg-navy-900.overflow-hidden').first().getByRole('link', { name: HOMEPAGE_CTA_TEXT });
       await cta.scrollIntoViewIfNeeded();
       const ctaBox = await cta.boundingBox();
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
@@ -472,7 +474,7 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const cta = page.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      const cta = page.locator('section.bg-navy-900.overflow-hidden').first().getByRole('link', { name: HOMEPAGE_CTA_TEXT });
       await cta.scrollIntoViewIfNeeded();
       // elementFromPoint at the CTA's own center must resolve to the CTA itself, not the
       // launcher (or anything else) sitting on top of it — the strict version of "clickable".
@@ -480,16 +482,17 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
       const resolvesToCta = await page.evaluate(
         ([x, y]) => {
           const el = document.elementFromPoint(x, y);
-          const link = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('See How Easy AI Works'));
+          const hero = document.querySelector('section.bg-navy-900.overflow-hidden');
+          const link = Array.from(hero?.querySelectorAll('a') ?? []).find((a) => a.textContent?.includes('Book a Consultation'));
           return el === link || (link ? link.contains(el) : false);
         },
         [ctaBox!.x + ctaBox!.width / 2, ctaBox!.y + ctaBox!.height / 2]
       );
       expect(resolvesToCta).toBe(true);
 
-      // And an actual click works end-to-end — it's an in-page anchor link to #how-easy-ai-works.
+      // And an actual click works end-to-end — the hero CTA routes into the assessment.
       await cta.click();
-      await expect(page).toHaveURL(/#how-easy-ai-works$/);
+      await expect(page).toHaveURL(HOMEPAGE_CTA_HREF);
     });
 
     test(`decorative Gary elements do not intercept pointer events at ${viewport.width}x${viewport.height}`, async ({ page }) => {
@@ -576,6 +579,11 @@ function boxOverlapArea(a: { x: number; y: number; width: number; height: number
 }
 
 test.describe('Gary launcher — hero video overlap', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    test.skip((await page.locator('video').count()) === 0, 'STALE SUBJECT: the homepage hero video was removed in the PR #9 redesign (main 0ede74a has no <video>). Assertions kept for an owner decision; they run again if a hero video returns.');
+  });
+
   // Required test matrix: narrowest phone through desktop. minUsefulWidth encodes "large enough
   // to be useful, not merely technically visible" — 180px at 360 and 200px at 390 are the
   // explicit floors; wider breakpoints get a floor comfortably below their actual rendered size
@@ -698,7 +706,7 @@ test.describe('Gary launcher — hero video overlap', () => {
 
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
       const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCta = heroSection.getByRole('link', { name: 'Start Your Free Business Assessment' });
+      const greenCta = heroSection.getByRole('link', { name: 'Start Your Free Assessment' });
       const ghostCta = heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
       await greenCta.scrollIntoViewIfNeeded();
       const greenBox = await greenCta.boundingBox();
@@ -743,14 +751,14 @@ async function advanceToPose(page: Page, pose: string, budgetMs: number, stepMs 
 }
 
 test.describe('Gary launcher — chat button color/ring and universal sign/bubble composition', () => {
-  test('chat button uses the exact same green as the "Start Your Free Business Assessment" CTA', async ({ page }) => {
+  test('chat button uses the exact same green as the "Start Your Free Assessment" CTA', async ({ page }) => {
     await page.clock.install();
     await page.goto('/');
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
     const buttonBg = await page.evaluate(() => getComputedStyle(document.querySelector('.gary-chat-button')!).backgroundColor);
     const ctaBg = await page.evaluate(() => {
-      const cta = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Start Your Free Business Assessment'));
+      const cta = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Start Your Free Assessment'));
       return cta ? getComputedStyle(cta).backgroundColor : null;
     });
     expect(ctaBg, 'assessment CTA not found').not.toBeNull();
@@ -880,16 +888,19 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
       await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
 
       const signBox = await page.locator('.gary-sign-board').boundingBox();
-      const videoBox = await page.locator('video').first().boundingBox();
+      // The hero video was removed in the PR #9 redesign; when absent, only the video overlap
+      // assertion is skipped and the CTA/face/readability checks below still run.
+      const hasVideo = (await page.locator('video').count()) > 0;
+      const videoBox = hasVideo ? await page.locator('video').first().boundingBox() : null;
       const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCtaBox = await heroSection.getByRole('link', { name: 'Start Your Free Business Assessment' }).boundingBox();
+      const greenCtaBox = await heroSection.getByRole('link', { name: 'Start Your Free Assessment' }).boundingBox();
       const ghostCtaBox = await heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
       const buttonBox = await page.locator('.gary-chat-button').boundingBox();
       const faceBox = await page.locator('.gary-glasses').boundingBox();
 
       expect(signBox!.x).toBeGreaterThanOrEqual(-1);
       expect(signBox!.x + signBox!.width).toBeLessThanOrEqual(viewport.width + 1);
-      expect(boxOverlapArea(signBox, videoBox), `sign vs video: ${JSON.stringify({ signBox, videoBox })}`).toBe(0);
+      if (hasVideo) expect(boxOverlapArea(signBox, videoBox), `sign vs video: ${JSON.stringify({ signBox, videoBox })}`).toBe(0);
       expect(boxOverlapArea(signBox, greenCtaBox), `sign vs green CTA`).toBe(0);
       expect(boxOverlapArea(signBox, ghostCtaBox), `sign vs ghost CTA`).toBe(0);
       expect(boxOverlapArea(signBox, buttonBox), `sign vs button: ${JSON.stringify({ signBox, buttonBox })}`).toBe(0);
@@ -1103,7 +1114,7 @@ test.describe('Gary launcher — pose-driven message exclusivity and responsive 
       const faceBox = await face.boundingBox();
       const bubbleBox = await bubble.boundingBox();
       const hero = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCtaBox = await hero.getByRole('link', { name: 'Start Your Free Business Assessment' }).boundingBox();
+      const greenCtaBox = await hero.getByRole('link', { name: 'Start Your Free Assessment' }).boundingBox();
       const ghostCtaBox = await hero.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
 
       expect(await currentGaryPose(page)).not.toBeNull();
@@ -1145,6 +1156,11 @@ test.describe('Gary launcher — pose-driven message exclusivity and responsive 
 });
 
 test.describe('Homepage responsive images', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    test.skip((await page.getByAltText(IMAGE_ALT_TEXTS[0]).count()) === 0, 'STALE SUBJECT: the three homepage photos (HVAC/electrician/construction) were replaced in the PR #9 redesign and these assertions target the retired alt text and aspect ratios of those assets. Kept for an owner decision.');
+  });
+
   const REQUIRED_VIEWPORTS = [
     { width: 360, height: 800, label: '360x800' },
     { width: 390, height: 844, label: '390x844' },

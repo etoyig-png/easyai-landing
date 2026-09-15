@@ -5,7 +5,7 @@ import { getClientIp, isGaryRateLimited } from '@/lib/rateLimit';
 import { createGaryLlmAdapter } from '@/lib/gary/llm/providerFactory';
 import { generateGaryReply } from '@/lib/gary/replyPipeline';
 import { classifyVisitorMessageSafety } from '@/lib/gary/safetyClassifier';
-import { GARY_OPENING_OPTIONS, GARY_OPENING_QUESTION } from '@/lib/gary/openingQuestion';
+import { GARY_OPENING_OPTIONS, garyOpeningMessage } from '@/lib/gary/openingQuestion';
 import { enqueueFunnelEvent } from '@/lib/gary/funnelEvents';
 import type { GaryConversationState } from '@/lib/gary/systemPrompt';
 import type { ChatMessage } from '@/lib/gary/llm/types';
@@ -15,6 +15,7 @@ import {
   advanceContactFlow,
   contactOutcomeTexts,
   detectContactIntent,
+  withOpeningDisclosure,
   type ContactDraft,
   type ContactFlowReply,
   type ContactFlowRequest,
@@ -142,7 +143,10 @@ export async function POST(req: NextRequest) {
       await prisma.publicChatMessage.create({ data: { sessionId: session.id, role: 'visitor', content: flowRequest.text.trim().slice(0, 1000) } });
     }
 
-    const reply = advanceContactFlow(flowRequest);
+    const advanced = advanceContactFlow(flowRequest);
+    // The AI disclosure opens the flow when it is entered directly from a contact button, so it
+    // is visible before any personal information is asked for. Step one is unchanged.
+    const reply = flowRequest.action === 'start' ? withOpeningDisclosure(advanced, site.assistant.disclosure) : advanced;
     if (!reply.send) return respondWithContactFlow(session.id, capability, reply);
 
     const texts = contactOutcomeTexts(site.brand.name);
@@ -169,13 +173,16 @@ export async function POST(req: NextRequest) {
   // The very first call for a brand-new session (no message yet) returns the fixed opening
   // question deterministically — no LLM call, matching the master spec's exact wording.
   if (isNewSession && !data.message) {
+    // Disclosure first, then the fixed opening question: the visitor is told they are talking
+    // to an AI assistant before anything else happens.
+    const opening = garyOpeningMessage(site.assistant.disclosure);
     await prisma.publicChatMessage.create({
-      data: { sessionId: session.id, role: 'gary', content: GARY_OPENING_QUESTION, optionPayload: GARY_OPENING_OPTIONS as never },
+      data: { sessionId: session.id, role: 'gary', content: opening, optionPayload: GARY_OPENING_OPTIONS as never },
     });
     return NextResponse.json({
       sessionId: session.id,
       sessionCapability: createSessionCapability(session.id),
-      reply: { text: GARY_OPENING_QUESTION, options: GARY_OPENING_OPTIONS },
+      reply: { text: opening, options: GARY_OPENING_OPTIONS },
       offerAssessment: false,
     });
   }

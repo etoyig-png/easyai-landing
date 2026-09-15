@@ -5,13 +5,16 @@ Intelligence Interaction Manager) is Easy AI's primary contact interaction layer
 covers what happens after a visitor confirms a contact request, where it can fail, how Easy AI
 finds out, and how to recover. Update it with any material change to the files it names.
 
-Last verified against: branch `fix/gary-primary-contact-pipeline` (PR #15), 2026-09-14 (final correction pass).
+Last verified against: branch `fix/gary-primary-contact-pipeline` (PR #15), 2026-09-15.
+
+**Release status, stated separately.** *PR code:* corrected and gated (see PR #15). *Production:* NOT READY — three migrations unapplied; `GARY_FUNNEL_WEBHOOK_URL`, `GARY_FUNNEL_WEBHOOK_SECRET`, `GARY_FUNNEL_DRAIN_SECRET`, `CRON_SECRET` unset; no uptime checker or dependable human alert connected; Preview shares the production database. *Gary-to-Command-Center business flow:* NOT OPERATIONAL — the Command Center does not turn `contact.captured` into one Lead/Prospect per `sessionId` (§10).
 
 ## 1. As-built flow and status
 
 | Stage | Where | Status | Notes |
 |---|---|---|---|
-| Contact intent → Name → Contact → Reason → Confirm | `lib/gary/contactFlow.ts`, `components/gary/GaryPanel.tsx`, `app/api/gary/message/route.ts` | READY | Deterministic script, no model. Server holds no flow state; the panel echoes the draft. Intent only enters the flow when `SiteConfig.actions.contactFlow` is on. |
+| AI disclosure | `SiteConfig.assistant.disclosure` → `garyOpeningMessage` (new conversation) and `withOpeningDisclosure` (contact button opens the flow) | READY | "Hi, I'm Gary, Easy AI's AI assistant." is the first sentence Gary says at both entry points, before any personal information is requested. Configurable per site (`ASSISTANT_DISCLOSURE`). Not a step. |
+| Contact intent → Name → Contact → Reason → Confirm | `lib/gary/contactFlow.ts`, `components/gary/GaryPanel.tsx`, `app/api/gary/message/route.ts` | READY | Deterministic script, no model. Server holds no flow state; the panel echoes the draft. Intent only enters the flow when `SiteConfig.actions.contactFlow` is on. Browser-covered by `tests/e2e/gary-contact-flow.spec.ts` (desktop + 360×800, 390×844, 412×915). |
 | Rate limit | `lib/contactRateLimit.ts` → `ContactRateLimitEvent` | BROKEN IN PRODUCTION | Code is sound (hashed identity, Serializable + advisory lock, fails closed). Migration `20260909000000_contact_rate_limit` is **not applied** in production, so every send currently fails closed. |
 | Claim: `PublicContact` + session link + outbox row | `lib/gary/contactSubmission.ts` (`productionContactSubmissionDeps.claim`) | READY (code) / PENDING (schema) | One Serializable transaction under `pg_advisory_xact_lock(hashtext('contact-flow:<sessionId>'))`. Requires migrations `20260914000000_public_contact_reason_channel` and `20260914120000_public_contact_session_idempotency`. |
 | Email notification | `lib/resend.ts` `sendContactMessage` → `contactRecipient()` | READY | To `hello@easyaiconsult.com` (or `CONTACT_NOTIFICATION_EMAIL`). Reply-To only when the visitor gave an email. Non-production redirects to `EMAIL_TEST_RECIPIENT` or refuses. Provider idempotency key `contact-notification:<siteKey>:<sessionId>` (ADR-002). |
@@ -29,7 +32,7 @@ Last verified against: branch `fix/gary-primary-contact-pipeline` (PR #15), 2026
 - **Public → privileged trust boundary.** Everything in a request body is untrusted: the contact draft (validated and length-capped in `contactFlow.ts`), `sessionId` (must carry a valid HMAC `sessionCapability`), `anonymousId`. Nothing in a request can select site, tenant, organisation, destination, or assistant identity: those come from `lib/siteConfig.ts`, resolved from server environment only. Client components may not import `lib/siteConfig.ts` or `lib/emailRouting.ts` (test-enforced).
 - **Server-derived ownership.** `PublicContact.siteKey` and the outbox payload's `siteKey`/`channel` are written from `SiteConfig`, never from input (tested).
 - **Email-provider boundary.** `lib/resend.ts` is the only Resend caller. From addresses stay on the authenticated `mail.easyaiconsult.com` senders. `resolveDelivery()` lets only `VERCEL_ENV=production` reach real recipients.
-- **Webhook authentication boundary.** Sender: `Authorization: Bearer GARY_FUNNEL_WEBHOOK_SECRET` (server env only). Receiver compares against `EASY_AI_PUBLIC_FUNNEL_WEBHOOK_TOKEN`. Operations endpoint `/api/gary/funnel-outbox/drain` requires `GARY_FUNNEL_DRAIN_SECRET`.
+- **Webhook authentication boundary.** Sender: `Authorization: Bearer GARY_FUNNEL_WEBHOOK_SECRET` (server env only). Receiver compares against `EASY_AI_PUBLIC_FUNNEL_WEBHOOK_TOKEN`. Operations endpoint `/api/gary/funnel-outbox/drain` accepts either bearer `GARY_FUNNEL_DRAIN_SECRET` (operator / uptime checker) or `CRON_SECRET` (added by Vercel to the scheduled GET); it refuses every request when neither is configured.
 - **Rate limit.** Per hashed client identity, 3 contact sends per hour, fails closed. It is not the idempotency mechanism.
 
 ## 3. Environments
@@ -67,7 +70,7 @@ Consequence: a preview deployment cannot exercise Gary's server path, and if it 
 1. `PublicContact.sourceSessionId` is UNIQUE. One logical contact per Gary session; a retry updates the same row.
 2. The claim is one Serializable transaction under the session advisory lock: contact upsert + `identifiedContactId` link + `contact.captured` outbox row. They commit together, **before** the email. A provider outage therefore cannot strand the handoff.
 3. Notification state lives on the contact (`pending | sending | sent | failed`, attempts, error, `notifiedAt`). `sending` is a 60 s lease (`updatedAt` is the lease clock) so a request that dies mid-send is recoverable and a concurrent request gets `in-progress`, not a duplicate.
-4. Outbox storage returns a verifiable result (`created | existing`, or throws) and delivery is awaited with a timeout inside the request. `void` is not used for anything the visitor's outcome depends on.
+4. Outbox storage returns a verifiable result (`created | existing`, or throws) inside the claim transaction. The delivery *attempt* is not part of the request: it is scheduled through `waitUntil` after the response (ADR-003) with an 8 s timeout, and its result lands on the outbox row. Nothing the visitor is told depends on delivery, and `void` is not used for anything durable.
 5. The pipeline's outbox key is producer-scoped: `contact.captured:<sessionId>:<channelKey>`. The assessment handoff route already emits `contact.captured:<sessionId>` (a conversation summary); sharing the key would silently drop the visitor's details whenever they visited the assessment first. The receiver dedupes by `eventId`; a Lead consumer must upsert by `sessionId`.
 6. The pipeline does not write `CrrOutboxEvent` (§6).
 
@@ -171,7 +174,7 @@ update "FunnelEventOutbox" set attempts = 0, "nextAttemptAt" = now() where "idem
 
 **Recovery scenarios.**
 - Migration 3 fails on the unique index (duplicates found): nothing is applied from that migration (single transaction). Keep the newest row per session, null `sourceSessionId` on the older ones, re-run.
-- Email succeeded, webhook failed: outbox retries automatically (8 attempts / ~2 h). If exhausted, re-arm (§7). Nothing is lost.
+- Email succeeded, webhook failed: the row stays in the outbox with retry state (up to 8 attempts, backoff 30 s → 1 h). **When** an attempt actually runs depends on new traffic (any new outbox row drains up to 5 older due rows), the daily Vercel Cron once `CRON_SECRET` is set, or a manual `POST …/drain`; there is no guaranteed completion time and no two-hour window. If exhausted, re-arm (§7). Nothing is lost.
 - Duplicate legacy session rows: not expected (no writer on `main`); handled by the preflight.
 
 **Post-deployment smoke test** (authorized, controlled):
@@ -197,6 +200,8 @@ update "FunnelEventOutbox" set attempts = 0, "nextAttemptAt" = now() where "idem
 | Scheduled retry not active | OPEN, release-relevant | needs PR #15 deployed + `CRON_SECRET`; Hobby = daily |
 | Resend key expiry (24 h) leaves a residual duplicate window after a settlement crash | ACCEPTED, narrow | ADR-002 |
 | Disposable-database concurrency test runs only locally (`TEST_DATABASE_URL`), not in CI | ACCEPTED | run before each release; result recorded in PR #15 |
+| Gary input was white-on-white; "Yes, send it" was 3.3:1 | FIXED 2026-09-15 | explicit field colours; green-800 button (6.4:1); e2e computes contrast and runs axe |
+| No upfront AI disclosure | FIXED 2026-09-15 | disclosure at both entry points, unit + e2e tested |
 
 ## 10. Two `contact.captured` producers — unresolved Command Center contract
 

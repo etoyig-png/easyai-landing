@@ -6,6 +6,7 @@ const KEYS = [
   'SITE_BRAND_NAME',
   'ASSISTANT_NAME',
   'ASSISTANT_PROGRAM_NAME',
+  'ASSISTANT_DISCLOSURE',
   'CONTACT_NOTIFICATION_EMAIL',
   'CONTACT_CHANNEL_LABEL',
   'CONTACT_CHANNEL_KEY',
@@ -33,7 +34,7 @@ describe('site configuration for the assistant contact pipeline', () => {
     expect(getSiteConfig()).toEqual({
       siteKey: 'easy-ai',
       brand: { name: 'Easy AI' },
-      assistant: { name: 'Gary', programName: 'AIM' },
+      assistant: { name: 'Gary', programName: 'AIM', disclosure: "Hi, I'm Gary, Easy AI's AI assistant." },
       contact: {
         notificationEmail: 'hello@easyaiconsult.com',
         channelLabel: 'Gary contact request',
@@ -56,6 +57,9 @@ describe('site configuration for the assistant contact pipeline', () => {
     expect(config.brand.name).toBe('Partner Co');
     expect(config.assistant.name).toBe('Max');
     expect(config.contact.channelLabel).toBe('Max contact request');
+    expect(config.assistant.disclosure).toBe("Hi, I'm Max, Partner Co's AI assistant.");
+    process.env.ASSISTANT_DISCLOSURE = 'Hello, Max here, an AI assistant for Partner Co.';
+    expect(getSiteConfig().assistant.disclosure).toBe('Hello, Max here, an AI assistant for Partner Co.');
     expect(config.contact.notificationEmail).toBe('leads@partner.example');
     expect(config.contact.bookingPath).toBe('/book');
     expect(config.actions.contactFlow).toBe(false);

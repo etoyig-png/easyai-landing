@@ -38,7 +38,7 @@ import type { SiteConfig } from '@/lib/siteConfig';
 const config: SiteConfig = {
   siteKey: 'easy-ai',
   brand: { name: 'Easy AI' },
-  assistant: { name: 'Gary', programName: 'AIM' },
+  assistant: { name: 'Gary', programName: 'AIM', disclosure: "Hi, I'm Gary, Easy AI's AI assistant." },
   contact: { notificationEmail: 'hello@easyaiconsult.com', channelLabel: 'Gary contact request', channelKey: 'assistant-contact-flow', bookingPath: '/book-consultation' },
   actions: { contactFlow: true, assessmentHandoff: true },
 };
@@ -113,7 +113,7 @@ describe('two simultaneous confirmations for one session (in-memory lock + uniqu
     expect(kinds).toContain('in-progress');
     expect(contacts.size).toBe(1);
     expect(events.size).toBe(1);
-    expect([...events.keys()]).toEqual(['contact.captured:session-race:assistant-contact-flow']);
+    expect(Array.from(events.keys())).toEqual(['contact.captured:session-race:assistant-contact-flow']);
     expect(deps.send).toHaveBeenCalledTimes(1);
   });
 

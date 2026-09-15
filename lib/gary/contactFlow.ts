@@ -182,6 +182,15 @@ function promptFor(step: ContactFlowStep, draft: ContactDraft): ContactFlowReply
 }
 
 /**
+ * Prefixes the AI disclosure onto the reply that opens the flow, for the case where a contact
+ * button opens Gary straight into step one and no conversation came first. The step itself,
+ * its draft and its input are untouched: this is wording on step one, not a step.
+ */
+export function withOpeningDisclosure(reply: ContactFlowReply, disclosure: string): ContactFlowReply {
+  return { ...reply, text: `${disclosure.trim()} ${reply.text}` };
+}
+
+/**
  * Advances the flow by exactly one step, or re-asks the current step when the answer is not
  * usable. Never adds a step: after any edit, the next prompt is the first field still missing,
  * which is the confirmation when nothing is missing.

@@ -241,7 +241,9 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
                 onClick={() => (contactDraft ? handleContactOption(option) : handleSend(option, option))}
                 className={
                   contactDraft && option === CONTACT_CONFIRM_YES
-                    ? 'btn-green min-h-[44px] w-full text-center text-sm'
+                    // Darker than .btn-green on purpose: white 14 px text on green-600 is 3.3:1
+                    // against the panel's white surface; green-800 gives 6.4:1 (WCAG AA 4.5:1).
+                    ? 'inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-green-800 px-3 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-green-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-navy-900'
                     : contactDraft && option === CONTACT_SOMETHING_ELSE
                       ? 'min-h-[44px] rounded-lg px-3 py-2 text-left text-sm text-slate-500 underline'
                       : 'min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 text-left text-sm text-slate-700 hover:border-navy-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver'
@@ -313,7 +315,9 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
           onChange={(event) => setInput(event.target.value)}
           placeholder={contactPlaceholder ?? 'Type a message...'}
           disabled={sending}
-          className="min-h-[44px] flex-1 rounded-lg border border-slate-300 px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
+          // Explicit colours on purpose: the site body is white-on-navy, and this field sits on the
+          // panel's white surface, so inherited text would be white on white.
+          className="min-h-[44px] flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-500 disabled:bg-slate-100 disabled:text-slate-500 focus:outline-none focus-visible:border-navy-900 focus-visible:ring-2 focus-visible:ring-navy-900"
         />
         <button
           type="submit"

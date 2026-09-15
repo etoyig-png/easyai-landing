@@ -26,6 +26,11 @@ export interface SiteConfig {
     name: string;
     /** The product name of the assistant program (Artificial Intelligence Interaction Manager). */
     programName: string;
+    /**
+     * The upfront artificial-intelligence disclosure, spoken as the first sentence of the
+     * assistant's first message in every conversation and at the start of the contact flow.
+     */
+    disclosure: string;
   };
   contact: {
     /** Where a confirmed contact request is delivered. */
@@ -58,12 +63,14 @@ function text(name: string, fallback: string): string {
 
 export function getSiteConfig(): SiteConfig {
   const assistantName = text('ASSISTANT_NAME', 'Gary');
+  const brandName = text('SITE_BRAND_NAME', 'Easy AI');
   return {
     siteKey: text('SITE_KEY', 'easy-ai'),
-    brand: { name: text('SITE_BRAND_NAME', 'Easy AI') },
+    brand: { name: brandName },
     assistant: {
       name: assistantName,
       programName: text('ASSISTANT_PROGRAM_NAME', 'AIM'),
+      disclosure: text('ASSISTANT_DISCLOSURE', `Hi, I'm ${assistantName}, ${brandName}'s AI assistant.`),
     },
     contact: {
       notificationEmail: contactRecipient(),
