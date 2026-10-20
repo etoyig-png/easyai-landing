@@ -8,6 +8,13 @@ import {
   PRIVACY_CONCERN_OPTIONS,
   INDUSTRY_OPTIONS,
   SPORTS_OPTIONS,
+  CUSTOMER_DISCOVERY_OPTIONS,
+  SEARCH_VISIBILITY_OPTIONS,
+  WEBSITE_ACTION_OPTIONS,
+  RESPONSE_SPEED_OPTIONS,
+  MISSED_CALLS_OPTIONS,
+  FOLLOW_UP_OPTIONS,
+  SENSITIVE_INFO_OPTIONS,
 } from './quizQuestions';
 
 export const assessmentSubmissionSchema = z
@@ -20,6 +27,19 @@ export const assessmentSubmissionSchema = z
     privacyConcern: z.enum(PRIVACY_CONCERN_OPTIONS),
     industry: z.enum(INDUSTRY_OPTIONS),
     industryOther: z.string().trim().max(200).optional(),
+
+    // Customer-growth questions. Optional on purpose: the browser form always sends all of
+    // them, but keeping them optional means an in-flight submission from a cached older page
+    // still succeeds instead of 400-ing at the exact moment of a deploy. A missing answer
+    // simply narrows what the result can say, it never loses the lead.
+    customerDiscovery: z.enum(CUSTOMER_DISCOVERY_OPTIONS).optional(),
+    searchVisibility: z.enum(SEARCH_VISIBILITY_OPTIONS).optional(),
+    websiteAction: z.enum(WEBSITE_ACTION_OPTIONS).optional(),
+    responseSpeed: z.enum(RESPONSE_SPEED_OPTIONS).optional(),
+    missedCalls: z.enum(MISSED_CALLS_OPTIONS).optional(),
+    followUpConsistency: z.enum(FOLLOW_UP_OPTIONS).optional(),
+    sensitiveInfo: z.enum(SENSITIVE_INFO_OPTIONS).optional(),
+
     sportsFan: z.enum(SPORTS_OPTIONS),
 
     firstName: z.string().trim().min(1, 'First name is required').max(100),

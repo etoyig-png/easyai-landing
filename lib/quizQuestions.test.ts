@@ -23,10 +23,12 @@ const ORIGINAL_TITLES: Record<string, string> = {
 };
 
 describe('buildQuestions', () => {
-  it('keeps Q1 (workSituation) and Q8 (sportsFan) unpersonalized regardless of business name', () => {
+  it('keeps the first (workSituation) and last (sportsFan) questions unpersonalized regardless of business name', () => {
     const questions = buildQuestions('Johnson Electric');
     expect(questions[0].title).toBe(ORIGINAL_TITLES.workSituation);
-    expect(questions[7].title).toBe(ORIGINAL_TITLES.sportsFan);
+    // Referenced by position-from-the-end rather than a hardcoded index: the customer-growth
+    // questions were inserted before it, and sportsFan is defined as the closing question.
+    expect(questions[questions.length - 1].title).toBe(ORIGINAL_TITLES.sportsFan);
   });
 
   it('interpolates the business name into Q2-Q7 titles', () => {
@@ -55,6 +57,13 @@ describe('buildQuestions', () => {
       'timeDrain',
       'privacyConcern',
       'industry',
+      'customerDiscovery',
+      'searchVisibility',
+      'websiteAction',
+      'responseSpeed',
+      'missedCalls',
+      'followUpConsistency',
+      'sensitiveInfo',
       'sportsFan',
     ]);
     expect(questions[0].options).toEqual(WORK_SITUATION_OPTIONS);
@@ -64,7 +73,7 @@ describe('buildQuestions', () => {
     expect(questions[4].options).toEqual(TIME_DRAIN_OPTIONS);
     expect(questions[5].options).toEqual(PRIVACY_CONCERN_OPTIONS);
     expect(questions[6].options).toEqual(INDUSTRY_OPTIONS);
-    expect(questions[7].options).toEqual(SPORTS_OPTIONS);
+    expect(questions[questions.length - 1].options).toEqual(SPORTS_OPTIONS);
     expect(questions[6].allowOther).toBe(true);
     expect(questions.filter((q) => q.allowOther).map((q) => q.key)).toEqual(['industry']);
   });

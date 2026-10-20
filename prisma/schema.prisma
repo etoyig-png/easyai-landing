@@ -45,6 +45,17 @@ model Submission {
   industry      String
   industryOther String?
 
+  // Customer-growth answers (added with the customer-growth repositioning).
+  // Nullable on purpose: this is an additive migration, and every Submission row created
+  // before it must stay valid. Null means "not asked / not answered", never an empty answer.
+  customerDiscovery   String?
+  searchVisibility    String?
+  websiteAction       String?
+  responseSpeed       String?
+  missedCalls         String?
+  followUpConsistency String?
+  sensitiveInfo       String?
+
   // Q8 — sports fan
   sportsFan String
 

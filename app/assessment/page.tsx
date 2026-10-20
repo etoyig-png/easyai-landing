@@ -15,6 +15,13 @@ interface Answers {
   privacyConcern: string;
   industry: string;
   industryOther: string;
+  customerDiscovery: string;
+  searchVisibility: string;
+  websiteAction: string;
+  responseSpeed: string;
+  missedCalls: string;
+  followUpConsistency: string;
+  sensitiveInfo: string;
   sportsFan: string;
   firstName: string;
   lastName: string;
@@ -31,6 +38,13 @@ const EMPTY_ANSWERS: Answers = {
   privacyConcern: '',
   industry: '',
   industryOther: '',
+  customerDiscovery: '',
+  searchVisibility: '',
+  websiteAction: '',
+  responseSpeed: '',
+  missedCalls: '',
+  followUpConsistency: '',
+  sensitiveInfo: '',
   sportsFan: '',
   firstName: '',
   lastName: '',
@@ -38,14 +52,17 @@ const EMPTY_ANSWERS: Answers = {
   email: '',
 };
 
-const QUESTIONS_COUNT = 8;
+// Derived from the question list itself, never hardcoded - adding a question to
+// buildQuestions() must not silently strand the step machine on a stale count.
+// Called with an empty business name because only the LENGTH is needed here.
+const QUESTIONS_COUNT = buildQuestions('').length;
 const INTRO_STEP = 0;
 const FIRST_QUESTION_STEP = 1;
-const LAST_QUESTION_STEP = FIRST_QUESTION_STEP + QUESTIONS_COUNT - 1; // 8
-const CONTACT_STEP = LAST_QUESTION_STEP + 1; // 9 — final contact: last name + email
-const CONFIRM_STEP = CONTACT_STEP + 1; // 10
-const BUILDING_STEP = CONFIRM_STEP + 1; // 11
-const TOTAL_NUMBERED_STEPS = QUESTIONS_COUNT + 2; // intro + 8 questions + final contact = 10
+const LAST_QUESTION_STEP = FIRST_QUESTION_STEP + QUESTIONS_COUNT - 1;
+const CONTACT_STEP = LAST_QUESTION_STEP + 1; // final contact: last name + email
+const CONFIRM_STEP = CONTACT_STEP + 1;
+const BUILDING_STEP = CONFIRM_STEP + 1;
+const TOTAL_NUMBERED_STEPS = QUESTIONS_COUNT + 2; // intro + questions + final contact
 
 function emailLooksValid(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -178,6 +195,15 @@ function AssessmentPageInner() {
           privacyConcern: answers.privacyConcern,
           industry: answers.industry,
           industryOther: answers.industryOther || undefined,
+          // Sent as undefined rather than '' when unanswered: the schema types these as
+          // optional enums, and an empty string is not a member of any of them.
+          customerDiscovery: answers.customerDiscovery || undefined,
+          searchVisibility: answers.searchVisibility || undefined,
+          websiteAction: answers.websiteAction || undefined,
+          responseSpeed: answers.responseSpeed || undefined,
+          missedCalls: answers.missedCalls || undefined,
+          followUpConsistency: answers.followUpConsistency || undefined,
+          sensitiveInfo: answers.sensitiveInfo || undefined,
           sportsFan: answers.sportsFan,
           firstName: answers.firstName,
           lastName: answers.lastName,

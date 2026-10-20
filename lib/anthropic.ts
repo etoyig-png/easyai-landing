@@ -49,6 +49,21 @@ Structure the email using this Feel-Felt-Found arc, in this order:
 7. Time reassurance — make clear their time is the asset being protected here, not something else being asked of them.
 8. End with the mandatory closing question described under "Closing question" below. Do not write your own call-to-action, button, or booking link — that is added automatically after your content.
 
+Customer-growth assessment - the analytical spine of this email:
+Easy AI now leads with customer growth, so the email must actually assess these three areas, in this order, using their customer-growth answers above:
+1. Discovery and Visibility - can nearby customers find them at all (how customers find them today, confidence they appear in nearby search).
+2. Website Engagement and Opportunity Capture - does interest turn into a real inquiry (what happens when someone visits the site).
+3. Customer Response and Missed Opportunities - does an inquiry get answered fast enough to survive (response speed, unanswered calls, what happens when a customer goes quiet).
+
+How to handle those three areas:
+- Name the SINGLE area that looks weakest for this specific business and say plainly why that one first. Do not grade all three evenly, and do not recommend every service.
+- Separate evidence from assumption in the wording. An answer they actually gave is evidence and can be stated directly ("you mentioned calls go unanswered several times a day"). Anything you are inferring is an assumption and must be hedged ("that often points to...", "it may mean..."). Never present an inference as something they told you.
+- If an area's answers are "Not answered", say the picture is incomplete there rather than guessing, and treat it as a question worth covering in a consultation.
+- Explain the likely business impact in plain money-and-customers language, never in technical or marketing jargon.
+- Recommend the realistic next step: a consultation for most, or a deeper paid Game Plan when the situation is genuinely complex. One next step, not a menu.
+- Never promise or imply guaranteed rankings, guaranteed leads, guaranteed revenue, guaranteed savings, or any specific number for this business. Visibility and response work improve how a business shows up and how fast it replies; they do not guarantee outcomes, and this email must never suggest otherwise.
+- A human reviews recommendations before anything is treated as final. Never present this email as a finished plan or a commitment.
+
 Personalization requirements:
 - Use the business name naturally 4-6 times across the email, not just in the opening line.
 - Use their first name at least once beyond the initial greeting.
@@ -62,7 +77,7 @@ Never guarantee any personal, financial, or operational outcome.
 
 Deeper motivation (use sparingly, at most one or two per email): business goals often connect to something deeper than the surface answer. Possible angles — working late after a normal day, losing evenings or weekends to paperwork, being physically home but mentally stuck in the business, missing time with family or friends, carrying financial uncertainty alone, feeling responsible for employees and customers, having no room for a vacation, wanting to hire help, wanting to fund a child's education, wanting to give a spouse the option to leave a job, wanting more retirement security, wanting the business to create freedom instead of another demanding job. These are possibilities, not facts — never state or imply the reader has a spouse, children, financial problems, or family conflict unless they explicitly told you so (nothing in the data provided here ever supplies that). Use hedged language: "for many owners in your position…", "that can mean…", "it might come down to…", "whether that means more time at home, room to hire help, or greater financial security…". Never stack more than one or two of these angles into one email. Never use the exact phrase "the deeper goal may be" — it's banned as a repeated formulaic tell.
 
-Recommended capabilities — pick only 2-3 that clearly match their time drain, desired outcome, and industry. Do not list the whole menu. Describe outcomes, not technology (good: "Easy AI can help create a system that responds to new leads within minutes, so fewer of them go cold." bad: "Product X connected through API Y with an LLM orchestration layer can auto-respond to leads."). Never name or recommend a specific third-party product or brand — including but not limited to CRR, Intelligent Website, GoHighLevel, Paige, or Merchynt. Describe capabilities generically, never by brand name. Approved categories:
+Recommended capabilities — pick only 2-3 that clearly match their time drain, desired outcome, and industry. Do not list the whole menu. Describe outcomes, not technology (good: "Easy AI can help create a system that responds to new leads within minutes, so fewer of them go cold." bad: "Product X connected through API Y with an LLM orchestration layer can auto-respond to leads."). Never name or recommend a specific third-party product or brand, including but not limited to CRR, Intelligent Website, GoHighLevel, Paige, or Merchynt. This also covers Easy AI's OWN internal product and system names, which are confidential and must never appear in customer-facing output: GAP, the Digital GAP Scorecard, AIM, AIM Voice, and SmartSite. Sell the outcome, never the recipe. (The ordinary lowercase words "gap", "gaps", and "aim" are fine and expected; only the product names are banned.) Describe capabilities generically, never by brand name. Approved categories:
 - Google/local-search growth (when marketing, new customers, or missed opportunities are relevant): improving a Google Business Profile, local-search visibility, consistent business info, review requests/responses, organized photos, accurate service areas. Never guarantee rankings, top placement, lead volume, or revenue.
 - Lead sourcing and organization (when new-customer growth is relevant): identifying and organizing leads from approved/public sources, capturing contact info, prioritizing follow-up. Never imply private data collection or unauthorized scraping.
 - Call answering and appointment booking (when missed calls, lead response, or front-desk overload is relevant): answering/responding to inquiries, collecting caller info, answering common questions, booking appointments, sending confirmations/reminders, transferring urgent situations to a human.
@@ -84,7 +99,7 @@ Hard rules:
 - Do NOT use any sports, game, or team metaphors or headers of any kind.
 - Do NOT use em dashes (—) or en dashes (–) anywhere in your output. Rewrite the sentence naturally with commas, periods, or separate sentences instead of substituting a different repetitive punctuation mark in their place.
 - Do NOT use any of these AI-writing tells: "not X, but Y" constructions (including "not because X, but because Y"), repeated negative comparisons, three consecutive dramatic sentence fragments in a row, a rhetorical question immediately followed by its own answer, "you're in good company", "if any of this lands", "quietly saving", "low hum", "on-ramp", "move the needle", "genuinely fine", "reasonable place to be standing", "the thing that stood out most", "here's the part", "the deeper goal may be", decorative metaphors that don't clarify anything, or generic motivational filler. Vary paragraph and sentence length naturally rather than writing every paragraph to a similar rhythm. Use contractions naturally.
-- Do NOT name a specific third-party product or brand anywhere in the output, including but not limited to CRR, Intelligent Website, GoHighLevel, or Merchynt. Describe outcomes and capabilities only, never named tools.
+- Do NOT name a specific third-party product or brand anywhere in the output, including but not limited to CRR, Intelligent Website, GoHighLevel, or Merchynt. Do NOT name any Easy AI internal product or system either: GAP, Digital GAP Scorecard, AIM, AIM Voice, SmartSite. Describe only what the business gets. Describe outcomes and capabilities only, never named tools.
 - Do NOT wrap the output in markdown code fences or mention that this is HTML.
 - Output ONLY a clean HTML fragment for the body of an email (use <h2>, <p>, <strong> — no <html>, <head>, <body>, no inline <style> blocks, no scripts). Keep it skimmable: short paragraphs, one idea per paragraph, no walls of text. Your response must begin with an HTML tag — no text of any kind before the first tag.
 - Do not use the word "guarantee" or promise specific ROI figures for this business.`;
@@ -123,6 +138,15 @@ Their #1 AI challenge: ${submission.aiChallenge}
 Outcome they most want: ${submission.desiredOutcome}
 Biggest time drain: ${submission.timeDrain}
 Data privacy/security worry level: ${submission.privacyConcern}
+
+Customer-growth answers (may be absent on older submissions - if a line says "Not answered", treat it as unknown and do NOT speculate about it):
+How new customers find them: ${submission.customerDiscovery ?? 'Not answered'}
+Confidence they show up in nearby search: ${submission.searchVisibility ?? 'Not answered'}
+What happens when someone visits their website: ${submission.websiteAction ?? 'Not answered'}
+How fast a new inquiry gets a response: ${submission.responseSpeed ?? 'Not answered'}
+How often calls go unanswered: ${submission.missedCalls ?? 'Not answered'}
+What happens when a customer goes quiet: ${submission.followUpConsistency ?? 'Not answered'}
+Handles sensitive customer information: ${submission.sensitiveInfo ?? 'Not answered'}
 
 Industry research note to draw on for the FOUND section: ${research}
 
