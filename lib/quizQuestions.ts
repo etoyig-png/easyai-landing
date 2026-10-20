@@ -29,7 +29,7 @@ export const TIME_DRAIN_OPTIONS = [
   'Scheduling & appointments',
   'Invoicing, billing & payments',
   'Paperwork & documentation',
-  'Marketing, new customers & missed leads',
+  'Finding more customers and generating a steady flow of qualified leads.',
 ] as const;
 
 export const PRIVACY_CONCERN_OPTIONS = [
@@ -49,77 +49,19 @@ export const INDUSTRY_OPTIONS = [
   'Something else',
 ] as const;
 
-/* ── Customer-growth questions ──────────────────────────────────────────────
- * Added for the customer-growth repositioning. These feed the three assessment
- * output areas: Discovery and Visibility, Website Engagement and Opportunity
- * Capture, and Customer Response and Missed Opportunities.
- * Every option is written in plain business language. None of them ask for
- * protected health information, medical details, financial account data, legal
- * case details, credentials, or any other sensitive record - the closest we get
- * is SENSITIVE_INFO_OPTIONS, which asks only whether such information exists in
- * the business so human-control boundaries can be respected, never what it is.
+/**
+ * Lead-response diagnostic. Deliberately a SEPARATE signal: it informs the personalized email
+ * and the consultation prep, and it is never folded into profileResult or categoryScores, so the
+ * legacy profile passthrough is unchanged by adding it.
  */
-export const CUSTOMER_DISCOVERY_OPTIONS = [
-  'Word of mouth and referrals',
-  'Google search or Google Maps',
-  'Social media',
-  'Paid ads',
-  'Repeat customers',
-  'Honestly, I am not sure where most of them come from',
+export const LEAD_RESPONSE_OPTIONS = [
+  'They receive a fast response and are tracked through the next step.',
+  'We respond manually, but follow-up is not always consistent.',
+  'Responses are sometimes delayed because our team is busy.',
+  'Some calls, messages, or website inquiries are probably missed.',
+  'I don’t have a clear way to track what happens.',
 ] as const;
-
-export const SEARCH_VISIBILITY_OPTIONS = [
-  'Confident - we usually show up for our services nearby',
-  'Somewhat - we show up sometimes, but not consistently',
-  'Not confident - I rarely see us come up',
-  'I have never checked',
-] as const;
-
-export const WEBSITE_ACTION_OPTIONS = [
-  'Most interested visitors contact us',
-  'Some contact us, but I think we lose a lot of them',
-  'Very few ever reach out',
-  'We do not really have a website that does this',
-  'I have no way to tell',
-] as const;
-
-export const RESPONSE_SPEED_OPTIONS = [
-  'Within minutes',
-  'Within a few hours',
-  'Usually the same day',
-  'A day or more, depending on how busy we are',
-  'It varies a lot and some get missed',
-] as const;
-
-export const MISSED_CALLS_OPTIONS = [
-  'Rarely - almost every call gets answered',
-  'A few each week',
-  'Several every day',
-  'Often, especially when we are on jobs or with customers',
-  'I do not track this',
-] as const;
-
-export const FOLLOW_UP_OPTIONS = [
-  'We follow up consistently until we get an answer',
-  'We follow up once, then usually move on',
-  'Only when someone remembers',
-  'We rarely follow up at all',
-] as const;
-
-export const SENSITIVE_INFO_OPTIONS = [
-  'Yes - we handle sensitive customer information',
-  'Some - a limited amount',
-  'No - nothing sensitive',
-  'I am not sure',
-] as const;
-
-export type CustomerDiscovery = (typeof CUSTOMER_DISCOVERY_OPTIONS)[number];
-export type SearchVisibility = (typeof SEARCH_VISIBILITY_OPTIONS)[number];
-export type WebsiteAction = (typeof WEBSITE_ACTION_OPTIONS)[number];
-export type ResponseSpeed = (typeof RESPONSE_SPEED_OPTIONS)[number];
-export type MissedCalls = (typeof MISSED_CALLS_OPTIONS)[number];
-export type FollowUpConsistency = (typeof FOLLOW_UP_OPTIONS)[number];
-export type SensitiveInfo = (typeof SENSITIVE_INFO_OPTIONS)[number];
+export type LeadResponse = (typeof LEAD_RESPONSE_OPTIONS)[number];
 
 export const SPORTS_OPTIONS = ['Football', 'Basketball', 'Not really a sports fan'] as const;
 
@@ -140,13 +82,7 @@ export type QuestionKey =
   | 'timeDrain'
   | 'privacyConcern'
   | 'industry'
-  | 'customerDiscovery'
-  | 'searchVisibility'
-  | 'websiteAction'
-  | 'responseSpeed'
-  | 'missedCalls'
-  | 'followUpConsistency'
-  | 'sensitiveInfo'
+  | 'leadResponse'
   | 'sportsFan';
 
 export interface QuestionDef {
@@ -157,9 +93,9 @@ export interface QuestionDef {
 }
 
 /**
- * Builds the 8 quiz questions, naturally interpolating the submitted business
- * name into Q2-Q7. Q1 (workSituation) and Q8 (sportsFan) always keep their
- * original, unpersonalized wording. Business name is inserted as plain text —
+ * Builds the 9 quiz questions, naturally interpolating the submitted business
+ * name into the questions that were approved with personalization. workSituation
+ * and sportsFan always keep their original, unpersonalized wording. Business name is inserted as plain text —
  * safe against HTML/script injection because callers render `title` as JSX
  * text content (React auto-escapes), never via dangerouslySetInnerHTML.
  */
@@ -203,43 +139,9 @@ export function buildQuestions(businessName: string): QuestionDef[] {
       allowOther: true,
     },
     {
-      key: 'customerDiscovery',
-      title: name ? `How do most new customers find ${name} today?` : 'How do most new customers find you today?',
-      options: CUSTOMER_DISCOVERY_OPTIONS,
-    },
-    {
-      key: 'searchVisibility',
-      title: name
-        ? `When someone nearby searches for what ${name} does, how confident are you that ${name} shows up?`
-        : 'When someone nearby searches for what you do, how confident are you that your business shows up?',
-      options: SEARCH_VISIBILITY_OPTIONS,
-    },
-    {
-      key: 'websiteAction',
-      title: name ? `When someone visits the ${name} website, what usually happens?` : 'When someone visits your website, what usually happens?',
-      options: WEBSITE_ACTION_OPTIONS,
-    },
-    {
-      key: 'responseSpeed',
-      title: 'When a new inquiry comes in, how quickly does it usually get a response?',
-      options: RESPONSE_SPEED_OPTIONS,
-    },
-    {
-      key: 'missedCalls',
-      title: 'How often do calls go unanswered during the workday?',
-      options: MISSED_CALLS_OPTIONS,
-    },
-    {
-      key: 'followUpConsistency',
-      title: 'If a customer goes quiet after an estimate or inquiry, what usually happens next?',
-      options: FOLLOW_UP_OPTIONS,
-    },
-    {
-      key: 'sensitiveInfo',
-      title: name
-        ? `Does ${name} handle sensitive customer information as part of normal work?`
-        : 'Does your business handle sensitive customer information as part of normal work?',
-      options: SENSITIVE_INFO_OPTIONS,
+      key: 'leadResponse',
+      title: 'What usually happens after a potential customer contacts your business?',
+      options: LEAD_RESPONSE_OPTIONS,
     },
     { key: 'sportsFan', title: 'Are you a sports fan? If so, which do you like more?', options: SPORTS_OPTIONS },
   ];

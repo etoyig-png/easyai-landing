@@ -15,14 +15,10 @@ interface Answers {
   privacyConcern: string;
   industry: string;
   industryOther: string;
-  customerDiscovery: string;
-  searchVisibility: string;
-  websiteAction: string;
-  responseSpeed: string;
-  missedCalls: string;
-  followUpConsistency: string;
-  sensitiveInfo: string;
+  leadResponse: string;
   sportsFan: string;
+  favoriteTeam: string;
+  websiteUrl: string;
   firstName: string;
   lastName: string;
   businessName: string;
@@ -38,14 +34,10 @@ const EMPTY_ANSWERS: Answers = {
   privacyConcern: '',
   industry: '',
   industryOther: '',
-  customerDiscovery: '',
-  searchVisibility: '',
-  websiteAction: '',
-  responseSpeed: '',
-  missedCalls: '',
-  followUpConsistency: '',
-  sensitiveInfo: '',
+  leadResponse: '',
   sportsFan: '',
+  favoriteTeam: '',
+  websiteUrl: '',
   firstName: '',
   lastName: '',
   businessName: '',
@@ -117,6 +109,9 @@ function AssessmentPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [otherDraft, setOtherDraft] = useState('');
+  // Explicit "I don't have a website" declaration. Kept separate from an empty websiteUrl so a
+  // blank field is distinguishable from a deliberate answer, which is what the validator checks.
+  const [noWebsite, setNoWebsite] = useState(false);
   const [consent, setConsent] = useState(false);
   const [emailDraft, setEmailDraft] = useState('');
   const [editingEmail, setEditingEmail] = useState(false);
@@ -137,10 +132,26 @@ function AssessmentPageInner() {
       setOtherDraft(answers.industryOther);
       return; // wait for free-text continue
     }
+    // Picking a sport reveals the favorite-team field on the same screen, so this must not
+    // auto-advance the way every other choice does. "Not really a sports fan" has no follow-up
+    // and advances immediately.
+    if (key === 'sportsFan' && (value === 'Football' || value === 'Basketball')) {
+      setAnswers((prev) => ({ ...prev, favoriteTeam: '' }));
+      return;
+    }
     setStep((s) => s + 1);
   }
 
+  // Shared "continue after a write-in" for the two screens that have one. Which field it commits
+  // depends on the question being answered: the industry screen writes industryOther, the sports
+  // screen writes favoriteTeam.
   function continueWithOther() {
+    const currentKey = questions[step - FIRST_QUESTION_STEP]?.key;
+    if (currentKey === 'sportsFan') {
+      if (!answers.favoriteTeam.trim()) return;
+      setStep((s) => s + 1);
+      return;
+    }
     if (!otherDraft.trim()) return;
     setAnswers((prev) => ({ ...prev, industryOther: otherDraft.trim() }));
     setStep((s) => s + 1);
@@ -167,6 +178,14 @@ function AssessmentPageInner() {
     const errs: Partial<Record<keyof Answers, string>> = {};
     if (!answers.lastName.trim()) errs.lastName = 'Required';
     if (!emailLooksValid(answers.email)) errs.email = 'Enter a valid email';
+    // Website is required one way or the other: a real http(s) address, or the explicit
+    // "no website" checkbox. Blank-and-unchecked is not a valid answer. Restricted to http/https
+    // so a javascript:, data: or file: URL can never be submitted.
+    if (!noWebsite) {
+      const url = answers.websiteUrl.trim();
+      if (!url) errs.websiteUrl = 'Enter your website, or select that you do not have one';
+      else if (!/^https?:\/\/[^\s]+\.[^\s]+$/i.test(url)) errs.websiteUrl = 'Enter a valid address starting with http:// or https://';
+    }
     setContactErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -200,16 +219,13 @@ function AssessmentPageInner() {
           privacyConcern: answers.privacyConcern,
           industry: answers.industry,
           industryOther: answers.industryOther || undefined,
-          // Sent as undefined rather than '' when unanswered: the schema types these as
-          // optional enums, and an empty string is not a member of any of them.
-          customerDiscovery: answers.customerDiscovery || undefined,
-          searchVisibility: answers.searchVisibility || undefined,
-          websiteAction: answers.websiteAction || undefined,
-          responseSpeed: answers.responseSpeed || undefined,
-          missedCalls: answers.missedCalls || undefined,
-          followUpConsistency: answers.followUpConsistency || undefined,
-          sensitiveInfo: answers.sensitiveInfo || undefined,
+          // Sent as undefined rather than '' when unanswered: the schema types this as an
+          // optional enum, and an empty string is not a member of it.
+          leadResponse: answers.leadResponse || undefined,
           sportsFan: answers.sportsFan,
+          favoriteTeam: answers.favoriteTeam || undefined,
+          websiteUrl: noWebsite ? undefined : answers.websiteUrl || undefined,
+          noWebsite,
           firstName: answers.firstName,
           lastName: answers.lastName,
           businessName: answers.businessName,
@@ -311,6 +327,9 @@ function AssessmentPageInner() {
 
           {step >= FIRST_QUESTION_STEP && step <= LAST_QUESTION_STEP && (
             <QuestionStep
+              favoriteTeam={answers.favoriteTeam}
+              onFavoriteTeamChange={(v) => setAnswers((p) => ({ ...p, favoriteTeam: v }))}
+              favoriteTeamError={contactErrors.favoriteTeam}
               question={questions[step - FIRST_QUESTION_STEP]}
               selected={answers[questions[step - FIRST_QUESTION_STEP].key]}
               otherDraft={otherDraft}
@@ -343,6 +362,38 @@ function AssessmentPageInner() {
                     onChange={(e) => setAnswers((p) => ({ ...p, email: e.target.value }))}
                   />
                   {contactErrors.email && <p className="text-xs text-red-600 mt-1">{contactErrors.email}</p>}
+                </div>
+                <div>
+                  <label className="label" htmlFor="website-url">Business website</label>
+                  <input
+                    id="website-url"
+                    type="url"
+                    inputMode="url"
+                    placeholder="https://"
+                    className="input disabled:bg-slate-100 disabled:text-slate-400"
+                    value={answers.websiteUrl}
+                    disabled={noWebsite}
+                    onChange={(e) => setAnswers((p) => ({ ...p, websiteUrl: e.target.value }))}
+                  />
+                  {contactErrors.websiteUrl && <p className="text-xs text-red-600 mt-1">{contactErrors.websiteUrl}</p>}
+                  <label className="mt-2 flex items-start gap-2 text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={noWebsite}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setNoWebsite(checked);
+                        // Clearing the field on check is what makes the URL requirement actually
+                        // go away rather than sit there as a stale value.
+                        if (checked) {
+                          setAnswers((p) => ({ ...p, websiteUrl: '' }));
+                          setContactErrors((prev) => ({ ...prev, websiteUrl: undefined }));
+                        }
+                      }}
+                    />
+                    I do not currently have a website.
+                  </label>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-8">
@@ -445,6 +496,9 @@ function QuestionStep({
   onSelect,
   onContinueWithOther,
   onBack,
+  favoriteTeam,
+  onFavoriteTeamChange,
+  favoriteTeamError,
 }: {
   question: QuestionDef;
   selected: string;
@@ -453,8 +507,15 @@ function QuestionStep({
   onSelect: (value: string) => void;
   onContinueWithOther: () => void;
   onBack?: () => void;
+  favoriteTeam: string;
+  onFavoriteTeamChange: (v: string) => void;
+  favoriteTeamError?: string;
 }) {
   const showOtherInput = question.allowOther && selected === 'Something else';
+  // Favorite team appears only once a sport is chosen, and is hidden entirely for
+  // "Not really a sports fan" so that answer never demands a follow-up.
+  const showFavoriteTeam =
+    question.key === 'sportsFan' && (selected === 'Football' || selected === 'Basketball');
 
   return (
     <div>
@@ -493,6 +554,29 @@ function QuestionStep({
               Continue →
             </button>
           </div>
+        </div>
+      )}
+
+      {showFavoriteTeam && (
+        <div className="mt-4">
+          <label className="label" htmlFor="favorite-team">What&rsquo;s your favorite team?</label>
+          <div className="flex gap-2">
+            <input
+              id="favorite-team"
+              className="input"
+              value={favoriteTeam}
+              onChange={(e) => onFavoriteTeamChange(e.target.value)}
+              autoFocus
+            />
+            <button
+              onClick={onContinueWithOther}
+              disabled={!favoriteTeam.trim()}
+              className="btn-primary px-6 whitespace-nowrap disabled:opacity-50"
+            >
+              Continue →
+            </button>
+          </div>
+          {favoriteTeamError && <p className="text-xs text-red-600 mt-1">{favoriteTeamError}</p>}
         </div>
       )}
 

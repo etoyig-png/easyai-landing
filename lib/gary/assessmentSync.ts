@@ -27,13 +27,7 @@ const QUESTION_LABELS: Record<string, string> = {
   timeDrain: 'Which area of your business eats up the most of your time?',
   privacyConcern: 'How worried are you about data privacy and security?',
   industry: 'What kind of business do you run?',
-  customerDiscovery: 'How do most new customers find you today?',
-  searchVisibility: 'How confident are you that you show up when someone nearby searches for what you do?',
-  websiteAction: 'When someone visits your website, what usually happens?',
-  responseSpeed: 'When a new inquiry comes in, how quickly does it usually get a response?',
-  missedCalls: 'How often do calls go unanswered during the workday?',
-  followUpConsistency: 'If a customer goes quiet after an estimate or inquiry, what usually happens next?',
-  sensitiveInfo: 'Does the business handle sensitive customer information as part of normal work?',
+  leadResponse: 'What usually happens after a potential customer contacts your business?',
   sportsFan: 'Are you a sports fan?',
 };
 

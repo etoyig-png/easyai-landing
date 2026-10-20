@@ -11,6 +11,10 @@ function basePayload(overrides: Record<string, unknown> = {}) {
     privacyConcern: "Somewhat worried — I think about it, but it's not stopping me",
     industry: 'Construction & Trades (contractors, subs, home services)',
     sportsFan: 'Not really a sports fan',
+    // Website is now answered one way or the other on the final screen. This fixture takes the
+    // no-website branch, which is why it needs no websiteUrl; the sports answer is the
+    // non-fan option, which is why it needs no favoriteTeam.
+    noWebsite: true,
     firstName: 'Taylor',
     lastName: 'Confirm',
     businessName: 'Confirm Trades Co',

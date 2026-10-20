@@ -57,13 +57,7 @@ describe('buildQuestions', () => {
       'timeDrain',
       'privacyConcern',
       'industry',
-      'customerDiscovery',
-      'searchVisibility',
-      'websiteAction',
-      'responseSpeed',
-      'missedCalls',
-      'followUpConsistency',
-      'sensitiveInfo',
+      'leadResponse',
       'sportsFan',
     ]);
     expect(questions[0].options).toEqual(WORK_SITUATION_OPTIONS);

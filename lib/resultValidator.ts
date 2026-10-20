@@ -108,6 +108,29 @@ const CLIENT_CLAIM_PATTERNS: RegExp[] = [
 
 // Content that could only plausibly reach the email via unescaped/injected input —
 // legitimate generated prose never contains these regardless of source.
+// Money claims. The approved behavior forbids quoting prices, savings, revenue or ROI for this
+// business - the reassurance is qualitative. Scoped to a currency figure attached to a rate or a
+// gain so an owner's own revenue band (which can legitimately appear in their answers) is not
+// mistaken for an invented price.
+const MONEY_CLAIM_PATTERNS: RegExp[] = [
+  // "$40-60/month", "$99 per month", "$1,200 a year"
+  /\$\s?\d[\d,]*(\s*(?:-|to)\s*\$?\d[\d,]*)?\s*(?:\/|per\s+|a\s+)(?:month|mo\b|year|yr\b|week)/i,
+  // "save $500", "$10k in savings", "ROI of $..."
+  /\b(?:save|saves|saving|savings|revenue|profit|roi|return\s+on\s+investment)\b[^.!?]{0,40}\$\s?\d/i,
+  /\$\s?\d[\d,]*\s*k?\s*(?:in\s+)?(?:savings|revenue|profit|roi)\b/i,
+];
+
+// Claims that something was inspected or measured. This assessment reads submitted answers plus
+// whatever is publicly visible; it never audits rankings, metadata, schema, keywords, technical
+// performance, competitors, or search configuration. Saying otherwise misrepresents the product.
+const FALSE_AUDIT_PATTERNS: RegExp[] = [
+  /\b(?:full|complete|comprehensive|detailed|in-depth)\s+(?:audit|analysis|review|scan|assessment\s+of\s+your\s+(?:site|website))\b/i,
+  /\bwe\s+(?:audited|crawled|scanned|analyzed|analysed|inspected|measured|benchmarked)\b/i,
+  /\bwe\s+(?:checked|reviewed|examined|verified|looked\s+at)\s+your\s+(?:metadata|schema|keywords?|rankings?|competitors?|site\s+speed|technical)/i,
+  /\byour\s+(?:google\s+)?rankings?\s+(?:are|is|show|showed|sit|sits)\b/i,
+  /\b(?:we\s+found|our\s+scan|our\s+audit|the\s+audit)\s+(?:that\s+)?your\s+(?:site|website|metadata|schema)/i,
+];
+
 const INJECTION_PATTERNS: RegExp[] = [/<script/i, /on\w+\s*=\s*["']/i, /javascript:/i];
 
 export function validateResultHtml(html: string, submission: { businessName: string; firstName: string }): ValidationResult {
@@ -149,6 +172,21 @@ export function validateResultHtml(html: string, submission: { businessName: str
   for (const pattern of INJECTION_PATTERNS) {
     if (pattern.test(html)) {
       violations.push(`unescaped/injected content matched ("${pattern.source}")`);
+    }
+  }
+
+
+  for (const pattern of MONEY_CLAIM_PATTERNS) {
+    if (pattern.test(plainText)) {
+      violations.push(`unsupported money/ROI claim ("${pattern.source}")`);
+      break;
+    }
+  }
+
+  for (const pattern of FALSE_AUDIT_PATTERNS) {
+    if (pattern.test(plainText)) {
+      violations.push(`claims an audit/inspection this assessment never performed ("${pattern.source}")`);
+      break;
     }
   }
 

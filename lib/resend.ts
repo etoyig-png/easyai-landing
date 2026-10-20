@@ -40,6 +40,8 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
     ['Biggest time drain', submission.timeDrain],
     ['Privacy concern level', submission.privacyConcern],
     ['Industry', submission.industryOther ? `${submission.industry} — ${submission.industryOther}` : submission.industry],
+    ['After a customer contacts them', submission.leadResponse ?? 'Not answered'],
+    ['Website', submission.noWebsite ? 'No website' : submission.websiteUrl ?? 'Not provided'],
   ];
 
   const rowsHtml = rows
@@ -85,13 +87,46 @@ export function buildResultEmailHtml(resultHtml: string): string {
           ${resultHtml}
         </div>
         <div style="padding:24px 32px;background:#f8f4ed;text-align:center;">
-          <a href="https://easyaiconsult.com/book-consultation" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-weight:bold;font-size:14px;">Book Your Discovery Call</a>
+          <a href="https://easyaiconsult.com/assessment/complete" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-weight:bold;font-size:14px;">Watch Your Next-Step Video</a>
         </div>
         <div style="padding:16px 32px;font-family:Arial,Helvetica,sans-serif;color:#8b9aaa;font-size:11px;text-align:center;">
           You're receiving this because you completed the Easy AI assessment. Easy AI Consulting.
         </div>
       </div>
     `;
+}
+
+/**
+ * Readable plain-text alternative for the result email. Some clients, and most text-only or
+ * screen-reader setups, render this instead of the HTML part, so it has to stand on its own
+ * rather than say "view this in HTML". Tags are stripped, block boundaries become line breaks,
+ * and the handful of entities the generator actually emits are decoded so it reads naturally.
+ */
+export function buildResultEmailText(resultHtml: string, businessName: string): string {
+  const body = resultHtml
+    .replace(/<\s*(br|\/p|\/h[1-6]|\/div|\/li)[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&rsquo;/g, "'")
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line, index, all) => line.length > 0 || (index > 0 && all[index - 1].length > 0))
+    .join('\n')
+    .trim();
+
+  return [
+    `Easy AI - Your Personalized AI Action Plan for ${businessName}`,
+    '',
+    body,
+    '',
+    '---',
+    'Watch your next-step video: https://easyaiconsult.com/assessment/complete',
+    "You're receiving this because you completed the Easy AI assessment. Easy AI Consulting.",
+  ].join('\n');
 }
 
 /** Sends the personalized AI Action Plan to the lead. resultHtml is the Claude-generated body content. */
@@ -104,6 +139,7 @@ export async function sendResultEmail(params: { to: string; firstName: string; b
     ...(RESULT_REPLY_TO ? { replyTo: RESULT_REPLY_TO } : {}),
     subject: `${firstName}, your AI Action Plan for ${businessName} is ready`,
     html: buildResultEmailHtml(resultHtml),
+    text: buildResultEmailText(resultHtml, businessName),
   });
   if (error) throw new Error(`Resend result email failed: ${error.message}`);
 }
