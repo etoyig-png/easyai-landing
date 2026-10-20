@@ -41,6 +41,21 @@ export default function GaryPanel({
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const initializedRef = useRef(false);
+  // Contact mode only: the structured confirm-and-send step. Gary gathers the details
+  // conversationally, then the visitor reviews them here and presses send. Submission is driven
+  // by these validated fields rather than by parsing chat text, so what gets delivered is exactly
+  // what the visitor saw and approved - which is what makes "read it back and confirm" real.
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [contactSent, setContactSent] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
+  const [contactDraft, setContactDraft] = useState({
+    name: '',
+    businessName: '',
+    reason: '',
+    preferredContact: 'email' as 'email' | 'phone',
+    email: '',
+    phone: '',
+  });
 
   useFocusTrap(panelRef, true, onClose);
 
@@ -114,6 +129,50 @@ export default function GaryPanel({
     }
   }
 
+  async function submitContactRequest() {
+    if (sending || contactSent) return;
+    setContactError(null);
+    const detail = contactDraft.preferredContact === 'email' ? contactDraft.email.trim() : contactDraft.phone.trim();
+    if (!contactDraft.name.trim() || !contactDraft.reason.trim() || !detail) {
+      setContactError('Please fill in your name, what this is about, and how to reach you.');
+      return;
+    }
+    setSending(true);
+    try {
+      const response = await fetch('/api/gary/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: getStoredSessionId(),
+          name: contactDraft.name.trim(),
+          businessName: contactDraft.businessName.trim() || undefined,
+          reason: contactDraft.reason.trim(),
+          preferredContact: contactDraft.preferredContact,
+          email: contactDraft.email.trim() || undefined,
+          phone: contactDraft.phone.trim() || undefined,
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { delivered?: boolean; error?: string };
+      // Only treat this as sent when the server says it actually delivered. A failed send must
+      // never render as a success.
+      if (!response.ok || !data.delivered) throw new Error(data.error ?? 'send failed');
+      setContactSent(true);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `gary-sent-${Date.now()}`,
+          role: 'gary',
+          text: "Got it - that's on its way to the team. Someone will follow up using the contact method you chose, usually within one business day.",
+        },
+      ]);
+      setShowConfirm(false);
+    } catch {
+      setContactError('That did not send. Please try again, or use the free assessment link on the contact page.');
+    } finally {
+      setSending(false);
+    }
+  }
+
   function handleStartOver() {
     if (messages.length > 0 && !confirmingStartOver) {
       setConfirmingStartOver(true);
@@ -124,6 +183,9 @@ export default function GaryPanel({
     setOptions([]);
     setOfferAssessment(false);
     setConfirmingStartOver(false);
+    setShowConfirm(false);
+    setContactSent(false);
+    setContactError(null);
     initializedRef.current = false;
     void sendToGary({}).then(() => {
       initializedRef.current = true;
@@ -174,6 +236,99 @@ export default function GaryPanel({
             </div>
           </div>
         ))}
+        {/* Contact mode: review-and-send. Gary asks for these conversationally above; this step
+            exists so the visitor sees exactly what will be sent and has to press send. Nothing
+            leaves the browser until this button is pressed. */}
+        {intent === 'contact' && !contactSent && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            {!showConfirm ? (
+              <button
+                type="button"
+                onClick={() => setShowConfirm(true)}
+                className="w-full rounded bg-navy-900 px-3 py-2 text-xs font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-navy-700"
+              >
+                Review and send my message
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-slate-700">Check this over before it goes:</p>
+                <label className="block text-[11px] font-medium text-slate-600">
+                  Your name
+                  <input
+                    value={contactDraft.name}
+                    onChange={(e) => setContactDraft((d) => ({ ...d, name: e.target.value }))}
+                    className="mt-0.5 w-full rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-800"
+                  />
+                </label>
+                <label className="block text-[11px] font-medium text-slate-600">
+                  Business name (optional)
+                  <input
+                    value={contactDraft.businessName}
+                    onChange={(e) => setContactDraft((d) => ({ ...d, businessName: e.target.value }))}
+                    className="mt-0.5 w-full rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-800"
+                  />
+                </label>
+                <label className="block text-[11px] font-medium text-slate-600">
+                  What is this about?
+                  <textarea
+                    rows={2}
+                    value={contactDraft.reason}
+                    onChange={(e) => setContactDraft((d) => ({ ...d, reason: e.target.value }))}
+                    className="mt-0.5 w-full resize-y rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-800"
+                  />
+                </label>
+                <fieldset>
+                  <legend className="text-[11px] font-medium text-slate-600">How should we reach you?</legend>
+                  <div className="mt-1 flex gap-3">
+                    {(['email', 'phone'] as const).map((method) => (
+                      <label key={method} className="flex items-center gap-1 text-xs text-slate-700">
+                        <input
+                          type="radio"
+                          name="gary-preferred-contact"
+                          checked={contactDraft.preferredContact === method}
+                          onChange={() => setContactDraft((d) => ({ ...d, preferredContact: method }))}
+                        />
+                        {method === 'email' ? 'Email' : 'Phone'}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <label className="block text-[11px] font-medium text-slate-600">
+                  {contactDraft.preferredContact === 'email' ? 'Email address' : 'Phone number'}
+                  <input
+                    type={contactDraft.preferredContact === 'email' ? 'email' : 'tel'}
+                    value={contactDraft.preferredContact === 'email' ? contactDraft.email : contactDraft.phone}
+                    onChange={(e) =>
+                      setContactDraft((d) =>
+                        d.preferredContact === 'email' ? { ...d, email: e.target.value } : { ...d, phone: e.target.value }
+                      )
+                    }
+                    className="mt-0.5 w-full rounded border border-slate-300 px-2 py-1.5 text-sm text-slate-800"
+                  />
+                </label>
+                {contactError && <p className="text-xs text-red-600">{contactError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={submitContactRequest}
+                    disabled={sending}
+                    className="flex-1 rounded bg-green-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-400"
+                  >
+                    {sending ? 'Sending...' : 'Send to Easy AI'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(false)}
+                    className="rounded border border-slate-300 px-3 py-2 text-xs font-medium text-slate-600"
+                  >
+                    Not yet
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {sending && <p className="text-xs text-slate-400">Gary is typing...</p>}
         {error && <p className="text-xs text-red-600">{error}</p>}
 

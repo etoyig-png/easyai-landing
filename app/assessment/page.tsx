@@ -235,8 +235,11 @@ function AssessmentPageInner() {
   }
 
   return (
-    <section className="min-h-screen bg-slate-50 py-16">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6">
+    <section className="min-h-screen bg-navy-900 py-16 px-4 sm:px-6">
+      {/* Navy page surface with a white content card: matches the site's "navy background,
+          white content area" pattern, and keeps the form itself on a light surface where its
+          inputs, labels and validation text stay high-contrast and readable. */}
+      <div className="max-w-2xl mx-auto rounded-2xl bg-white px-5 py-8 shadow-xl sm:px-8">
         {/* Honeypot — invisible to real visitors, catches basic bots */}
         <input
           type="text"

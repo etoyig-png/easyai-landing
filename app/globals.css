@@ -125,6 +125,21 @@
     }
   }
 
+  /* Gary's fixed anchor. Desktop keeps the original 1rem inset. Phones pull him ~24px
+     (about a quarter inch) further left: his sign and speech bubble extend to his right, and at
+     the original inset those could sit against or past the right edge on a narrow screen. This
+     moves the whole launcher, so tap targets, scale and vertical position are unchanged, and it
+     cannot introduce horizontal scrolling because the element only moves inward. */
+  .gary-launcher-anchor {
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  @media (max-width: 767px) {
+    .gary-launcher-anchor {
+      right: max(2.5rem, calc(env(safe-area-inset-right) + 1.5rem));
+    }
+  }
+
   /* ============================================================================
      Gary from Accounting — character + locked animation routine.
      One SVG (components/gary/GaryCharacter.tsx), pose-driven via the [data-gary-pose]

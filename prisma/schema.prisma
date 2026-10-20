@@ -124,6 +124,11 @@ model PublicChatSession {
 
   handedOffAt DateTime?
 
+  // Set once, when a Gary contact request is actually confirmed and delivered. Acts as the
+  // duplicate guard: one chat session can produce at most one contact request, so a repeated
+  // confirm cannot send a second email or create a second Command Center prospect.
+  contactRequestedAt DateTime?
+
   messages PublicChatMessage[]
   handoff  AssessmentHandoff?
 

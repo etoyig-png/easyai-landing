@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import type { AssessmentSubmission } from './validation';
 import { escapeHtml } from './htmlEscape';
+import { getNotificationRecipients } from './notificationRecipients';
 
 // Constructed lazily (not at module load) so the API route can still be built
 // and imported without RESEND_API_KEY set — the key is only required at send time.
@@ -18,13 +19,15 @@ export const RESULT_EMAIL_LOGO_URL = 'https://www.easyaiconsult.com/easy-ai-logo
 
 const NOTIFICATION_FROM = process.env.NOTIFICATION_EMAIL_FROM ?? 'Easy AI Assessments <assessments@mail.easyaiconsult.com>';
 const RESULT_FROM = process.env.RESULT_EMAIL_FROM ?? 'Easy AI <hello@mail.easyaiconsult.com>';
-const NOTIFICATION_TO = process.env.ASSESSMENT_NOTIFICATION_EMAIL;
+// Resolved per call (not at module load) so a test or environment override is picked up, and so
+// the recipient list is never captured into a module-level constant that could outlive it.
 // mail.easyaiconsult.com is a sending-only subdomain — route lead replies to a real, monitored inbox instead.
 const RESULT_REPLY_TO = process.env.RESULT_EMAIL_REPLY_TO;
 
 /** Internal notification to the Easy AI team — a new assessment came in. */
 export async function sendInternalNotification(submission: AssessmentSubmission & { id: string }) {
-  if (!NOTIFICATION_TO) return; // not configured yet — don't block the request
+  const notificationTo = getNotificationRecipients();
+  if (notificationTo.length === 0) return; // nothing configured — don't block the request
 
   const rows: [string, string][] = [
     ['Business', submission.businessName],
@@ -48,7 +51,8 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
 
   const { error } = await getResend().emails.send({
     from: NOTIFICATION_FROM,
-    to: NOTIFICATION_TO,
+    // One send, many recipients: four inboxes receive it, one submission exists.
+    to: notificationTo,
     subject: `New assessment: ${submission.businessName}`,
     html: `
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;">

@@ -154,11 +154,11 @@ export default function GaryLauncher() {
       // of this same container while open) is a fully interactive modal, and pointer-events is
       // inherited, so unconditionally disabling it here would silently break every control
       // inside the open chat panel.
-      className={`gary-launcher fixed z-50${!open ? ' gary-launcher--idle' : ''}`}
-      style={{
-        right: 'max(1rem, env(safe-area-inset-right))',
-        bottom: 'max(1rem, env(safe-area-inset-bottom))',
-      }}
+      // Anchor offsets moved out of an inline style and into .gary-launcher-anchor (globals.css)
+      // so they can be adjusted per breakpoint — an inline style cannot carry a media query, and
+      // mobile needs Gary pulled further off the right edge so his sign and bubble are never
+      // clipped there.
+      className={`gary-launcher gary-launcher-anchor fixed z-50${!open ? ' gary-launcher--idle' : ''}`}
     >
       {/* Universal top row: the speech bubble stays to the left of the green button on every
           viewport. Gary remains directly beneath the button; mobile CSS only scales the cluster

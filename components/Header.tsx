@@ -21,7 +21,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-navy-900 border-b border-navy-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-24 md:h-28">
 
         {/* Logo */}
         <Link href="/" className="flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver rounded">
@@ -30,7 +30,12 @@ export default function Header() {
             alt="Easy AI — Business AI Advisory"
             width={200}
             height={54}
-            className="h-[52px] w-auto object-contain"
+            // Doubled at md+ (52px -> 104px). The mark is ~3.7:1, so a full 104px would render
+            // ~385px wide and crowd the hamburger on a 360px phone; mobile therefore scales to
+            // 72px, which is the largest size that still leaves room for the menu button.
+            // w-auto + object-contain keep the original proportions; mixBlendMode preserves the
+            // transparent background against navy with no box behind it.
+            className="h-[72px] md:h-[104px] w-auto object-contain"
             priority
             style={{ mixBlendMode: 'screen' }}
           />
