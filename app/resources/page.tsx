@@ -15,7 +15,7 @@ const articles = [
   },
   {
     tag: 'AI Trust',
-    title: 'Why AI-powered is not a feature GÇö it is a starting point',
+    title: 'Why AI-powered is not a feature â€” it is a starting point',
     body: 'The term AI-powered in a product description tells you very little. What matters is what the AI does, what it decides autonomously, what data it accesses, and whether a human reviews its output before it affects your business.',
   },
   {
@@ -26,12 +26,12 @@ const articles = [
   {
     tag: 'Process',
     title: 'Fix the process before you automate it',
-    body: 'Automating a broken process gives you faster broken results. The most valuable thing we do in a consultation is identify where the real problem is GÇö and it is often upstream of where the client thinks it is.',
+    body: 'Automating a broken process gives you faster broken results. The most valuable thing we do in a consultation is identify where the real problem is â€” and it is often upstream of where the client thinks it is.',
   },
   {
     tag: 'CRM',
     title: 'When you actually need a CRM and when you do not',
-    body: 'CRM is often the first thing people reach for and the last thing they actually needed. Here are the signals that indicate a CRM would help GÇö and the signs you should solve a simpler problem first.',
+    body: 'CRM is often the first thing people reach for and the last thing they actually needed. Here are the signals that indicate a CRM would help â€” and the signs you should solve a simpler problem first.',
   },
 ];
 
@@ -42,7 +42,7 @@ export default function ResourcesPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <p className="eyebrow-silver mb-3">Education</p>
           <h1 className="text-4xl md:text-5xl font-serif font-semibold mb-4">Resources</h1>
-          <p className="text-silver-light text-lg max-w-2xl">Practical reading on AI for business GÇö without the hype.</p>
+          <p className="text-silver-light text-lg max-w-2xl">Practical reading on AI for business â€” without the hype.</p>
         </div>
       </section>
 

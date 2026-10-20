@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
 };
-/* GöÇGöÇ Inline SVG icons GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */
+/* â”€â”€ Inline SVG icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const IconClock = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -96,18 +96,18 @@ const IconPin = () => (
   </svg>
 );
 
-/* GöÇGöÇ Data GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */
+/* â”€â”€ Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-/** Section 2 GÇö the four places a local business quietly loses customers. Deliberately
+/** Section 2 â€” the four places a local business quietly loses customers. Deliberately
  *  problem-only: no mention of how Easy AI solves any of them (see the secrecy rules). */
 const lossPoints = [
   { icon: <IconSearch />, title: 'Hard to Find',                 body: 'Potential customers cannot choose a business they never discover.' },
   { icon: <IconFlow />,   title: 'Visitors Leave Without Acting', body: 'A website can receive attention without turning that attention into a real inquiry.' },
-  { icon: <IconPhone />,  title: 'Calls Go Unanswered',           body: 'A missed call can quickly become another companyGÇÖs customer.' },
+  { icon: <IconPhone />,  title: 'Calls Go Unanswered',           body: 'A missed call can quickly become another companyâ€™s customer.' },
   { icon: <IconClock />,  title: 'Follow-Up Happens Too Slowly',  body: 'Customer interest fades when the next step is unclear or delayed.' },
 ];
 
-/** Section 7 GÇö the customer-facing journey. High level on purpose: no architecture,
+/** Section 7 â€” the customer-facing journey. High level on purpose: no architecture,
  *  no vendors, no internal routing or recommendation logic. */
 const journey = [
   { num: '01', icon: <IconSearch />, label: 'Get Discovered',          body: 'Show up when nearby customers are searching, on Google and in AI-powered answers.' },
@@ -117,7 +117,7 @@ const journey = [
   { num: '05', icon: <IconUser />,   label: 'Human Follow-Up',         body: 'A person takes it from there, with the context already gathered and organized.' },
 ];
 
-/** Section 8 GÇö broader services, kept intentionally result-focused. No proprietary
+/** Section 8 â€” broader services, kept intentionally result-focused. No proprietary
  *  product names, no delivery process, no pricing formulas, no specifications. */
 const services = [
   { icon: <IconChart />,  title: 'Business AI Assessment and Strategy', body: 'Understand where AI realistically fits your business before spending on it.' },
@@ -141,11 +141,11 @@ const assessmentAreas = [
   'How quickly inquiries and calls actually get answered',
 ];
 
-/* GöÇGöÇ Page GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */
+/* â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function HomePage() {
   return (
     <>
-      {/* GöÇGöÇ S1 HERO GÇö outcome-first GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S1 HERO â€” outcome-first â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 overflow-hidden border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 max-[380px]:py-0 md:py-20 flex flex-col md:grid md:grid-cols-[2fr_1fr] lg:grid-cols-[3fr_2fr] md:items-start gap-1 max-[380px]:gap-0 md:gap-3 md:gap-x-10">
 
@@ -158,7 +158,7 @@ export default function HomePage() {
                 standard eyebrow scale at sm and up. Tailwind utilities win over the
                 .eyebrow-silver @layer components rule, so these override cleanly. */}
             <p className="eyebrow-silver mb-2 max-[380px]:mb-0 text-[10px] leading-[1.3] tracking-[0.1em] sm:text-xs sm:leading-normal sm:tracking-widest">
-              Google + AI Visibility&nbsp;&nbsp;-+&nbsp;&nbsp;Website Engagement&nbsp;&nbsp;-+&nbsp;&nbsp;Customer Response
+              Google + AI Visibility&nbsp;&nbsp;Â·&nbsp;&nbsp;Website Engagement&nbsp;&nbsp;Â·&nbsp;&nbsp;Customer Response
             </p>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-2 sm:mb-3 max-[380px]:mb-0">
               Get Found. Get Chosen. Turn Attention Into Customers.
@@ -187,27 +187,27 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Right: video GÇö a two-tier grid split (~67/33 at md, tightening to 60/40 at lg+),
+          {/* Right: video â€” a two-tier grid split (~67/33 at md, tightening to 60/40 at lg+),
               using fr units specifically so md:gap-x-10 is subtracted from the available width
-              before the columns are sized GÇö the previous flex-basis-percentage layout added its
+              before the columns are sized â€” the previous flex-basis-percentage layout added its
               gap ON TOP of two percentages that already summed to 100%, silently overflowing the
               container's own right edge by the full gap width, which is what actually pushed the
               video visually against the viewport edge. The 60/40 split alone was too tight at
-              768px specifically (md's own lower bound) GÇö it squeezed the CTA buttons onto three
-              lines each; the wider md-tier ratio keeps 768GÇô1023px comfortable, and 1024px+ has
+              768px specifically (md's own lower bound) â€” it squeezed the CTA buttons onto three
+              lines each; the wider md-tier ratio keeps 768â€“1023px comfortable, and 1024px+ has
               enough room for the full 60/40 target. Below md the hero stacks (flex-col) and the
-              video renders after the CTA/disclaimer, same source order as before GÇö Gary's
+              video renders after the CTA/disclaimer, same source order as before â€” Gary's
               existing compact-mode CTA
               clearance (globals.css, the "mobile CTA overlap" fix) was measured and tuned against
               the CTA sitting at its current position, so the video must not move ahead of it and
               push it down again. hero-video-wrap keeps the video at a real, useful size on mobile
-              (>=180px at 360px wide, >=200px at 390px+ GÇö see globals.css) rather than shrinking it
+              (>=180px at 360px wide, >=200px at 390px+ â€” see globals.css) rather than shrinking it
               into a thumbnail; the clearance from Gary's launcher instead comes from tighter mobile
               hero spacing above (most of it scoped to a max-[380px]: tier so 390px+ keeps its
               normal rhythm) plus, only at the narrowest breakpoint, a small bounded upward nudge on
               the video itself. md:items-start on the row plus hero-video-desktop-align's own
               negative margin-top (see globals.css) lift the video to sit near the headline's upper
-              half instead of vertically centered against the whole text block GÇö a real layout
+              half instead of vertically centered against the whole text block â€” a real layout
               adjustment, not a transform, so it doesn't leave dead space in document flow. Gary's
               own size/position/behavior is untouched. */}
           <div className="hero-video-wrap hero-video-desktop-align md:w-full md:mx-0 flex-shrink-0">
@@ -217,7 +217,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S2 WHERE CUSTOMERS ARE LOST GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S2 WHERE CUSTOMERS ARE LOST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-10">
@@ -239,7 +239,7 @@ export default function HomePage() {
             <div className="md:w-[43%] md:flex-shrink-0">
               <ResponsiveImage
                 orientation="landscape"
-                src="/hero-section-banner.jpeg"
+                src="/1 169 website image.jpeg"
                 alt="Home-service professional receiving a new customer opportunity while working at a residential HVAC property."
                 width={2752}
                 height={1536}
@@ -267,7 +267,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S3 GET DISCOVERED GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S3 GET DISCOVERED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <p className="eyebrow-silver mb-3">GETTING DISCOVERED</p>
@@ -286,7 +286,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S4 TURN INTEREST INTO OPPORTUNITIES GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S4 TURN INTEREST INTO OPPORTUNITIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <p className="eyebrow-silver mb-3">WEBSITE ENGAGEMENT</p>
@@ -302,7 +302,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S5 FASTER RESPONSE GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S5 FASTER RESPONSE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <p className="eyebrow-silver mb-3">CUSTOMER RESPONSE</p>
@@ -318,7 +318,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S6 FREE ASSESSMENT GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S6 FREE ASSESSMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-start gap-14 md:gap-20">
 
@@ -351,11 +351,11 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Image 2 (9:16) GÇö intrinsic 1536x2752, true portrait ratio preserved. */}
+          {/* Image 2 (9:16) â€” intrinsic 1536x2752, true portrait ratio preserved. */}
           <div className="md:w-[35%] flex items-center justify-center">
             <ResponsiveImage
               orientation="portrait"
-              src="/community-trust-visual.jpeg"
+              src="/1 916 website image.jpeg"
               alt="Homeowner completing a service request as a professional home-service technician arrives."
               width={1536}
               height={2752}
@@ -367,7 +367,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S7 HOW EASY AI WORKS GÇö customer journey, high level only GöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S7 HOW EASY AI WORKS â€” customer journey, high level only â”€â”€â”€â”€â”€â”€â”€ */}
       <section id="how-easy-ai-works" className="bg-navy-900 py-20 md:py-28 border-b border-navy-800" style={{ scrollMarginTop: '64px' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
@@ -397,7 +397,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S8 BROADER SERVICES GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S8 BROADER SERVICES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-10">
@@ -410,11 +410,11 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Image 3 (16:9) GÇö intrinsic 2752x1536. */}
+          {/* Image 3 (16:9) â€” intrinsic 2752x1536. */}
           <div className="mb-12 flex justify-center">
             <ResponsiveImage
               orientation="landscape"
-              src="/local-growth-showcase.jpeg"
+              src="/2 169 website image.jpeg"
               alt="Chiropractic practice using organized digital workflows while staff assist patients."
               width={2752}
               height={1536}
@@ -439,7 +439,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S9 AI + TRUST GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S9 AI + TRUST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-12 max-w-2xl">
@@ -468,7 +468,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S10 FOUNDER GÇö existing approved brand content, preserved GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S10 FOUNDER â€” existing approved brand content, preserved â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <p className="eyebrow-silver mb-4">EXPERIENCE BEFORE TECHNOLOGY</p>
@@ -495,7 +495,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* GöÇGöÇ S11 FINAL CTA GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ */}
+      {/* â”€â”€ S11 FINAL CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="bg-navy-900 py-20 md:py-28">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <p className="eyebrow-silver mb-4">START HERE</p>

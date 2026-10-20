@@ -54,11 +54,11 @@
     @apply bg-white border border-slate-100 shadow-sm p-6;
   }
 
-  /* Reusable responsive media system GÇö shared by every homepage illustration image so sizing
+  /* Reusable responsive media system â€” shared by every homepage illustration image so sizing
      scales fluidly with the actual parent container (not the viewport in isolation, since some
      of these sit in a 35%-width flex column on desktop) instead of a fixed fraction that only
      reads correctly at one screen size. object-fit/height:auto preserve the image's true aspect
-     ratio (already correct via next/image's width/height props) GÇö nothing here crops or
+     ratio (already correct via next/image's width/height props) â€” nothing here crops or
      stretches. Landscape and portrait get different clamp bounds because a wide illustration and
      a tall one need different floors/ceilings to both read as "intentionally sized" rather than
      a tiny thumbnail or an oversized blob. */
@@ -76,19 +76,19 @@
     width: clamp(200px, 68%, 340px);
   }
 
-  /* Hero video GÇö full width at md+ (overridden there by the md:w-full utility class in page.tsx;
+  /* Hero video â€” full width at md+ (overridden there by the md:w-full utility class in page.tsx;
      Tailwind's utilities layer always wins over this @layer components rule, so no max-width
-     media query is needed to "turn this off" on desktop/tablet GÇö the grid track itself, not this
+     media query is needed to "turn this off" on desktop/tablet â€” the grid track itself, not this
      class, controls the video's desktop width). Below md, the hero stacks and this video is the
-     last element in the column GÇö at full width its box is tall enough that its on-screen position
+     last element in the column â€” at full width its box is tall enough that its on-screen position
      falls inside Gary's fixed launcher zone at the bottom of short mobile viewports. Fixed by
      three things working together, all mobile-only, none of them shrinking the video below a
-     usable size: (1) tighter mobile hero spacing in page.tsx GÇö most of it via a max-[380px]: tier
+     usable size: (1) tighter mobile hero spacing in page.tsx â€” most of it via a max-[380px]: tier
      reserved for the very narrowest phones so 390px+ keeps its normal, more generous rhythm; (2)
      capping the video's own width (not its aspect ratio, so framing is never cropped) via the
      clamp below, floored well above a "thumbnail" size; (3) a small, bounded upward nudge (see the
      media query below) for the couple of remaining pixels at the single narrowest breakpoint,
-     applied as a transform so it never disturbs where the next section starts GÇö kept intentionally
+     applied as a transform so it never disturbs where the next section starts â€” kept intentionally
      tiny so it can't read as a stray gap. */
   .hero-video-wrap {
     width: clamp(200px, 58%, 260px);
@@ -97,7 +97,7 @@
   }
 
   /* The narrowest phones (measured against 360x800) need the video pinned right at the required
-     180px floor plus a few px of upward nudge GÇö everything else in the layout is already as
+     180px floor plus a few px of upward nudge â€” everything else in the layout is already as
      tight as it can go without the text touching. The transform is small on purpose: it moves the
      video, not the flow, so anything larger would show up as dead space before the next section. */
   @media (max-width: 380px) {
@@ -114,7 +114,7 @@
 
   /* Desktop-only: lifts the video so its top sits near the headline's upper half instead of
      vertically centered against the full text block (which, once the hero grid uses
-     items-start, would otherwise land level with the eyebrow GÇö still lower than wanted). A real
+     items-start, would otherwise land level with the eyebrow â€” still lower than wanted). A real
      margin, not a transform: it's a grid item's own box moving within normal flow, so nothing
      downstream needs compensating and no dead space is left behind it. Mobile is untouched (no
      md: prefix on this rule below); the value was measured against the 1440x900 layout it's
@@ -141,10 +141,10 @@
   }
 
   /* ============================================================================
-     Gary from Accounting GÇö character + locked animation routine.
+     Gary from Accounting â€” character + locked animation routine.
      One SVG (components/gary/GaryCharacter.tsx), pose-driven via the [data-gary-pose]
      attribute on the <svg> root. Scales with clamp() so the same rig reads correctly from a
-     360px phone up through a wide desktop GÇö see .gary-character-wrap.
+     360px phone up through a wide desktop â€” see .gary-character-wrap.
      ============================================================================ */
 
   .gary-character-wrap {
@@ -152,13 +152,13 @@
     width: clamp(52px, 14vw, 104px);
     aspect-ratio: 160 / 200;
     overflow: visible;
-    /* Purely decorative (aria-hidden in the DOM too) GÇö must never intercept a click meant for
+    /* Purely decorative (aria-hidden in the DOM too) â€” must never intercept a click meant for
        page content behind/around it. The chat button is a separate sibling element and is
        unaffected (pointer-events isn't set on any ancestor it inherits from). */
     pointer-events: none;
   }
 
-  /* Wraps the sign bubble + character together GÇö also decorative-only, so empty space inside
+  /* Wraps the sign bubble + character together â€” also decorative-only, so empty space inside
      this box (the two children don't fill it edge-to-edge) can't capture a click either. */
   .gary-decorative-cluster {
     pointer-events: none;
@@ -193,11 +193,11 @@
     transform: rotate(45deg);
   }
 
-  /* Chat button GÇö background is set via the bg-green-600 utility class in the JSX (the exact
+  /* Chat button â€” background is set via the bg-green-600 utility class in the JSX (the exact
      same Tailwind token the "Start Your Free Assessment" CTA uses via .btn-green above), not
      duplicated here. The old pulsing box-shadow "attention" ring is replaced by a slow, rotating
      silver/chrome arc around the button's edge: a ::before ring built from a conic-gradient and
-     masked down to just its border, so it's pure decorative paint GÇö it never changes the
+     masked down to just its border, so it's pure decorative paint â€” it never changes the
      button's own box size, so it can't enlarge the button's actual clickable/hit-testable area
      (getBoundingClientRect() on the <button> itself is unaffected). Reads as a slow, deliberate
      "strolling" highlight rather than a flashing notification badge. */
@@ -230,7 +230,7 @@
     to { transform: rotate(360deg); }
   }
 
-  /* Universal launcher composition GÇö the speech bubble and button share the top row, with
+  /* Universal launcher composition â€” the speech bubble and button share the top row, with
      Gary seated directly beneath the button. Mobile, tablet, and desktop use this same structure;
      responsive rules may scale the geometry, but never rearrange the relationship. */
   .gary-launcher {
@@ -240,7 +240,7 @@
     gap: 0.375rem;
   }
 
-  /* See the JSX comment where this class is applied GÇö only while the chat panel is closed, so
+  /* See the JSX comment where this class is applied â€” only while the chat panel is closed, so
      it can never affect GaryPanel's own controls when open. The button is the one thing inside
      this container that must stay clickable; everything else is decorative. */
   .gary-launcher--idle {
@@ -289,7 +289,7 @@
     }
   }
 
-  /* Palette GÇö reuses the site's own navy/teal/ivory tokens so Gary feels native to the brand
+  /* Palette â€” reuses the site's own navy/teal/ivory tokens so Gary feels native to the brand
      rather than a bolted-on generic mascot. */
   .gary-desk { fill: #163259; }
   .gary-shirt, .gary-sleeve { fill: #eef4fa; }
@@ -304,7 +304,7 @@
   .gary-mouth { stroke: #7a4a33; stroke-width: 3; fill: none; stroke-linecap: round; }
   .gary-mouth-open { fill: #7a4a33; }
 
-  /* Faces GÇö only one visible at a time, swapped per pose below. */
+  /* Faces â€” only one visible at a time, swapped per pose below. */
   .gary-face-neutral { opacity: 1; transition: opacity 0.2s ease; }
   .gary-face-frustrated, .gary-face-idea { opacity: 0; transition: opacity 0.2s ease; }
 
@@ -321,7 +321,7 @@
   }
   [data-gary-pose='jump'] { animation: gary-jump 0.6s ease-out 1; }
 
-  /* Wave GÇö step 7: a friendly side-to-side wave near head height. */
+  /* Wave â€” step 7: a friendly side-to-side wave near head height. */
   @keyframes gary-wave {
     0%, 100% { transform: rotate(0deg); }
     15% { transform: rotate(-150deg); }
@@ -334,15 +334,15 @@
     animation: gary-wave 1.5s ease-in-out 1;
   }
 
-  /* Point GÇö step 8-9: arm extended up toward the chat button, held while waiting. */
+  /* Point â€” step 8-9: arm extended up toward the chat button, held while waiting. */
   [data-gary-pose='point'] .gary-arm-right {
     transform: rotate(-150deg);
   }
   [data-gary-pose='wait'] .gary-arm-right { transform: rotate(-138deg); }
   [data-gary-pose='wait'] .gary-head { transform: rotate(-7deg); transform-box: fill-box; }
 
-  /* Frustrated GÇö step 10-12: furrowed brow, flat mouth, arms drawn in, a small readable
-     shake GÇö never a red/angry treatment. */
+  /* Frustrated â€” step 10-12: furrowed brow, flat mouth, arms drawn in, a small readable
+     shake â€” never a red/angry treatment. */
   @keyframes gary-frustrated-shake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translate(-4px, 3px) rotate(-6deg); }
@@ -358,7 +358,7 @@
     animation: gary-frustrated-shake 0.5s ease-in-out 2;
   }
 
-  /* Idea GÇö step 13-14: wide eyes, raised brow, hand-up "just thought of something" pop. */
+  /* Idea â€” step 13-14: wide eyes, raised brow, hand-up "just thought of something" pop. */
   @keyframes gary-idea-pop {
     0% { transform: scale(1); }
     45% { transform: scale(1.07); }
@@ -375,7 +375,7 @@
   [data-gary-pose='signPoint'] .gary-arm-left { transform: rotate(-140deg); }
   [data-gary-pose='signPoint'] .gary-arm-right { transform: rotate(-165deg); }
 
-  /* signWave GÇö the sign itself is a separate, independently-positioned element (.gary-sign-board
+  /* signWave â€” the sign itself is a separate, independently-positioned element (.gary-sign-board
      below), not attached to the arm's transform, so it never moves or "jumps" regardless of what
      the arm does here; the left arm just keeps reading as "still holding it up" while the right
      arm reuses the same gary-wave keyframes as the routine's very first greeting wave (already
@@ -409,11 +409,11 @@
   }
   .gary-sign-board.is-lowering { opacity: 0; transform: translateY(20%) rotate(3deg) scale(0.9); }
 
-  /* Lowering GÇö step 19: sign slides away, arms return to resting. */
+  /* Lowering â€” step 19: sign slides away, arms return to resting. */
 
-  /* Seated GÇö step 20-21, 23: final resting state. Idle glance/point loop is opt-in via
+  /* Seated â€” step 20-21, 23: final resting state. Idle glance/point loop is opt-in via
      data-gary-idle (only enabled while resting, chat closed, and motion isn't reduced) and is
-     deliberately slow/subtle GÇö a small motion once every several seconds, not a repeating
+     deliberately slow/subtle â€” a small motion once every several seconds, not a repeating
      flourish. */
   @keyframes gary-idle-glance {
     0%, 88%, 100% { transform: rotate(0deg); }
@@ -433,7 +433,7 @@
     animation: gary-idle-head-tilt 10s ease-in-out infinite;
   }
 
-  /* Entrance GÇö step 5: Gary fades/settles in beneath the already-visible chat button. */
+  /* Entrance â€” step 5: Gary fades/settles in beneath the already-visible chat button. */
   @keyframes gary-enter {
     0% { opacity: 0; transform: translateY(10px) scale(0.9); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -442,14 +442,14 @@
     animation: gary-enter 0.4s ease-out 1;
   }
 
-  /* Reduced motion GÇö a static seated Gary, chat button, and "Gary from Accounting" label only.
+  /* Reduced motion â€” a static seated Gary, chat button, and "Gary from Accounting" label only.
      GaryLauncher.tsx already skips the whole routine and goes straight to the seated pose when
      prefers-reduced-motion is set; this is the CSS-level backstop in case that pose is ever
      reached some other way. */
   @media (prefers-reduced-motion: reduce) {
     .gary-chat-button { animation: none !important; }
     /* The silver ring itself stays visible (a legitimate static border), only its rotation stops
-       GÇö "become static" per the requirement, not "disappear". */
+       â€” "become static" per the requirement, not "disappear". */
     .gary-chat-button::before { animation: none !important; transform: none !important; }
     [data-gary-pose] { animation: none !important; }
     [data-gary-pose] .gary-arm-left,

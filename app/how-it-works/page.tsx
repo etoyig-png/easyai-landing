@@ -29,11 +29,11 @@ const services: { n: string; title: string; body: string; comingSoon?: boolean }
 const steps = [
   {
     num: '01', title: 'Take the AI Opportunity Assessment or book a call',
-    body: 'Fill out a short form about your business, current tools, repetitive work, time drains, and goals. This is not the full consulting assessment GÇö it\'s how we learn enough to make the conversation useful. You can also skip the form and book a consultation directly.',
+    body: 'Fill out a short form about your business, current tools, repetitive work, time drains, and goals. This is not the full consulting assessment â€” it\'s how we learn enough to make the conversation useful. You can also skip the form and book a consultation directly.',
   },
   {
     num: '02', title: 'We prepare a pre-consultation brief',
-    body: 'Before the call, we review your form responses and any available public information about your business. We prepare a list of focused questions so we can spend the consultation time understanding your actual workflows GÇö not covering the basics.',
+    body: 'Before the call, we review your form responses and any available public information about your business. We prepare a list of focused questions so we can spend the consultation time understanding your actual workflows â€” not covering the basics.',
   },
   {
     num: '03', title: 'We conduct a structured 45-minute consultation',
@@ -41,10 +41,10 @@ const steps = [
   },
   {
     num: '04', title: 'The transcript is analyzed',
-    body: 'The recording is transcribed and reviewed by EasyAI. We use AI to extract pain points, bottlenecks, repeated tasks, expenses, and goals from the conversation. This is a draft GÇö not a final recommendation. A human reviews every finding before it moves forward.',
+    body: 'The recording is transcribed and reviewed by EasyAI. We use AI to extract pain points, bottlenecks, repeated tasks, expenses, and goals from the conversation. This is a draft â€” not a final recommendation. A human reviews every finding before it moves forward.',
   },
   {
-    num: '05', title: 'We Evaluate How Customers Find YouGÇöand What Slows You Down',
+    num: '05', title: 'We Evaluate How Customers Find Youâ€”and What Slows You Down',
     body: 'We review how your business appears across Google, local search, and Artificial Intelligence discovery. We also examine the systems, tools, and processes consuming time, delaying customer responses, creating extra work, or causing opportunities to be missed. Then we identify what should improve first.',
   },
   {
@@ -91,9 +91,9 @@ export default function HowItWorksPage() {
       <section className="bg-navy-900 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 md:grid md:grid-cols-3 gap-6 text-center">
           {[
-            { icon: '=ƒöì', title: 'Diagnosis first', body: 'The consultation and transcript come before any product recommendations.' },
-            { icon: '=ƒæñ', title: 'Human validation', body: 'AI drafts. A human verifies every recommendation before delivery.' },
-            { icon: '=ƒÄ»', title: 'Simplest effective solution', body: 'The answer may be AI, regular software, or just a better process.' },
+            { icon: 'ðŸ”', title: 'Diagnosis first', body: 'The consultation and transcript come before any product recommendations.' },
+            { icon: 'ðŸ‘¤', title: 'Human validation', body: 'AI drafts. A human verifies every recommendation before delivery.' },
+            { icon: 'ðŸŽ¯', title: 'Simplest effective solution', body: 'The answer may be AI, regular software, or just a better process.' },
           ].map(p => (
             <div key={p.title} className="rounded-xl border border-navy-800 bg-navy-900 p-6 mb-4 md:mb-0">
               <div className="text-3xl mb-2">{p.icon}</div>

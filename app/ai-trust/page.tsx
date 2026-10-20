@@ -3,12 +3,12 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: 'AI Trust & Human Control' };
 
 const trustPrinciples = [
-  { icon: '=ƒæñ', title: 'Human review is mandatory', body: 'AI drafts findings and recommendations. A human at EasyAI checks every item for real-world fit, data access, and client-facing risk before you see it. AI does not make final decisions.' },
-  { icon: '=ƒöÆ', title: 'Data access is explicit', body: 'We ask what data any tool or agent needs to access GÇö and whether that access is appropriate. Sensitive data is flagged in every assessment.' },
-  { icon: 'G£à', title: 'Your approval before action', body: 'No tool is configured, no automation runs, and no agent takes a client-facing action without your approval. You control what gets implemented and when.' },
-  { icon: '=ƒæü', title: 'Transparency about AI use', body: 'We tell you when and how AI is involved in our process GÇö including the consultation analysis, product research, and report drafting.' },
-  { icon: '=ƒôï', title: 'Limitations are documented', body: 'Every recommendation includes what the tool does not do and what could go wrong. We do not hide the limitations of AI products.' },
-  { icon: '=ƒÜ½', title: 'AI does not promise outcomes', body: 'We provide estimates with visible assumptions. We do not guarantee savings, profitability, or productivity improvements. Results depend on implementation quality and adoption.' },
+  { icon: 'ğŸ‘¤', title: 'Human review is mandatory', body: 'AI drafts findings and recommendations. A human at EasyAI checks every item for real-world fit, data access, and client-facing risk before you see it. AI does not make final decisions.' },
+  { icon: 'ğŸ”’', title: 'Data access is explicit', body: 'We ask what data any tool or agent needs to access â€” and whether that access is appropriate. Sensitive data is flagged in every assessment.' },
+  { icon: 'âœ…', title: 'Your approval before action', body: 'No tool is configured, no automation runs, and no agent takes a client-facing action without your approval. You control what gets implemented and when.' },
+  { icon: 'ğŸ‘', title: 'Transparency about AI use', body: 'We tell you when and how AI is involved in our process â€” including the consultation analysis, product research, and report drafting.' },
+  { icon: 'ğŸ“‹', title: 'Limitations are documented', body: 'Every recommendation includes what the tool does not do and what could go wrong. We do not hide the limitations of AI products.' },
+  { icon: 'ğŸš«', title: 'AI does not promise outcomes', body: 'We provide estimates with visible assumptions. We do not guarantee savings, profitability, or productivity improvements. Results depend on implementation quality and adoption.' },
 ];
 
 export default function AITrustPage() {
@@ -18,7 +18,7 @@ export default function AITrustPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <p className="eyebrow-silver mb-3">Our approach</p>
           <h1 className="text-4xl md:text-5xl font-serif font-semibold mb-4">AI Trust & Human Control</h1>
-          <p className="text-silver-light text-lg max-w-2xl">AI is a tool in our process GÇö not a replacement for judgment. Here is exactly how we use it and where humans stay in control.</p>
+          <p className="text-silver-light text-lg max-w-2xl">AI is a tool in our process â€” not a replacement for judgment. Here is exactly how we use it and where humans stay in control.</p>
         </div>
       </section>
 

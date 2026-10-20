@@ -53,7 +53,7 @@ export default function PrivacyPage() {
 
             <hr className="border-navy-800" />
 
-            {/* id="terms" is the target of the footer's "Terms of Service" link (/privacy#terms) GÇö
+            {/* id="terms" is the target of the footer's "Terms of Service" link (/privacy#terms) â€”
                 without it that link lands at the top of the page instead of this section. */}
             <div id="terms" className="scroll-mt-24">
               <h2 className="text-2xl font-serif font-semibold text-white mb-4">Terms of Service</h2>

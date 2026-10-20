@@ -9,7 +9,7 @@ export default function BookConsultationPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <p className="eyebrow-silver mb-3">Get started</p>
           <h1 className="text-4xl md:text-5xl font-serif font-semibold mb-4">Book a Consultation</h1>
-          <p className="text-silver-light text-lg max-w-2xl">45 minutes. Structured. No sales pitch. We ask about your business GÇö and you get honest answers about where AI can and cannot help.</p>
+          <p className="text-silver-light text-lg max-w-2xl">45 minutes. Structured. No sales pitch. We ask about your business â€” and you get honest answers about where AI can and cannot help.</p>
         </div>
       </section>
 
@@ -22,7 +22,7 @@ export default function BookConsultationPage() {
                 { num: '1', title: '45-minute video or phone call', body: 'We walk through how your business operates, where work slows down, what repeats, and what costs the most time.' },
                 { num: '2', title: 'We prepare ahead of time', body: 'If you completed the assessment, we review it before the call. We come with focused questions, not a generic intro.' },
                 { num: '3', title: 'Recording with your consent', body: 'We record to transcribe and analyze so we do not miss anything. You control what is recorded.' },
-                { num: '4', title: 'Assessment report follows', body: 'After the call, we research tools and solutions and deliver a written report with our findings GÇö usually within a few business days.' },
+                { num: '4', title: 'Assessment report follows', body: 'After the call, we research tools and solutions and deliver a written report with our findings â€” usually within a few business days.' },
                 { num: '5', title: 'No pressure on next steps', body: 'You decide whether to implement yourself or hire EasyAI. There is no automatic upsell.' },
               ].map(s => (
                 <div key={s.num} className="flex gap-4">
@@ -42,7 +42,7 @@ export default function BookConsultationPage() {
 
           <div>
             <div className="rounded-xl border border-navy-800 bg-navy-900 text-center py-10">
-              <div className="text-4xl mb-4">=ƒôà</div>
+              <div className="text-4xl mb-4">ðŸ“…</div>
               <h3 className="text-xl font-serif font-semibold text-white mb-3">Select a time</h3>
               <p className="text-silver-light text-sm mb-6 max-w-xs mx-auto">Our booking calendar will appear here. In the meantime, reach out directly and we will schedule a time.</p>
               <Link href="/contact" className="btn-green inline-block">Contact us to schedule</Link>
@@ -54,7 +54,7 @@ export default function BookConsultationPage() {
 
       <section className="py-12 bg-navy-900 text-center">
         <div className="max-w-xl mx-auto px-4 sm:px-6">
-          <p className="text-silver-light text-sm">Not ready for a call? <Link href="/assessment" className="text-teal underline">Take the assessment first</Link> GÇö we will follow up with next steps.</p>
+          <p className="text-silver-light text-sm">Not ready for a call? <Link href="/assessment" className="text-teal underline">Take the assessment first</Link> â€” we will follow up with next steps.</p>
         </div>
       </section>
     </>

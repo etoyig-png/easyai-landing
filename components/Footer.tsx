@@ -33,7 +33,7 @@ export default function Footer() {
             <p className="text-sm text-slate-400 leading-relaxed">
               We help local businesses get found, get chosen, and turn attention into customers.
             </p>
-            <p className="text-sm text-slate-400 mt-3">Tampa, FL &nbsp;-+&nbsp; Serving clients remotely</p>
+            <p className="text-sm text-slate-400 mt-3">Tampa, FL &nbsp;·&nbsp; Serving clients remotely</p>
           </div>
           {Object.entries(links).map(([group, items]) => (
             <div key={group}>

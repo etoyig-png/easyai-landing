@@ -8,12 +8,12 @@ export const metadata: Metadata = {
 };
 
 const implServices = [
-  { icon: '=ƒφΊ', title: 'Tool setup & configuration', body: 'We install and configure approved tools for your business -- properly, not just out of the box.' },
-  { icon: '=ƒφω', title: 'Integrations & connections', body: 'Connect your tools so data flows between them without manual copying.' },
-  { icon: 'Gάν', title: 'Workflow automation', body: 'Remove manual handoffs between steps. Build reliable, testable automations.' },
-  { icon: '=ƒρϋ', title: 'Custom AI agent builds', body: 'When existing products cannot solve the problem, we design and build a custom agent with defined inputs, outputs, and human approval points.' },
-  { icon: '=ƒΊ¬', title: 'Testing & QA', body: 'We test with real-world data before your team uses anything in production.' },
-  { icon: '=ƒτά', title: 'Documentation & training', body: 'Every implementation includes clear documentation and training so your team actually uses it.' },
+  { icon: 'π”§', title: 'Tool setup & configuration', body: 'We install and configure approved tools for your business -- properly, not just out of the box.' },
+  { icon: 'π”—', title: 'Integrations & connections', body: 'Connect your tools so data flows between them without manual copying.' },
+  { icon: 'β΅', title: 'Workflow automation', body: 'Remove manual handoffs between steps. Build reliable, testable automations.' },
+  { icon: 'π¤–', title: 'Custom AI agent builds', body: 'When existing products cannot solve the problem, we design and build a custom agent with defined inputs, outputs, and human approval points.' },
+  { icon: 'π§ª', title: 'Testing & QA', body: 'We test with real-world data before your team uses anything in production.' },
+  { icon: 'π“', title: 'Documentation & training', body: 'Every implementation includes clear documentation and training so your team actually uses it.' },
 ];
 
 const agentRules = [
@@ -67,7 +67,7 @@ export default function ImplementationPage() {
             <ul className="space-y-3">
               {agentRules.map(r => (
                 <li key={r} className="flex items-start gap-3 text-sm text-silver-light">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-navy-800 text-teal flex items-center justify-center text-xs font-bold mt-0.5">G£τ</span>
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-navy-800 text-teal flex items-center justify-center text-xs font-bold mt-0.5">β“</span>
                   {r}
                 </li>
               ))}

@@ -8,12 +8,12 @@ export const metadata: Metadata = {
 };
 
 const solutionTypes = [
-  { icon: '=ƒñû', label: 'Existing AI products', body: 'Off-the-shelf tools that may already solve your problem -- often the fastest and lowest-risk path.' },
-  { icon: '=ƒÆ+', label: 'Ordinary SaaS software', body: 'Sometimes the answer is a better non-AI tool. We research those too.' },
-  { icon: '=ƒöä', label: 'Process redesign', body: 'Broken processes do not get better with AI on top. We fix the process first.' },
-  { icon: 'GÜí', label: 'Automations', body: 'Connect your existing tools and remove manual handoffs.' },
-  { icon: '=ƒùé', label: 'CRM (when needed)', body: 'Only recommended when the assessment shows scattered data is a genuine obstacle.' },
-  { icon: '=ƒºá', label: 'Custom AI agents', body: 'When existing tools are not enough, we build agents for the specific workflow.' },
+  { icon: 'ðŸ¤–', label: 'Existing AI products', body: 'Off-the-shelf tools that may already solve your problem -- often the fastest and lowest-risk path.' },
+  { icon: 'ðŸ’¼', label: 'Ordinary SaaS software', body: 'Sometimes the answer is a better non-AI tool. We research those too.' },
+  { icon: 'ðŸ”„', label: 'Process redesign', body: 'Broken processes do not get better with AI on top. We fix the process first.' },
+  { icon: 'âš¡', label: 'Automations', body: 'Connect your existing tools and remove manual handoffs.' },
+  { icon: 'ðŸ—‚', label: 'CRM (when needed)', body: 'Only recommended when the assessment shows scattered data is a genuine obstacle.' },
+  { icon: 'ðŸ§ ', label: 'Custom AI agents', body: 'When existing tools are not enough, we build agents for the specific workflow.' },
 ];
 
 const compareFactors = [

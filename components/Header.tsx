@@ -27,7 +27,7 @@ export default function Header() {
         <Link href="/" className="flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver rounded">
           <Image
             src="/easy-ai-logo.png"
-            alt="Easy AI GÇö Business AI Advisory"
+            alt="Easy AI â€” Business AI Advisory"
             width={200}
             height={54}
             // Doubled at md+ (52px -> 104px). The mark is ~3.7:1, so a full 104px would render
