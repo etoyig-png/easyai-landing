@@ -103,7 +103,12 @@
   @media (max-width: 380px) {
     .hero-video-wrap {
       width: 180px;
-      transform: translateY(-14px);
+      /* -14px -> -22px: the customer-growth hero label is a longer line than the one this was
+         originally measured against and still wraps to two lines here, and every other spacing
+         step at this tier is already collapsed to zero, so the last few pixels of Gary-launcher
+         clearance have to come from this same bounded nudge. Still a transform, so it moves the
+         video only and never leaves a gap in document flow. */
+      transform: translateY(-22px);
     }
   }
 

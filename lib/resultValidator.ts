@@ -81,6 +81,18 @@ const BRAND_BLOCKLIST: RegExp[] = [
   /\bgo\s*high\s*level\b/i,
   /\bPaige\b/i,
   /\bMerchynt\b/i,
+  // Easy AI's own internal product names. These must never reach a customer-facing surface:
+  // the public position is outcomes ("get found", "capture opportunities"), never the recipe.
+  /\bSmartSite\b/i,
+  /\bAIM\s+Voice\b/i,
+  /\bDigital\s+GAP\b/i,
+  /\bGAP\s+Scorecard\b/i,
+  // GAP and AIM are matched CASE-SENSITIVELY (no /i) on purpose. Lowercase "gap"/"gaps" and
+  // "aim" are ordinary, load-bearing words here - the approved assessment copy itself says
+  // "identify likely gaps" - so a case-insensitive rule would reject legitimate output.
+  // Only the all-caps product styling is blocked.
+  /\bGAP\b/,
+  /\bAIM\b/,
 ];
 
 const CLIENT_CLAIM_PATTERNS: RegExp[] = [

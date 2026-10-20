@@ -48,7 +48,24 @@ const NOT_BUT_PATTERN = /\bnot\b[^.!?]{0,80}?\bbut\b/i;
 // Gary must never name a specific third-party product — including the same brand blocklist
 // used in the assessment email, since these are the exact products Easy AI has decided not to
 // publicly recommend.
-const BRAND_BLOCKLIST: RegExp[] = [/\bCRR\b/i, /\bintelligent\s+website\b/i, /\bgo\s*high\s*level\b/i, /\bMerchynt\b/i];
+const BRAND_BLOCKLIST: RegExp[] = [
+  /\bCRR\b/i,
+  /\bintelligent\s+website\b/i,
+  /\bgo\s*high\s*level\b/i,
+  /\bMerchynt\b/i,
+  // Easy AI's own internal product names. These must never reach a customer-facing surface:
+  // the public position is outcomes ("get found", "capture opportunities"), never the recipe.
+  /\bSmartSite\b/i,
+  /\bAIM\s+Voice\b/i,
+  /\bDigital\s+GAP\b/i,
+  /\bGAP\s+Scorecard\b/i,
+  // GAP and AIM are matched CASE-SENSITIVELY (no /i) on purpose. Lowercase "gap"/"gaps" and
+  // "aim" are ordinary, load-bearing words here - the approved assessment copy itself says
+  // "identify likely gaps" - so a case-insensitive rule would reject legitimate output.
+  // Only the all-caps product styling is blocked.
+  /\bGAP\b/,
+  /\bAIM\b/,
+];
 
 const PRICE_MENTION = /\$\d/;
 

@@ -3,11 +3,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 
+// Kept deliberately flat and short. No nav entry ever names an individual Easy AI product:
+// visitors navigate by what they want to accomplish, not by the systems behind it.
+// "How It Works" targets the homepage customer-journey section rather than a separate page,
+// so the two service-oriented links stay distinct ("What We Do" = the services page).
 const nav = [
-  { label: 'Home',       href: '/' },
-  { label: 'What We Do', href: '/how-it-works' },
-  { label: 'About',      href: '/about' },
-  { label: 'Contact',    href: '/contact' },
+  { label: 'Home',            href: '/' },
+  { label: 'What We Do',      href: '/how-it-works' },
+  { label: 'How It Works',    href: '/#how-easy-ai-works' },
+  { label: 'Free Assessment', href: '/assessment' },
+  { label: 'About',           href: '/about' },
+  { label: 'Contact',         href: '/contact' },
 ];
 
 export default function Header() {
@@ -31,7 +37,7 @@ export default function Header() {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-8" aria-label="Main navigation">
+        <nav className="hidden md:flex items-center gap-5 lg:gap-7" aria-label="Main navigation">
           {nav.map(item => (
             <Link
               key={item.label}
