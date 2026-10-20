@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AssessmentSubmission } from './validation';
 import { escapeHtmlText } from './htmlEscape';
-import { validateResultHtml } from './resultValidator';
+import { validateActionPlanFields, type ActionPlanFields } from './actionPlanValidator';
 
 // Constructed lazily so this module can be imported at build time without ANTHROPIC_API_KEY set.
 let anthropicClient: Anthropic | undefined;
@@ -10,18 +10,18 @@ function getClient(): Anthropic {
   return anthropicClient;
 }
 
-// Internal research bank — cited stats the model can draw on for the FOUND section.
-// Never shown to the visitor in the quiz; only used to ground the generated email.
-// Keyed 1:1 against the locked INDUSTRY_OPTIONS list (see industryResearch.test.ts) so
-// every statistic Claude is allowed to cite traces back to exactly one approved entry —
-// there is no path for Claude to cite a number that isn't in this table.
+// Internal research bank — grounding context the model can draw on when writing the
+// challenge/action narrative. Never shown to the visitor in the quiz; never surfaced as
+// a cited statistic in the customer email (the validator rejects any dollar figure, and
+// the prompt below forbids citing numbers as guarantees for this specific business).
+// Keyed 1:1 against the locked INDUSTRY_OPTIONS list (see industryResearch.test.ts).
 export const INDUSTRY_RESEARCH: Record<string, string> = {
   'Construction & Trades (contractors, subs, home services)':
     'Trade businesses miss 27-62% of incoming calls. Only 5-12% of dormant/old leads convert without automated follow-up.',
   'Healthcare & Wellness (chiropractic, medical, dental, therapy)':
     'No-shows cost the average chiropractic-style clinic $15,000-$40,000/year. Solo practitioners lose 15-20 hrs/week to insurance and scheduling admin. Do not reference or ask about any patient medical history, diagnoses, or health data — stay focused on practice operations only.',
   'Professional Services (consulting, legal, accounting, financial)':
-    'Unbilled time is the "leaky faucet" of professional services — loose time tracking quietly drains profit.',
+    'Unbilled time is the "leaky faucet" of professional services. Lost or incomplete time tracking drains profit a little at a time.',
   'Retail & E-commerce':
     '~75% of online carts are abandoned with no recovery process. Roughly 43% of small businesses still run inventory manually.',
   'Hospitality & Food Service':
@@ -35,114 +35,154 @@ function researchForIndustry(industry: string, industryOther?: string): string {
   return `The business describes itself as: "${industryOther ?? industry}". No specific stat bank is available — speak generally about how businesses their size typically lose time to manual, repetitive work, without citing a fabricated statistic.`;
 }
 
-const SYSTEM_PROMPT = `You are writing a personalized "AI Action Plan" preview email on behalf of Easy AI Consulting, sent to a small business owner who just completed a free AI-readiness assessment.
+const SUBMIT_ACTION_PLAN_TOOL: Anthropic.Tool = {
+  name: 'submit_action_plan',
+  description: 'Submit the completed 3-Step AI Action Plan narrative content as structured fields.',
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: [
+      'opening',
+      'challengeOneHeadline',
+      'challengeOneStory',
+      'actionOneHeadline',
+      'actionOneDoNow',
+      'actionOneAutomationOpportunity',
+      'challengeTwoHeadline',
+      'challengeTwoStory',
+      'actionTwoHeadline',
+      'actionTwoDoNow',
+      'actionTwoAutomationOpportunity',
+      'easyAiSummary',
+    ],
+    properties: {
+      opening: { type: 'string', description: 'Short personalized opening, 1-2 sentences.' },
+      challengeOneHeadline: { type: 'string', description: 'Bold, personalized headline for Challenge 1, based on their #1 AI challenge.' },
+      challengeOneStory: { type: 'string', description: 'Up to 4 sentences: state the challenge, make it relatable, use Feel-Felt-Found naturally, build enough tension to make the action meaningful.' },
+      actionOneHeadline: { type: 'string', description: 'Bold, outcome-based action headline for Step 1.' },
+      actionOneDoNow: { type: 'string', description: 'One practical, low-risk, no-purchase action completable in 10-20 minutes that directly addresses Challenge 1.' },
+      actionOneAutomationOpportunity: { type: 'string', description: 'Brief reveal of what part of that action could happen automatically and the benefit, with no brand names, vendors, or setup steps, and no mention of Easy AI.' },
+      challengeTwoHeadline: { type: 'string', description: 'Bold, personalized headline for Challenge 2, based on their biggest time drain.' },
+      challengeTwoStory: { type: 'string', description: 'Up to 4 sentences, same structure as Challenge 1 story, about their biggest time drain.' },
+      actionTwoHeadline: { type: 'string', description: 'Bold, outcome-based action headline for Step 2.' },
+      actionTwoDoNow: { type: 'string', description: 'One practical, low-risk, no-purchase action completable in 10-20 minutes that directly addresses Challenge 2.' },
+      actionTwoAutomationOpportunity: { type: 'string', description: 'Same as actionOneAutomationOpportunity but for Step 2 — vary the phrasing from Step 1, do not repeat the same sentence pattern.' },
+      easyAiSummary: {
+        type: 'string',
+        description:
+          'Exactly two sentences explaining how Easy AI can help (finding the right tools, verifying fit, building dependable processes, strengthening the two actions above, supporting revenue and time savings). Must mention "Easy AI" by name. No sales pitch, no guarantees.',
+      },
+    },
+  },
+  strict: true,
+};
 
-Tone: warm, empathetic, specific, and grounded — never hype-y, never a hard sell, never a guaranteed-results promise. This is roughly 70% emotional connection, 30% concrete substance. Sound supportive, intelligent, practical, and human. Use plain language, avoid technical jargon, avoid fear-selling, and avoid sounding like therapy, a motivational speech, or a generic AI advertisement.
+const SYSTEM_PROMPT = `You write the narrative content for a free "3-Step AI Action Plan" preview email from Easy AI Consulting, sent to a small business owner who just completed a free AI-readiness assessment. You do this by calling the submit_action_plan tool with the completed fields — you never write raw HTML, headings, titles, or a call-to-action; the application renders all of that around your content deterministically.
 
-Structure the email using this Feel-Felt-Found arc, in this order:
-1. Personal hook — open using their first name and business name. If your web search turned up anything real and specific about the business (their site, services, reviews, location), weave in ONE concrete detail naturally. If you found nothing verifiable, skip the specific detail rather than inventing one — do not fabricate facts about their business.
-2. FEEL — reflect their stated data-privacy/security worry and their #1 AI challenge back to them empathetically, in their own terms, so they feel heard.
-3. FELT — normalize it by connecting to real founder experience. Etoyi (Easy AI's founder) has personally talked with business owners in these industries — you may write in that honest founder voice, e.g. "Owners I've spoken with often describe...", "In my years working with business owners in [industry]...", "A common concern I hear is...". Never describe these people as Easy AI clients and never claim Easy AI produced results for them — this is about shared experience, not a case study or testimonial.
-4. FOUND — where their industry is headed and what's been found to work, grounded in the research note provided below. Cite the stat naturally, not as a bullet list of data, and keep its original context/limitations intact — never present an industry-wide range as a guaranteed number for this specific business.
-5. Mirror their specific biggest time drain, framed as "businesses like yours typically..." — this must never read as a personal guarantee about their specific results.
-6. Money reassurance tied to their desired outcome — most of the tools that would realistically help run $40-60/month, not thousands.
-7. Time reassurance — make clear their time is the asset being protected here, not something else being asked of them.
-8. End with the mandatory closing question described under "Closing question" below. Do not write your own call-to-action, button, or booking link — that is added automatically after your content.
+Tone: warm, empathetic, specific, and grounded. Never hype-y, never a hard sell, never a guaranteed-results promise. Sound like a thoughtful person who understands small business, not an advertisement. Use plain contractions and natural sentence rhythm. Vary sentence and paragraph length. Prefer concrete business language over polished motivational copy.
 
-Personalization requirements:
-- Use the business name naturally 4-6 times across the email, not just in the opening line.
-- Use their first name at least once beyond the initial greeting.
-- Do not simply list their answers back to them ("You said X, you said Y..."). Interpret how the answers connect to each other — e.g. how their #1 challenge relates to their time drain, or how their desired outcome depends on solving it.
+Structure Claude must follow, twice: Challenge, then Relatability, then a clear Action. The story must lead quickly to the action, not delay it.
 
-Desired-outcome angle — expand on whichever of these matches their stated desired outcome, without claiming to know their personal reason:
-- "Make more money": don't stop at "increase revenue." Explore what the extra revenue could make possible — financial breathing room, hiring help, taking time away from the business, family experiences or vacations, education expenses, retirement savings, reinvesting in the company, giving a spouse more options, growing without personally working more hours. Then connect the revenue goal to their selected time drain.
-- "Save time": connect it to reclaiming evenings and weekends, being more present outside work, or freeing up space for higher-value work.
-- "Improve quality": connect it to fewer mistakes, less rework, more consistent service, a stronger reputation, and more confidence that work is being handled correctly.
+Challenge 1 is always based on their submitted #1 AI challenge. Challenge 2 is always based on their submitted biggest time drain. Do not invent a third challenge or swap these two sources.
+
+For each challenge story (up to 4 sentences):
+1. State the submitted challenge in your own words.
+2. Make the situation relatable.
+3. Use a Feel-Felt-Found arc naturally, without ever writing "Feel," "Felt," or "Found" as a heading or label. FEEL: reflect the challenge back empathetically, in their own terms. FELT: normalize it using honest founder-experience language — Etoyi, Easy AI's founder, has personally talked with business owners in these industries. Use phrasing like "Owners I've spoken with often describe...", "In my years working with business owners in [industry]...", "A common concern I hear is...". Never describe anyone as an Easy AI client and never claim Easy AI produced results for them — this is shared experience, not a testimonial or case study.
+4. Build enough emotional weight to make the action that follows feel worth doing, without inventing facts, results, or emotional claims the recipient never gave you and that cannot reasonably be inferred from the assessment. Never invent a spouse, children, a family problem, or a financial crisis. At most once across the whole plan, you may use a single carefully hedged possibility about a deeper motivation (e.g. "for many owners in your position, that can mean...") — never more than once, and never framed as fact.
+
+For each action (Step 1 and Step 2):
+- actionOneHeadline / actionTwoHeadline: a specific, outcome-based headline, never vague. Good examples: "Stop Losing Leads to Slow Follow-Up", "Capture Client Notes Before Details Get Lost", "Reduce Appointment Back-and-Forth", "Create a Consistent Review Process", "Protect Your Time From Repetitive Administrative Work". Avoid vague phrasing like "Improve Your Business," "Use More AI," "Become More Efficient," or "Consider Automation."
+- actionOneDoNow / actionTwoDoNow: one practical, low-risk action the owner can complete manually today, addressing the challenge directly above it. Usually 10-20 minutes. Deliver immediate value. Require no software purchase. Be specific enough to complete without extra instructions. Do not expose the complete paid Game Plan. Example: "Write the three follow-up messages you send most often and save them as reusable templates."
+- actionOneAutomationOpportunity / actionTwoAutomationOpportunity: briefly reveal what portion of that manual action could happen automatically and the business benefit, in your own words each time (never the same sentence pattern twice, and never mechanically reused across emails). Reveal the opportunity without exposing the solution design: describe what activity could happen automatically and the benefit, never a brand, vendor, platform, integration, trigger, or technical setup step, and never a build guide. Do not mention Easy AI in either Step 1 or Step 2 — these two fields are about the opportunity itself, not who provides it. Example: "New inquiries can receive an immediate first response and be organized for follow-up without requiring you to stop working and answer every message personally."
+
+Desired-outcome framing — use whichever matches their stated desired outcome to color the challenge stories and actions, without claiming to know their personal reason:
+- "Make more money": explore what additional revenue could make possible without asserting a personal why — hiring help, financial breathing room, time away, family experiences, education, retirement, reinvestment, or growing without adding more personal hours.
+- "Save time": connect it to fewer late nights, protected evenings, less administrative work, or more time for higher-value work.
+- "Improve quality": connect it to consistency, fewer mistakes, reduced rework, stronger customer service, and less mental load.
 Never guarantee any personal, financial, or operational outcome.
 
-Deeper motivation (use sparingly, at most one or two per email): business goals often connect to something deeper than the surface answer. Possible angles — working late after a normal day, losing evenings or weekends to paperwork, being physically home but mentally stuck in the business, missing time with family or friends, carrying financial uncertainty alone, feeling responsible for employees and customers, having no room for a vacation, wanting to hire help, wanting to fund a child's education, wanting to give a spouse the option to leave a job, wanting more retirement security, wanting the business to create freedom instead of another demanding job. These are possibilities, not facts — never state or imply the reader has a spouse, children, financial problems, or family conflict unless they explicitly told you so (nothing in the data provided here ever supplies that). Use hedged language: "for many owners in your position…", "that can mean…", "it might come down to…", "whether that means more time at home, room to hire help, or greater financial security…". Never stack more than one or two of these angles into one email. Never use the exact phrase "the deeper goal may be" — it's banned as a repeated formulaic tell.
+The user message includes an industry grounding note. It is for your own understanding of the space, not something to quote, cite, or turn into a number in your output.
 
-Recommended capabilities — pick only 2-3 that clearly match their time drain, desired outcome, and industry. Do not list the whole menu. Describe outcomes, not technology (good: "Easy AI can help create a system that responds to new leads within minutes, so fewer of them go cold." bad: "Product X connected through API Y with an LLM orchestration layer can auto-respond to leads."). Never name or recommend a specific third-party product or brand — including but not limited to CRR, Intelligent Website, GoHighLevel, Paige, or Merchynt. Describe capabilities generically, never by brand name. Approved categories:
-- Google/local-search growth (when marketing, new customers, or missed opportunities are relevant): improving a Google Business Profile, local-search visibility, consistent business info, review requests/responses, organized photos, accurate service areas. Never guarantee rankings, top placement, lead volume, or revenue.
-- Lead sourcing and organization (when new-customer growth is relevant): identifying and organizing leads from approved/public sources, capturing contact info, prioritizing follow-up. Never imply private data collection or unauthorized scraping.
-- Call answering and appointment booking (when missed calls, lead response, or front-desk overload is relevant): answering/responding to inquiries, collecting caller info, answering common questions, booking appointments, sending confirmations/reminders, transferring urgent situations to a human.
-- Lead and estimate follow-up (when follow-up is the problem): following up on missed calls and estimates, reconnecting with dormant leads, sending reminders, alerting a human when personal attention is needed.
-- Paperwork and documentation (when paperwork, invoicing, or repetitive communication is the problem): drafting estimates/invoices/job notes, organizing documentation, drafting follow-up messages, routing everything through human review before sending.
-- Scheduling and customer communication (when scheduling is the problem): scheduling/rescheduling, confirmations, reminders, basic intake, staff notifications, escalating exceptions to a human.
-- Privacy and human oversight (when privacy concern is high): careful tool selection, clear data rules, human approval checkpoints, limiting what's entered into AI systems, keeping sensitive decisions under human control. Never collect or include medical information or PHI.
+easyAiSummary: exactly two sentences, no more and no fewer. It must mention "Easy AI" by name. It explains that Easy AI can find the right tools for this specific business, verify the tools fit the owner's workflow and concerns, help establish dependable business processes, strengthen the two actions above, support additional revenue opportunities, save the owner time, and help return time to what matters most to them — pick what's most relevant, do not try to fit everything into two sentences. Do not repeat the two actions verbatim. Do not turn this into a sales pitch.
 
-Closing question — the final paragraph of your output, and there must be nothing after it (no further paragraphs, no CTA, no sign-off). It must read, with the business name substituted in:
-"One final question worth thinking about: What made you build [Business Name], and what do you want the business to make possible for you?"
+Personalization: use the submitted business name naturally 4-6 times across all the fields combined, not clustered in one field. Use the owner's first name at least once beyond a simple greeting, where it reads naturally. Connect the challenge, desired outcome, time drain, privacy concern, AI usage, company size, and industry where relevant — do not mechanically repeat their answers back to them ("You said X, you said Y...").
 
 Hard rules:
-- Do NOT invent specific promises, numbers, or guarantees about THIS business's results. Stats from the research note describe industry patterns, not this business.
-- Do NOT collect, reference, infer, or discuss any medical/health details, diagnoses, or patient data, even if the business is in healthcare/wellness — stay strictly at the level of business operations (scheduling, admin, no-shows).
-- Do NOT mention that you performed a web search, cite your search process, or name any AI-tool directories or research methodology. Speak only as Easy AI.
-- Do NOT explain, justify, or reference the outcome of your research in any way, under any framing, anywhere in the output — not as an opening sentence, not comma-spliced into another sentence, not wrapped inside a paragraph tag, not as an aside. Forbidden content includes (and is not limited to) any variation of: "I searched...", "I couldn't confirm...", "No verifiable public listing...", "I kept the hook centered...", "no invented details", or any other sentence that describes enrichment success, failure, research limitations, prompting, or your own generation decisions. This applies whether or not the web search found anything. If nothing verifiable was found, the correct behavior is total silence about that fact — begin directly with the personal hook sentence, with zero transition, zero acknowledgment, and zero explanation of the gap.
-- Do NOT invent or assert facts about this specific business that were not confirmed by web search or given in the submitted answers. Only use a specific factual claim about this business if it was actually verified.
+- Do NOT invent specific promises, numbers, guarantees, or dollar figures about this business's results or costs. Never mention a price, a monthly cost, or any dollar amount anywhere in your output — pricing is handled entirely outside your content.
+- Do NOT collect, reference, infer, or discuss any medical/health details, diagnoses, or patient data, even if the business is in healthcare/wellness — stay at the level of business operations (scheduling, admin, no-shows).
+- Do NOT explain, justify, or reference any research process, search, or your own generation decisions, anywhere, under any framing. You have no search tool in this task — write only from the submitted answers and the grounding note above.
 - Do NOT describe anyone as an Easy AI client or claim Easy AI produced results for them. Founder-experience language ("owners I've spoken with...") is allowed; testimonials or case-study framing are not.
-- Do NOT use any sports, game, or team metaphors or headers of any kind.
-- Do NOT use em dashes (—) or en dashes (–) anywhere in your output. Rewrite the sentence naturally with commas, periods, or separate sentences instead of substituting a different repetitive punctuation mark in their place.
-- Do NOT use any of these AI-writing tells: "not X, but Y" constructions (including "not because X, but because Y"), repeated negative comparisons, three consecutive dramatic sentence fragments in a row, a rhetorical question immediately followed by its own answer, "you're in good company", "if any of this lands", "quietly saving", "low hum", "on-ramp", "move the needle", "genuinely fine", "reasonable place to be standing", "the thing that stood out most", "here's the part", "the deeper goal may be", decorative metaphors that don't clarify anything, or generic motivational filler. Vary paragraph and sentence length naturally rather than writing every paragraph to a similar rhythm. Use contractions naturally.
-- Do NOT name a specific third-party product or brand anywhere in the output, including but not limited to CRR, Intelligent Website, GoHighLevel, or Merchynt. Describe outcomes and capabilities only, never named tools.
-- Do NOT wrap the output in markdown code fences or mention that this is HTML.
-- Output ONLY a clean HTML fragment for the body of an email (use <h2>, <p>, <strong> — no <html>, <head>, <body>, no inline <style> blocks, no scripts). Keep it skimmable: short paragraphs, one idea per paragraph, no walls of text. Your response must begin with an HTML tag — no text of any kind before the first tag.
-- Do not use the word "guarantee" or promise specific ROI figures for this business.`;
+- Do NOT use any sports, game, or team metaphors of any kind.
+- Do NOT use em dashes (—) or en dashes (–) anywhere in your output. Rewrite the sentence naturally instead of substituting a different repetitive punctuation mark.
+- Do NOT use any of these AI-writing tells: "not X, but Y" constructions (including "not because X, but because Y"), repeated negative comparisons, three consecutive dramatic sentence fragments in a row, a rhetorical question immediately followed by its own answer, "you're in good company", "if any of this lands", "quietly saving", "low hum", "on-ramp", "move the needle", "genuinely fine", "reasonable place to be standing", "the thing that stood out most", "here's the part", "the deeper goal may be", decorative metaphors that don't clarify anything, or generic motivational filler.
+- Do NOT name a specific third-party product, vendor, platform, or brand anywhere in your output, including but not limited to CRR, Intelligent Website, GoHighLevel, Paige, or Merchynt. Describe outcomes and capabilities only, never named tools.
+- Write "Owners I've spoken with" (not "speak with") and use correct verb tense throughout — check subject-verb agreement, avoid duplicate words, and avoid incomplete sentences before submitting.
+- Call the submit_action_plan tool exactly once with every field filled in. Do not write any text outside the tool call.`;
+
+function buildUserPrompt(submission: AssessmentSubmission): string {
+  const research = researchForIndustry(submission.industry, submission.industryOther);
+  return `Generate the 3-Step AI Action Plan content for this lead by calling submit_action_plan.
+
+First name: ${submission.firstName}
+Last name: ${submission.lastName}
+Business name: ${submission.businessName}
+Industry: ${submission.industryOther ? `${submission.industry}, specifically: ${submission.industryOther}` : submission.industry}
+Work situation: ${submission.workSituation}
+Already using AI tools regularly: ${submission.usingAiTools}
+Their #1 AI challenge (use this for Challenge 1): ${submission.aiChallenge}
+Outcome they most want: ${submission.desiredOutcome}
+Biggest time drain (use this for Challenge 2): ${submission.timeDrain}
+Data privacy/security worry level: ${submission.privacyConcern}
+
+Industry grounding note (context only, never cite as a number in your output): ${research}`;
+}
+
+function extractToolInput(response: Anthropic.Message): Record<string, unknown> | undefined {
+  const toolUse = response.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use' && block.name === 'submit_action_plan'
+  );
+  return toolUse?.input as Record<string, unknown> | undefined;
+}
+
+function toActionPlanFields(input: Record<string, unknown> | undefined): ActionPlanFields | null {
+  if (!input) return null;
+  const keys: (keyof ActionPlanFields)[] = [
+    'opening',
+    'challengeOneHeadline',
+    'challengeOneStory',
+    'actionOneHeadline',
+    'actionOneDoNow',
+    'actionOneAutomationOpportunity',
+    'challengeTwoHeadline',
+    'challengeTwoStory',
+    'actionTwoHeadline',
+    'actionTwoDoNow',
+    'actionTwoAutomationOpportunity',
+    'easyAiSummary',
+  ];
+  const fields: Partial<ActionPlanFields> = {};
+  for (const key of keys) {
+    const value = input[key];
+    if (typeof value !== 'string') return null;
+    fields[key] = value;
+  }
+  return fields as ActionPlanFields;
+}
 
 export interface GenerateResultInput {
   submission: AssessmentSubmission;
 }
 
-/**
- * The system prompt requires Claude's output to be an HTML fragment starting
- * with a tag. If Claude still writes a leaked reasoning sentence before the
- * real content (e.g. "No verifiable public listing was found, so I've kept
- * the hook..."), that text appears before the first "<" — anything before
- * the first tag is, by the prompt's own contract, not supposed to be there.
- * Returns the cleaned HTML, or null if no HTML tag is present at all (an
- * unsalvageable, non-conforming response — the caller should fall back).
- */
-export function stripLeakedPreamble(text: string): string | null {
-  const trimmed = text.trim();
-  const tagIndex = trimmed.indexOf('<');
-  if (tagIndex === -1) return null;
-  return trimmed.slice(tagIndex);
-}
-
-function buildUserPrompt(submission: AssessmentSubmission): string {
-  const research = researchForIndustry(submission.industry, submission.industryOther);
-  return `Generate the personalized AI Action Plan email body for this lead.
-
-First name: ${submission.firstName}
-Last name: ${submission.lastName}
-Business name: ${submission.businessName}
-Industry: ${submission.industryOther ? `${submission.industry} — specifically: ${submission.industryOther}` : submission.industry}
-Work situation: ${submission.workSituation}
-Already using AI tools regularly: ${submission.usingAiTools}
-Their #1 AI challenge: ${submission.aiChallenge}
-Outcome they most want: ${submission.desiredOutcome}
-Biggest time drain: ${submission.timeDrain}
-Data privacy/security worry level: ${submission.privacyConcern}
-
-Industry research note to draw on for the FOUND section: ${research}
-
-Before writing, use web search to look up "${submission.businessName}" to see if there's a real, public website, Google listing, or reviews you can reference for one specific, true detail. If you can't confidently confirm anything about this specific business, don't guess — just skip the specific detail and keep the hook centered on their name and industry. Do not write anything about the search itself, its outcome, or your reasoning about it, anywhere in the output, under any circumstances.`;
-}
-
-/** Extracts the final text block, tool-search narration and all — see stripLeakedPreamble for why only the last block is used. */
-function extractRawHtml(response: Anthropic.Message): string | undefined {
-  const textBlocks = response.content.filter((block): block is Anthropic.TextBlock => block.type === 'text');
-  return textBlocks[textBlocks.length - 1]?.text.trim();
-}
-
-export async function generateAssessmentResult({ submission }: GenerateResultInput): Promise<string> {
+export async function generateActionPlanFields({ submission }: GenerateResultInput): Promise<ActionPlanFields> {
   const userPrompt = buildUserPrompt(submission);
 
   const response = await getClient().messages.create({
     model: 'claude-opus-5',
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
-    tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }],
+    tools: [SUBMIT_ACTION_PLAN_TOOL],
+    tool_choice: { type: 'tool', name: 'submit_action_plan' },
     messages: [{ role: 'user', content: userPrompt }],
   });
 
@@ -150,44 +190,50 @@ export async function generateAssessmentResult({ submission }: GenerateResultInp
     throw new Error('Claude declined to generate the assessment result');
   }
 
-  const rawHtml = extractRawHtml(response);
-  if (!rawHtml) {
-    throw new Error('Claude returned no text content for the assessment result');
+  const firstFields = toActionPlanFields(extractToolInput(response));
+  if (!firstFields) {
+    throw new Error('Claude did not return a valid submit_action_plan tool call');
   }
 
-  // First line of defense: strip anything before the first HTML tag (catches a
-  // leaked preamble that arrived as its own separate sentence/block). This alone
-  // does NOT catch narration comma-spliced into the same paragraph as real content
-  // (e.g. "<p>I searched but couldn't confirm anything, so I've kept the hook
-  // centered on Acme's name. Hi Jamie, ...</p>") — that requires the deterministic
-  // phrase-level validator below, which runs regardless of where in the HTML the
-  // leak landed.
-  const strippedHtml = stripLeakedPreamble(rawHtml);
-  if (!strippedHtml) {
-    throw new Error('Claude returned non-HTML content with no tag found — likely a leaked reasoning response');
-  }
-
-  const firstAttempt = validateResultHtml(strippedHtml, submission);
+  const firstAttempt = validateActionPlanFields(firstFields);
   if (firstAttempt.valid) {
-    return strippedHtml;
+    return firstFields;
   }
 
-  // One controlled correction attempt: tell Claude exactly what it violated and ask
-  // for a full rewrite. No web-search tool on this pass — the research/hook decision
-  // already happened; we just need the same content rewritten to comply.
-  const correctionPrompt = `Your previous response violated the following rules and must be rewritten from scratch:
+  // One controlled correction attempt: tell Claude exactly what it violated and force
+  // a fresh tool call. The assistant turn here is reconstructed as the tool_use block
+  // only (no other content), matching what a real assistant turn containing a forced
+  // tool call looks like — safe to send back to the API as history.
+  const correctionPrompt = `Your previous submit_action_plan call violated the following rules and must be resubmitted from scratch:
 ${firstAttempt.violations.map((v) => `- ${v}`).join('\n')}
 
-Rewrite the entire email body from scratch, following every instruction in the system prompt exactly, with none of the violations above. Output ONLY the corrected HTML fragment, starting with a tag, nothing else.`;
+Call submit_action_plan again with all fields corrected, following every instruction in the system prompt exactly, with none of the violations above.`;
+
+  const firstToolUse = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+  if (!firstToolUse) {
+    throw new Error('Claude did not return a valid submit_action_plan tool call');
+  }
 
   const correctionResponse = await getClient().messages.create({
     model: 'claude-opus-5',
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
+    tools: [SUBMIT_ACTION_PLAN_TOOL],
+    tool_choice: { type: 'tool', name: 'submit_action_plan' },
     messages: [
       { role: 'user', content: userPrompt },
-      { role: 'assistant', content: strippedHtml },
-      { role: 'user', content: correctionPrompt },
+      { role: 'assistant', content: [firstToolUse] },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: firstToolUse.id,
+            content: 'Recorded. See the correction instructions in the next message.',
+          },
+          { type: 'text', text: correctionPrompt },
+        ],
+      },
     ],
   });
 
@@ -195,22 +241,19 @@ Rewrite the entire email body from scratch, following every instruction in the s
     throw new Error('Claude declined to generate the corrected assessment result');
   }
 
-  const rawCorrectedHtml = extractRawHtml(correctionResponse);
-  const strippedCorrectedHtml = rawCorrectedHtml ? stripLeakedPreamble(rawCorrectedHtml) : null;
-  if (!strippedCorrectedHtml) {
-    throw new Error('Claude returned non-HTML content on the correction attempt — likely a leaked reasoning response');
+  const secondFields = toActionPlanFields(extractToolInput(correctionResponse));
+  if (!secondFields) {
+    throw new Error('Claude did not return a valid submit_action_plan tool call on the correction attempt');
   }
 
-  const secondAttempt = validateResultHtml(strippedCorrectedHtml, submission);
+  const secondAttempt = validateActionPlanFields(secondFields);
   if (!secondAttempt.valid) {
-    // Never send invalid output merely because the API returned HTML — fall through
-    // to the caller's existing fallback path instead.
-    throw new Error(
-      `Claude's corrected output still failed validation: ${secondAttempt.violations.join('; ')}`
-    );
+    // Never send invalid output merely because the API returned a well-formed tool call —
+    // fall through to the caller's existing fallback path instead.
+    throw new Error(`Claude's corrected output still failed validation: ${secondAttempt.violations.join('; ')}`);
   }
 
-  return strippedCorrectedHtml;
+  return secondFields;
 }
 
 /**
@@ -220,18 +263,24 @@ Rewrite the entire email body from scratch, following every instruction in the s
  * punctuation like apostrophes literal) since these are raw user-submitted strings,
  * not model output.
  */
-export function buildFallbackResultHtml(submission: AssessmentSubmission): string {
-  const research = researchForIndustry(submission.industry, submission.industryOther);
+export function buildFallbackActionPlanFields(submission: AssessmentSubmission): ActionPlanFields {
   const firstName = escapeHtmlText(submission.firstName);
   const businessName = escapeHtmlText(submission.businessName);
   const aiChallenge = escapeHtmlText(submission.aiChallenge.toLowerCase());
   const timeDrain = escapeHtmlText(submission.timeDrain.toLowerCase());
-  return `
-    <h2>Hi ${firstName},</h2>
-    <p>Thanks for taking the time to walk us through ${businessName}. We're putting together your full AI Action Plan now, and wanted to make sure you heard from us right away.</p>
-    <p>You mentioned ${aiChallenge}. That's an extremely common starting point, and it's exactly what a short discovery call is for.</p>
-    <p>${research.split('.')[0]}. Businesses like yours typically find the biggest win is tackling "${timeDrain}" first.</p>
-    <p>Most of the tools that realistically fit a business your size run $40-60/month, not thousands, and the goal is always to protect your time, not add more to your plate.</p>
-    <p>When you're ready, we'd love to set up a short discovery call to go deeper.</p>
-  `;
+
+  return {
+    opening: `Thanks for taking the time to walk through the assessment for ${businessName}, ${firstName}. Here is a first look at your AI Action Plan.`,
+    challengeOneHeadline: 'Where Your Attention Is Being Pulled Away',
+    challengeOneStory: `You told us ${aiChallenge} is the challenge weighing on ${businessName} most right now. Owners I've spoken with in similar situations describe the same thing: it is hard to know where to start when everything feels urgent at once. That is a common starting point, not a sign anything is broken.`,
+    actionOneHeadline: 'Write Down Your Single Biggest Time Cost',
+    actionOneDoNow: `Take ten minutes and write down the one task that ate the most time at ${businessName} this week, and roughly how long it took.`,
+    actionOneAutomationOpportunity: 'Once a task like that is written down clearly, it usually becomes obvious which parts of it are repetitive enough to hand off.',
+    challengeTwoHeadline: 'The Drain That Keeps Coming Back',
+    challengeTwoStory: `You named ${timeDrain} as the biggest drain on your time. That kind of recurring task rarely feels urgent in the moment, which is exactly why it quietly adds up. A common concern I hear is that there is never a good time to fix it because it never stops long enough to look at.`,
+    actionTwoHeadline: 'Block Time Before It Gets Taken',
+    actionTwoDoNow: `Pick one recurring block on your calendar this week and protect it specifically for ${timeDrain}, instead of letting it happen in the gaps.`,
+    actionTwoAutomationOpportunity: 'Recurring tasks like this are often the easiest to hand off in part, once the pattern is clear.',
+    easyAiSummary: `Easy AI can help find tools that fit how ${businessName} already works and confirm they solve the right problem before anything changes. That frees up more of your time for the parts of the business only you can do.`,
+  };
 }

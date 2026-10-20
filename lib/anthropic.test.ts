@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildFallbackResultHtml, stripLeakedPreamble } from './anthropic';
+import { buildFallbackActionPlanFields } from './anthropic';
+import { validateActionPlanFields } from './actionPlanValidator';
 import type { AssessmentSubmission } from './validation';
 
 const baseSubmission: AssessmentSubmission = {
@@ -19,47 +20,39 @@ const baseSubmission: AssessmentSubmission = {
   formLoadedAt: 1,
 };
 
-describe('stripLeakedPreamble', () => {
-  it('returns clean HTML output unchanged', () => {
-    const clean = '<h2>Hi Taylor,</h2><p>Thanks for taking the assessment.</p>';
-    expect(stripLeakedPreamble(clean)).toBe(clean);
+describe('buildFallbackActionPlanFields', () => {
+  it('passes the real deterministic content validator', () => {
+    const fields = buildFallbackActionPlanFields(baseSubmission);
+    const result = validateActionPlanFields(fields);
+    expect(result.violations).toEqual([]);
+    expect(result.valid).toBe(true);
   });
 
-  it('strips a leaked reasoning sentence comma-spliced before the real greeting', () => {
-    const leaked =
-      "No verifiable public listing for this specific business turned up, so I've kept the hook centered on their name, industry, and assessment answers rather than inventing details. <h2>Toy, here's what stood out from your assessment</h2><p>Thanks for taking the time...</p>";
-    const result = stripLeakedPreamble(leaked);
-    expect(result).not.toBeNull();
-    expect(result).toMatch(/^<h2>/);
-    expect(result).not.toContain('No verifiable public listing');
-  });
-
-  it('strips leading whitespace/narration across multiple sentences before the first tag', () => {
-    const leaked = "I'll start with the search, then write the email. No listing was found.\n\n<h2>Hi Jordan,</h2><p>Body.</p>";
-    const result = stripLeakedPreamble(leaked);
-    expect(result).toMatch(/^<h2>/);
-  });
-
-  it('returns null when no HTML tag exists anywhere (unsalvageable)', () => {
-    expect(stripLeakedPreamble('Just plain prose with no tags at all.')).toBeNull();
-  });
-});
-
-describe('buildFallbackResultHtml', () => {
   it('escapes HTML-dangerous characters in submitted fields', () => {
-    const html = buildFallbackResultHtml({ ...baseSubmission, businessName: '<script>alert(1)</script>' });
-    expect(html).not.toContain('<script>alert(1)</script>');
-    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    const fields = buildFallbackActionPlanFields({ ...baseSubmission, businessName: '<script>alert(1)</script>' });
+    const combined = JSON.stringify(fields);
+    expect(combined).not.toContain('<script>alert(1)</script>');
+    expect(combined).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
 
-  it('contains no em dash or en dash', () => {
-    const html = buildFallbackResultHtml(baseSubmission);
-    expect(html).not.toMatch(/—/);
-    expect(html).not.toMatch(/–/);
+  it('contains no em dash or en dash across any field', () => {
+    const fields = buildFallbackActionPlanFields(baseSubmission);
+    const combined = Object.values(fields).join(' ');
+    expect(combined).not.toMatch(/—/);
+    expect(combined).not.toMatch(/–/);
   });
 
   it('keeps ordinary apostrophes in business names literal, not entity-encoded', () => {
-    const html = buildFallbackResultHtml({ ...baseSubmission, businessName: "Bob's Plumbing" });
-    expect(html).toContain("Bob's Plumbing");
+    const fields = buildFallbackActionPlanFields({ ...baseSubmission, businessName: "Bob's Plumbing" });
+    expect(fields.opening).toContain("Bob's Plumbing");
+  });
+
+  it('mentions Easy AI only in easyAiSummary, never in the Step 1/2 action fields', () => {
+    const fields = buildFallbackActionPlanFields(baseSubmission);
+    expect(fields.easyAiSummary.toLowerCase()).toContain('easy ai');
+    expect(fields.actionOneDoNow.toLowerCase()).not.toContain('easy ai');
+    expect(fields.actionOneAutomationOpportunity.toLowerCase()).not.toContain('easy ai');
+    expect(fields.actionTwoDoNow.toLowerCase()).not.toContain('easy ai');
+    expect(fields.actionTwoAutomationOpportunity.toLowerCase()).not.toContain('easy ai');
   });
 });

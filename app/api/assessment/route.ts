@@ -3,8 +3,9 @@ import { waitUntil } from '@vercel/functions';
 import { prisma } from '@/lib/prisma';
 import { assessmentSubmissionSchema } from '@/lib/validation';
 import { getClientIp, isRateLimited, looksLikeSpam } from '@/lib/rateLimit';
-import { sendInternalNotification, sendResultEmail } from '@/lib/resend';
-import { generateAssessmentResult, buildFallbackResultHtml } from '@/lib/anthropic';
+import { sendInternalNotification, sendResultEmail, buildResultEmailHtml } from '@/lib/resend';
+import { generateActionPlanFields, buildFallbackActionPlanFields } from '@/lib/anthropic';
+import type { ActionPlanFields } from '@/lib/actionPlanValidator';
 import { notifyCommandCenter } from '@/lib/commandCenter';
 
 export const runtime = 'nodejs';
@@ -65,20 +66,23 @@ export async function POST(req: NextRequest) {
   // waitUntil keeps the serverless invocation alive until this resolves, even
   // though the response has already been returned.
   waitUntil((async () => {
-    let resultHtml: string;
+    let fields: ActionPlanFields;
     try {
-      resultHtml = await generateAssessmentResult({ submission: data });
+      fields = await generateActionPlanFields({ submission: data });
     } catch (err) {
       console.error('Claude generation failed, using fallback result', err);
-      resultHtml = buildFallbackResultHtml(data);
+      fields = buildFallbackActionPlanFields(data);
     }
+
+    const resultHtml = buildResultEmailHtml(fields, data);
 
     try {
       await sendResultEmail({
         to: data.email,
         firstName: data.firstName,
         businessName: data.businessName,
-        resultHtml,
+        fields,
+        submission: data,
       });
       await prisma.submission.update({
         where: { id: submission.id },
