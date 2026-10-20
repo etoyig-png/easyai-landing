@@ -32,11 +32,23 @@ function usePrefersReducedMotion(): boolean {
 
 const SIGN_RELATED_POSES: GaryPose[] = ['sign', 'signPoint', 'signWave', 'lowering'];
 
+/**
+ * The Contact page asks the ALREADY-MOUNTED launcher to open, rather than rendering a second
+ * Gary. A plain DOM CustomEvent keeps that one-way request dependency-free and avoids lifting
+ * Gary's open state into a global store just for one button.
+ */
+export const GARY_OPEN_EVENT = 'easyai:open-gary';
+
+export interface GaryOpenEventDetail {
+  intent?: 'contact';
+}
+
 export default function GaryLauncher() {
   const [visible, setVisible] = useState(false);
   const [entering, setEntering] = useState(false);
   const [open, setOpen] = useState(false);
   const [pose, setPose] = useState<GaryPose>('seated');
+  const [intent, setIntent] = useState<'contact' | undefined>(undefined);
   const [routineFinished, setRoutineFinished] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
   const timers = useRef<number[]>([]);
@@ -98,6 +110,20 @@ export default function GaryLauncher() {
     // Intentionally runs once on mount — the delay and once-per-session check are both evaluated
     // at that single point, not re-derived on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Opened from elsewhere on the page (currently the Contact page's button). Gary reveals
+  // himself on a delay, so this also forces `visible` — a visitor who clicks Contact within the
+  // first few seconds must still get the panel rather than nothing happening.
+  useEffect(() => {
+    function handleOpenRequest(event: Event) {
+      const detail = (event as CustomEvent<GaryOpenEventDetail>).detail;
+      setIntent(detail?.intent);
+      setVisible(true);
+      setOpen(true);
+    }
+    window.addEventListener(GARY_OPEN_EVENT, handleOpenRequest);
+    return () => window.removeEventListener(GARY_OPEN_EVENT, handleOpenRequest);
   }, []);
 
   // Opening the chat interrupts whatever part of the routine is still playing (jump/wave/point/
@@ -176,7 +202,7 @@ export default function GaryLauncher() {
         </div>
       )}
 
-      {open && <GaryPanel onClose={() => setOpen(false)} />}
+      {open && <GaryPanel intent={intent} onClose={() => { setOpen(false); setIntent(undefined); }} />}
     </div>
   );
 }

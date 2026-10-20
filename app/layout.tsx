@@ -14,11 +14,11 @@ const SITE_URL = process.env.SITE_URL ?? 'https://easyaiconsult.com';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Easy AI | Get Found, Engage Customers and Capture More Opportunities',
+    default: 'Easy AI | Get Found, Get Chosen, Turn Attention Into Customers',
     template: '%s | Easy AI',
   },
   description:
-    'Easy AI helps local businesses improve Google and AI visibility, engage website visitors, respond faster, and capture more customer opportunities.',
+    'Easy AI helps local businesses appear when customers search Google or ask AI who to call, turn website attention into inquiries, and respond before interest fades.',
   keywords: [
     'local business AI',
     'Google Business Profile visibility',
@@ -29,9 +29,9 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'Easy AI | Get Found, Engage Customers and Capture More Opportunities',
+    title: 'Easy AI | Get Found, Get Chosen, Turn Attention Into Customers',
     description:
-      'Easy AI helps local businesses improve Google and AI visibility, engage website visitors, respond faster, and capture more customer opportunities.',
+      'Easy AI helps local businesses appear when customers search Google or ask AI who to call, turn website attention into inquiries, and respond before interest fades.',
     url: '/',
     siteName: 'Easy AI',
     locale: 'en_US',
@@ -39,9 +39,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Easy AI | Get Found, Engage Customers and Capture More Opportunities',
+    title: 'Easy AI | Get Found, Get Chosen, Turn Attention Into Customers',
     description:
-      'Easy AI helps local businesses improve Google and AI visibility, engage website visitors, respond faster, and capture more customer opportunities.',
+      'Easy AI helps local businesses appear when customers search Google or ask AI who to call, turn website attention into inquiries, and respond before interest fades.',
   },
   robots: { index: true, follow: true },
 };
@@ -60,7 +60,7 @@ const organizationJsonLd = {
   url: SITE_URL,
   logo: `${SITE_URL}/easy-ai-logo.png`,
   description:
-    'Easy AI helps local businesses improve Google and AI visibility, engage website visitors, respond faster, and capture more customer opportunities.',
+    'Easy AI helps local businesses appear when customers search Google or ask AI who to call, turn website attention into inquiries, and respond before interest fades.',
   areaServed: [
     { '@type': 'City', name: 'Tampa' },
     { '@type': 'State', name: 'Florida' },

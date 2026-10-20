@@ -489,10 +489,10 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
       );
       expect(resolvesToCta).toBe(true);
 
-      // And an actual click works end-to-end. The hero's secondary CTA is now a real route
-      // (/book-consultation) rather than the old in-page #how-easy-ai-works anchor.
+      // And an actual click works end-to-end. The hero's secondary CTA routes into the assessment
+      // carrying a consultation intent, rather than straight to a booking calendar.
       await cta.click();
-      await expect(page).toHaveURL(/\/book-consultation$/);
+      await expect(page).toHaveURL(/\/assessment\?intent=consultation$/);
     });
 
     test(`decorative Gary elements do not intercept pointer events at ${viewport.width}x${viewport.height}`, async ({ page }) => {

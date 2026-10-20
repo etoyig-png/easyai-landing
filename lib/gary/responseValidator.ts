@@ -65,6 +65,9 @@ const BRAND_BLOCKLIST: RegExp[] = [
   // Only the all-caps product styling is blocked.
   /\bGAP\b/,
   /\bAIM\b/,
+  // Added with the marketing/customer-growth pass - internal Easy AI system names.
+  /\bCommand\s+Cent(er|re)\b/i,
+  /\bConcierge\b/i,
 ];
 
 const PRICE_MENTION = /\$\d/;

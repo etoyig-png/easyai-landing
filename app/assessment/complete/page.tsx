@@ -3,7 +3,15 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Assessment Complete' };
 
-export default function AssessmentCompletePage() {
+export default function AssessmentCompletePage({
+  searchParams,
+}: {
+  searchParams?: { intent?: string };
+}) {
+  // Visitors who started from "Book a Consultation" came here to schedule, so the scheduling
+  // step is surfaced first for them. Nothing is scheduled or submitted automatically - it is
+  // still a link the visitor chooses to click.
+  const consultationIntent = searchParams?.intent === 'consultation';
   return (
     <>
       <section className="bg-gradient-to-br from-brand-950 to-brand-700 text-white py-20">
@@ -18,6 +26,20 @@ export default function AssessmentCompletePage() {
 
       <section className="py-16 bg-slate-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-10">
+          {consultationIntent && (
+            <div className="card p-6 sm:p-8 border-l-4 border-teal">
+              <p className="section-label mb-3">Your consultation</p>
+              <h2 className="text-lg font-semibold text-slate-900 mb-2">Ready to book your consultation</h2>
+              <p className="text-sm text-slate-500 mb-6">
+                Your answers are in, so the call can start with your actual situation instead of the basics.
+                Pick a time whenever you are ready &mdash; nothing is scheduled until you choose one.
+              </p>
+              <Link href="/book-consultation" className="btn-primary inline-block">
+                Choose a Consultation Time
+              </Link>
+            </div>
+          )}
+
           <div className="card p-6 sm:p-8">
             <p className="section-label mb-3">While you wait</p>
             <h2 className="text-lg font-semibold text-slate-900 mb-4">A quick look at how Easy AI works</h2>

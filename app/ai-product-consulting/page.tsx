@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'AI Product Consulting' };
+export const metadata: Metadata = {
+  title: 'AI Strategy & Tool Selection',
+  description:
+    'After we help customers find and choose your business, Easy AI looks at the systems behind it: what to fix, what to automate, and what to leave alone.',
+  alternates: { canonical: '/ai-product-consulting' },
+};
 
 const solutionTypes = [
   { icon: '🤖', label: 'Existing AI products', body: 'Off-the-shelf tools that may already solve your problem -- often the fastest and lowest-risk path.' },
@@ -23,7 +28,7 @@ export default function AIProductConsultingPage() {
       <section className="bg-gradient-to-br from-brand-950 to-brand-700 text-white py-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <p className="section-label text-teal-300 mb-3">Services</p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">AI Product Consulting</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">AI Strategy &amp; Tool Selection</h1>
           <p className="text-brand-100 text-lg max-w-2xl">We research the AI tools, SaaS products, automations, and process changes that fit your actual business -- not a generic software list.</p>
         </div>
       </section>
@@ -32,7 +37,7 @@ export default function AIProductConsultingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:grid md:grid-cols-2 gap-16 items-start">
           <div>
             <p className="section-label mb-3">What we do</p>
-            <h2 className="text-3xl font-bold text-slate-900 mb-4">Discovery before prescription</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">We recommend systems that solve the real business problem</h2>
             <p className="text-slate-600 mb-4 leading-relaxed">We conduct a structured consultation to understand how your business operates -- where work enters, where it slows down, what repeats, and what costs the most time and money.</p>
             <p className="text-slate-600 mb-4 leading-relaxed">Then we research tools and solutions that fit the actual problem. Not the most popular AI platform. Not the most expensive option. The one that fits.</p>
             <p className="text-slate-600 leading-relaxed">We prioritize existing products and simple solutions first. Custom AI agents are an option when existing tools genuinely cannot solve the problem -- not the default answer.</p>

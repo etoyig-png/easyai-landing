@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'About EasyAI' };
+export const metadata: Metadata = {
+  title: 'About Easy AI',
+  description:
+    'Easy AI is a Tampa, Florida practice helping local businesses get found, get chosen, and turn website attention into real customer opportunities.',
+  alternates: { canonical: '/about' },
+};
 
 export default function AboutPage() {
   return (
@@ -17,7 +22,7 @@ export default function AboutPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 md:grid md:grid-cols-2 gap-16 items-start">
           <div>
             <p className="section-label mb-3">What EasyAI is</p>
-            <h2 className="text-3xl font-bold text-slate-900 mb-6">We help businesses figure out what AI is actually worth using</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-6">We help businesses get found, get chosen, and win the customer</h2>
             <p className="text-slate-600 mb-4 leading-relaxed">
               EasyAI is an AI product consulting and implementation company based in Tampa, FL, serving clients remotely. We work with business owners, operations leads, and teams who are hearing a lot about AI and need someone to tell them what actually applies to their situation.
             </p>

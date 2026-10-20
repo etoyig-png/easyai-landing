@@ -22,7 +22,15 @@ interface MessageApiResponse {
   offerAssessment?: boolean;
 }
 
-export default function GaryPanel({ onClose }: { onClose: () => void }) {
+export default function GaryPanel({
+  onClose,
+  intent,
+}: {
+  onClose: () => void;
+  /** 'contact' when opened from the Contact page. Sent with every message in this conversation
+   *  (rather than stored server-side) so no session-schema change is needed. */
+  intent?: 'contact';
+}) {
   const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<ChatBubble[]>([]);
@@ -47,6 +55,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
           sessionId: getStoredSessionId(),
           anonymousId: getOrCreateAnonymousId(),
           currentPage: pathname,
+          intent,
           referrer: typeof document !== 'undefined' ? document.referrer : undefined,
           ...payload,
         }),
@@ -67,6 +76,13 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
+    // A contact conversation always starts fresh: resuming an unrelated earlier chat would drop
+    // the visitor into the middle of a different topic when they clicked "contact us".
+    if (intent === 'contact') {
+      clearStoredSessionId();
+      void sendToGary({});
+      return;
+    }
     if (getStoredSessionId()) return; // resuming an existing session — nothing to send yet
     void sendToGary({});
     // eslint-disable-next-line react-hooks/exhaustive-deps

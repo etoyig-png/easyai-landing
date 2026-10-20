@@ -5,7 +5,7 @@ import { getClientIp, isGaryRateLimited } from '@/lib/rateLimit';
 import { createGaryLlmAdapter } from '@/lib/gary/llm/providerFactory';
 import { generateGaryReply } from '@/lib/gary/replyPipeline';
 import { classifyVisitorMessageSafety } from '@/lib/gary/safetyClassifier';
-import { GARY_OPENING_OPTIONS, GARY_OPENING_QUESTION } from '@/lib/gary/openingQuestion';
+import { GARY_CONTACT_OPENING, GARY_CONTACT_OPTIONS, GARY_OPENING_OPTIONS, GARY_OPENING_QUESTION } from '@/lib/gary/openingQuestion';
 import { enqueueFunnelEvent } from '@/lib/gary/funnelEvents';
 import type { GaryConversationState } from '@/lib/gary/systemPrompt';
 import type { ChatMessage } from '@/lib/gary/llm/types';
@@ -21,6 +21,9 @@ const requestSchema = z.object({
   currentPage: z.string().max(500).optional(),
   referrer: z.string().max(500).optional(),
   utm: z.record(z.string()).optional(),
+  // Set by the Contact page's "Contact Easy AI Through Gary" button. Sent on every message in
+  // that conversation rather than stored on the session, so no schema/migration change is needed.
+  intent: z.enum(['contact']).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -66,9 +69,21 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // The very first call for a brand-new session (no message yet) returns the fixed opening
-  // question deterministically — no LLM call, matching the master spec's exact wording.
+  // The very first call for a brand-new session (no message yet) returns a fixed opening
+  // deterministically — no LLM call. A contact-intent session opens with the contact greeting
+  // instead of the general one, which also means the Contact page still works if the LLM is
+  // unavailable: the first turn never depends on it.
   if (isNewSession && !data.message) {
+    if (data.intent === 'contact') {
+      await prisma.publicChatMessage.create({
+        data: { sessionId: session.id, role: 'gary', content: GARY_CONTACT_OPENING, optionPayload: GARY_CONTACT_OPTIONS as never },
+      });
+      return NextResponse.json({
+        sessionId: session.id,
+        reply: { text: GARY_CONTACT_OPENING, options: GARY_CONTACT_OPTIONS },
+        offerAssessment: false,
+      });
+    }
     await prisma.publicChatMessage.create({
       data: { sessionId: session.id, role: 'gary', content: GARY_OPENING_QUESTION, optionPayload: GARY_OPENING_OPTIONS as never },
     });
@@ -105,6 +120,7 @@ export async function POST(req: NextRequest) {
     visitorTurnCount: session.visitorTurnCount,
     assessmentOfferCount: session.assessmentOfferCount,
     lastVisitorSafetyClass: safetyClass,
+    intent: data.intent,
   };
 
   const adapter = createGaryLlmAdapter();

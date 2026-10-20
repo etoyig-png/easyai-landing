@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'Implementation & Custom Agents' };
+export const metadata: Metadata = {
+  title: 'Implementation & Support',
+  description:
+    'Easy AI sets up, connects, tests, documents, and supports the systems behind your customer growth, so approved changes actually get used.',
+  alternates: { canonical: '/implementation' },
+};
 
 const implServices = [
   { icon: '🔧', title: 'Tool setup & configuration', body: 'We install and configure approved tools for your business -- properly, not just out of the box.' },
@@ -26,7 +31,7 @@ export default function ImplementationPage() {
       <section className="bg-gradient-to-br from-brand-950 to-brand-700 text-white py-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <p className="section-label text-teal-300 mb-3">Services</p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Implementation &amp; Custom Agents</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Implementation &amp; Support</h1>
           <p className="text-brand-100 text-lg max-w-2xl">Once you have an approved recommendation, EasyAI can set it up, connect it, test it, document it, and train your team -- or build a custom agent when existing tools are not enough.</p>
         </div>
       </section>
@@ -35,7 +40,7 @@ export default function ImplementationPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
             <p className="section-label mb-3">What implementation includes</p>
-            <h2 className="text-3xl font-bold text-slate-900">We install. We connect. We train.</h2>
+            <h2 className="text-3xl font-bold text-slate-900">We find the opportunity, then put Artificial Intelligence to work</h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {implServices.map(s => (

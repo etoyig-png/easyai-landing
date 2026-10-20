@@ -51,7 +51,12 @@ export default function Header() {
 
         {/* Desktop CTA */}
         <div className="hidden md:block">
-          <Link href="/assessment" className="btn-green text-sm px-5 py-2.5">
+          {/* Deliberately about half the hero button's footprint. The hero CTA is the primary
+              action; this one is a persistent convenience and was visually competing with it.
+              px-5 py-2.5 text-sm -> px-3 py-1.5 text-xs roughly halves the box area, while
+              min-h-[36px] keeps it a comfortable pointer target and the focus ring, green, and
+              label are unchanged. */}
+          <Link href="/assessment" className="btn-green text-xs px-3 py-1.5 min-h-[36px] leading-tight">
             Start Your Free Assessment
           </Link>
         </div>

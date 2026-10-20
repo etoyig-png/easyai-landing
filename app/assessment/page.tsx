@@ -82,6 +82,11 @@ export default function AssessmentPage() {
 function AssessmentPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Set when the visitor arrived from a "Book a Consultation" button. The consultation path
+  // deliberately runs through the assessment first (it is what makes the call useful), so this
+  // only changes what is EXPLAINED here - the questions, validation, consent and submission are
+  // identical either way.
+  const consultationIntent = searchParams?.get('intent') === 'consultation';
   const [formLoadedAt] = useState(() => Date.now());
   const [honeypot, setHoneypot] = useState('');
   const [step, setStep] = useState(0);
@@ -222,7 +227,7 @@ function AssessmentPageInner() {
       }
 
       setStep(BUILDING_STEP);
-      setTimeout(() => router.push('/assessment/complete'), 2200);
+      setTimeout(() => router.push(consultationIntent ? '/assessment/complete?intent=consultation' : '/assessment/complete'), 2200);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setSubmitting(false);
@@ -261,6 +266,15 @@ function AssessmentPageInner() {
         <div className="card p-8 sm:p-10">
           {step === INTRO_STEP && (
             <div>
+              {consultationIntent && (
+                <div className="mb-6 rounded-xl border border-teal/40 bg-teal/10 p-4 sm:p-5">
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    This assessment is free. It helps us understand your business, identify your needs, and
+                    prepare for a more useful consultation. You&rsquo;ll also receive valuable feedback and
+                    practical improvements you can begin implementing right away.
+                  </p>
+                </div>
+              )}
               <h1 className="text-xl font-bold text-slate-900 mb-1">Let&rsquo;s personalize this for your business</h1>
               <p className="text-sm text-slate-500 mb-6">Just two quick things before we start.</p>
               <div className="space-y-4">

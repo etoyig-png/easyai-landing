@@ -4,14 +4,14 @@ import HeroVideo from '@/components/HeroVideo';
 import ResponsiveImage from '@/components/ResponsiveImage';
 
 export const metadata: Metadata = {
-  title: 'Easy AI | Get Found, Engage Customers and Capture More Opportunities',
+  title: 'Easy AI | Get Found, Get Chosen, Turn Attention Into Customers',
   description:
-    'Easy AI helps local businesses improve Google and AI visibility, engage website visitors, respond faster, and capture more customer opportunities.',
+    'Easy AI helps local businesses appear when customers search Google or ask AI who to call, turn website attention into inquiries, and respond before interest fades.',
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'Easy AI | Get Found, Engage Customers and Capture More Opportunities',
+    title: 'Easy AI | Get Found, Get Chosen, Turn Attention Into Customers',
     description:
-      'Easy AI helps local businesses improve Google and AI visibility, engage website visitors, respond faster, and capture more customer opportunities.',
+      'Easy AI helps local businesses appear when customers search Google or ask AI who to call, turn website attention into inquiries, and respond before interest fades.',
     url: '/',
     type: 'website',
   },
@@ -160,17 +160,25 @@ export default function HomePage() {
             <p className="eyebrow-silver mb-2 max-[380px]:mb-0 text-[10px] leading-[1.3] tracking-[0.1em] sm:text-xs sm:leading-normal sm:tracking-widest">
               Google + AI Visibility&nbsp;&nbsp;·&nbsp;&nbsp;Website Engagement&nbsp;&nbsp;·&nbsp;&nbsp;Customer Response
             </p>
-            <h1 className="text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-3 max-[380px]:mb-0">
-              Get Found. Get Engaged. Capture More Opportunities.
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold text-white leading-tight mb-2 sm:mb-3 max-[380px]:mb-0">
+              Get Found. Get Chosen. Turn Attention Into Customers.
             </h1>
-            <p className="text-silver-light text-lg leading-relaxed mb-4 max-[380px]:mb-0 font-sans">
-              Easy AI helps local businesses improve how they appear across Google and AI search, turn website visitors into qualified opportunities, and prevent missed calls from becoming lost customers.
+            {/* The approved supporting sentence is longer than the one this hero was last
+                measured against and costs several extra lines on a phone, which pushed the video
+                back into Gary's launcher. The wording is fixed, so the height is reclaimed from
+                the mobile type scale instead: smaller size and tighter leading below sm, full
+                text-lg/relaxed from sm up where there is room. */}
+            <p className="text-silver-light text-base leading-snug sm:text-lg sm:leading-relaxed mb-3 sm:mb-4 max-[380px]:mb-0 font-sans">
+              Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Once they find you, we help turn website attention into conversations, captured leads, and real customer opportunities.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mb-3 max-[380px]:mb-0">
               <Link href="/assessment" className="btn-green text-base px-7 py-2.5 sm:py-3.5">
                 Start Your Free Assessment
               </Link>
-              <Link href="/book-consultation" className="btn-ghost-white text-base px-7 py-2.5 sm:py-3.5">
+              {/* Routed through the assessment rather than straight to a calendar: the assessment is
+                  what makes the consultation useful, and the visitor still schedules by their own action
+                  at the end. See app/assessment/page.tsx for the consultation-intent notice. */}
+              <Link href="/assessment?intent=consultation" className="btn-ghost-white text-base px-7 py-2.5 sm:py-3.5">
                 Book a Consultation
               </Link>
             </div>
@@ -222,28 +230,39 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Image 1 (16:9) — intrinsic 2752x1536, passed through at true ratio so nothing
-              is stretched. Below the fold, so lazy-loaded. */}
-          <div className="mb-12 flex justify-center">
-            <ResponsiveImage
-              orientation="landscape"
-              src="/1 169 website image.jpeg"
-              alt="Home-service professional receiving a new customer opportunity while working at a residential HVAC property."
-              width={2752}
-              height={1536}
-              sizes="(max-width: 768px) 70vw, 560px"
-              loading="lazy"
-            />
-          </div>
+          {/* Two-column on desktop: image left at ~43% of the section, the four customer-loss
+              statements stacked on the right. Below md it stacks image-first, statements under.
+              w-full overrides .responsive-media--landscape's clamp (Tailwind utilities beat the
+              @layer components rule) so the image fills its own column instead of being sized
+              against the full section width. The file and alt text are unchanged. */}
+          <div className="flex flex-col md:flex-row md:items-start gap-10 md:gap-14">
+            <div className="md:w-[43%] md:flex-shrink-0">
+              <ResponsiveImage
+                orientation="landscape"
+                src="/1 169 website image.jpeg"
+                alt="Home-service professional receiving a new customer opportunity while working at a residential HVAC property."
+                width={2752}
+                height={1536}
+                sizes="(max-width: 768px) 92vw, 550px"
+                loading="lazy"
+                className="w-full rounded-lg"
+              />
+            </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {lossPoints.map(p => (
-              <div key={p.title} className="flex flex-col gap-3">
-                <div className="text-silver" aria-hidden="true">{p.icon}</div>
-                <h3 className="font-serif font-semibold text-white text-lg">{p.title}</h3>
-                <p className="font-sans text-sm text-silver-light leading-relaxed">{p.body}</p>
-              </div>
-            ))}
+            <ul className="md:w-[57%] flex flex-col gap-7 md:gap-8 list-none">
+              {lossPoints.map((p, i) => (
+                <li
+                  key={p.title}
+                  className={`flex items-start gap-4${i > 0 ? ' pt-7 md:pt-8 border-t border-navy-800' : ''}`}
+                >
+                  <span className="text-silver flex-shrink-0 mt-0.5" aria-hidden="true">{p.icon}</span>
+                  <div>
+                    <h3 className="font-serif font-semibold text-white text-lg mb-1.5">{p.title}</h3>
+                    <p className="font-sans text-sm text-silver-light leading-relaxed">{p.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
@@ -490,7 +509,7 @@ export default function HomePage() {
             <Link href="/assessment" className="btn-green text-base px-8 py-4 inline-flex">
               Start Your Free Assessment
             </Link>
-            <Link href="/book-consultation" className="btn-ghost-white text-base px-8 py-4 inline-flex">
+            <Link href="/assessment?intent=consultation" className="btn-ghost-white text-base px-8 py-4 inline-flex">
               Book a Consultation
             </Link>
           </div>
