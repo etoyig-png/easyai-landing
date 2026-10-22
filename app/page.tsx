@@ -135,7 +135,7 @@ const assessmentAreas = [
 /* ── Page ─────────────────────────────────────────────────────────────────── */
 export default function HomePage() {
   return (
-    <>
+    <div className="home-story">
       {/* ── S1 HERO — outcome-first ──────────────────────────────────────── */}
       <section className="bg-navy-900 overflow-hidden border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 max-[380px]:py-0 md:py-20 flex flex-col md:grid md:grid-cols-[2fr_1fr] lg:grid-cols-[3fr_2fr] md:items-start gap-1 max-[380px]:gap-0 md:gap-3 md:gap-x-10">
@@ -208,8 +208,15 @@ export default function HomePage() {
         </div>
       </section>
 
+      <nav className="story-nav" aria-label="Explore Easy AI">
+        <a href="#discovery">01 <span>Getting discovered</span></a>
+        <a href="#engagement">02 <span>Website engagement</span></a>
+        <a href="#response">03 <span>Customer response</span></a>
+        <a href="#free-assessment">Start here <span aria-hidden="true">↗</span></a>
+      </nav>
+
       {/* ── S2 WHERE CUSTOMERS ARE LOST ──────────────────────────────────── */}
-      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
+      <section className="story-loss bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-10">
             <p className="eyebrow-silver mb-3">WHERE CUSTOMERS ARE LOST</p>
@@ -258,10 +265,18 @@ export default function HomePage() {
         </div>
       </section>
 
+      <div className="story-path">
+        <aside className="story-guide">
+          <p className="eyebrow-silver">Practical AI Guidance for Small and Midsize Businesses</p>
+          <h2>Get Found. Get Chosen.</h2>
+          <p>The same path every customer takes, whether or not anyone is managing it.</p>
+          <a href="#free-assessment">Start Your Free Assessment <span aria-hidden="true">↗</span></a>
+        </aside>
+        <div className="story-chapters">
       {/* ── S3 GET DISCOVERED ────────────────────────────────────────────── */}
-      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="eyebrow-silver mb-3">GETTING DISCOVERED</p>
+      <section id="discovery" className="story-chapter">
+        <div className="story-chapter-copy">
+          <span className="story-number" aria-hidden="true">01</span><p className="eyebrow-silver mb-3">GETTING DISCOVERED</p>
           <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-4">
             Being found on Google and in AI search.
           </h2>
@@ -278,9 +293,9 @@ export default function HomePage() {
       </section>
 
       {/* ── S4 TURN INTEREST INTO OPPORTUNITIES ──────────────────────────── */}
-      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="eyebrow-silver mb-3">WEBSITE ENGAGEMENT</p>
+      <section id="engagement" className="story-chapter">
+        <div className="story-chapter-copy">
+          <span className="story-number" aria-hidden="true">02</span><p className="eyebrow-silver mb-3">WEBSITE ENGAGEMENT</p>
           <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-4">
             Turning website interest into real opportunities.
           </h2>
@@ -294,9 +309,9 @@ export default function HomePage() {
       </section>
 
       {/* ── S5 FASTER RESPONSE ───────────────────────────────────────────── */}
-      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="eyebrow-silver mb-3">CUSTOMER RESPONSE</p>
+      <section id="response" className="story-chapter">
+        <div className="story-chapter-copy">
+          <span className="story-number" aria-hidden="true">03</span><p className="eyebrow-silver mb-3">CUSTOMER RESPONSE</p>
           <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-4">
             Faster response, fewer missed opportunities.
           </h2>
@@ -309,8 +324,11 @@ export default function HomePage() {
         </div>
       </section>
 
+        </div>
+      </div>
+
       {/* ── S6 FREE ASSESSMENT ───────────────────────────────────────────── */}
-      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
+      <section id="free-assessment" className="story-assessment bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-start gap-14 md:gap-20">
 
           <div className="md:w-[65%]">
@@ -389,7 +407,7 @@ export default function HomePage() {
       </section>
 
       {/* ── S8 BROADER SERVICES ──────────────────────────────────────────── */}
-      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
+      <section id="services" className="story-services bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-10">
             <p className="eyebrow-silver mb-3">BEYOND CUSTOMER GROWTH</p>
@@ -414,7 +432,7 @@ export default function HomePage() {
             />
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-8">
+          <div className="story-service-grid grid sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-8">
             {services.map(s => (
               <div key={s.title} className="border-l-2 border-teal pl-5">
                 <div className="text-silver mb-3" aria-hidden="true">{s.icon}</div>
@@ -460,7 +478,7 @@ export default function HomePage() {
       </section>
 
       {/* ── S10 FOUNDER — existing approved brand content, preserved ──────── */}
-      <section className="bg-navy-900 py-20 md:py-28 border-b border-navy-800">
+      <section className="story-founder bg-navy-900 py-20 md:py-28 border-b border-navy-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <p className="eyebrow-silver mb-4">EXPERIENCE BEFORE TECHNOLOGY</p>
           <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-6">
@@ -487,7 +505,7 @@ export default function HomePage() {
       </section>
 
       {/* ── S11 FINAL CTA ────────────────────────────────────────────────── */}
-      <section className="bg-navy-900 py-20 md:py-28">
+      <section className="story-finish bg-navy-900 py-20 md:py-28">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <p className="eyebrow-silver mb-4">START HERE</p>
           <h2 className="text-3xl md:text-4xl font-serif font-semibold text-white mb-6">
@@ -504,11 +522,12 @@ export default function HomePage() {
               Book a Consultation
             </Link>
           </div>
+          <p className="story-contact"><Link href="/contact">Contact Easy AI</Link></p>
           <p className="font-sans text-xs text-silver-dark mt-6">
             No generic tool lists. No pressure. Practical guidance built around your business.
           </p>
         </div>
       </section>
-    </>
+    </div>
   );
 }
