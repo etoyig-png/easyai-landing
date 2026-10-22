@@ -104,4 +104,3 @@ test('assessment frontend validates, preserves answers and submits the existing 
   expect(submitted?.formLoadedAt).toEqual(expect.any(Number));
   expect(submitted?.companyUrl).toBe('');
 });
-
