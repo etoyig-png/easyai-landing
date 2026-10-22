@@ -427,9 +427,9 @@ test.describe('Gary character — mobile viewport usability', () => {
   });
 });
 
-// The hero's own "See How Easy AI Works" ghost button — the CTA the launcher was measured
+// The hero's own "Book a Consultation" ghost button — the CTA the launcher was measured
 // overlapping on the shortest required viewport before the compact-mode fix.
-const HOMEPAGE_CTA_TEXT = 'See How Easy AI Works';
+const HOMEPAGE_CTA_TEXT = 'Book a Consultation';
 
 test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
   const REQUIRED_MOBILE_VIEWPORTS = [
@@ -446,7 +446,7 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const cta = page.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      const cta = page.locator('main section').first().getByRole('link', { name: HOMEPAGE_CTA_TEXT });
       await cta.scrollIntoViewIfNeeded();
       const ctaBox = await cta.boundingBox();
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
@@ -472,7 +472,7 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const cta = page.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      const cta = page.locator('main section').first().getByRole('link', { name: HOMEPAGE_CTA_TEXT });
       await cta.scrollIntoViewIfNeeded();
       // elementFromPoint at the CTA's own center must resolve to the CTA itself, not the
       // launcher (or anything else) sitting on top of it — the strict version of "clickable".
@@ -480,16 +480,16 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
       const resolvesToCta = await page.evaluate(
         ([x, y]) => {
           const el = document.elementFromPoint(x, y);
-          const link = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('See How Easy AI Works'));
+          const link = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Book a Consultation'));
           return el === link || (link ? link.contains(el) : false);
         },
         [ctaBox!.x + ctaBox!.width / 2, ctaBox!.y + ctaBox!.height / 2]
       );
       expect(resolvesToCta).toBe(true);
 
-      // And an actual click works end-to-end — it's an in-page anchor link to #how-easy-ai-works.
+      // The current consultation CTA must navigate with its consultation intent intact.
       await cta.click();
-      await expect(page).toHaveURL(/#how-easy-ai-works$/);
+      await expect(page).toHaveURL(/\/assessment\?intent=consultation$/);
     });
 
     test(`decorative Gary elements do not intercept pointer events at ${viewport.width}x${viewport.height}`, async ({ page }) => {
@@ -698,7 +698,7 @@ test.describe('Gary launcher — hero video overlap', () => {
 
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
       const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCta = heroSection.getByRole('link', { name: 'Start Your Free Business Assessment' });
+      const greenCta = heroSection.getByRole('link', { name: 'Start Your Free Assessment' });
       const ghostCta = heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
       await greenCta.scrollIntoViewIfNeeded();
       const greenBox = await greenCta.boundingBox();
@@ -743,14 +743,14 @@ async function advanceToPose(page: Page, pose: string, budgetMs: number, stepMs 
 }
 
 test.describe('Gary launcher — chat button color/ring and universal sign/bubble composition', () => {
-  test('chat button uses the exact same green as the "Start Your Free Business Assessment" CTA', async ({ page }) => {
+  test('chat button uses the exact same green as the "Start Your Free Assessment" CTA', async ({ page }) => {
     await page.clock.install();
     await page.goto('/');
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
     const buttonBg = await page.evaluate(() => getComputedStyle(document.querySelector('.gary-chat-button')!).backgroundColor);
     const ctaBg = await page.evaluate(() => {
-      const cta = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Start Your Free Business Assessment'));
+      const cta = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Start Your Free Assessment'));
       return cta ? getComputedStyle(cta).backgroundColor : null;
     });
     expect(ctaBg, 'assessment CTA not found').not.toBeNull();
@@ -882,7 +882,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
       const signBox = await page.locator('.gary-sign-board').boundingBox();
       const videoBox = await page.locator('video').first().boundingBox();
       const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCtaBox = await heroSection.getByRole('link', { name: 'Start Your Free Business Assessment' }).boundingBox();
+      const greenCtaBox = await heroSection.getByRole('link', { name: 'Start Your Free Assessment' }).boundingBox();
       const ghostCtaBox = await heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
       const buttonBox = await page.locator('.gary-chat-button').boundingBox();
       const faceBox = await page.locator('.gary-glasses').boundingBox();
@@ -1103,7 +1103,7 @@ test.describe('Gary launcher — pose-driven message exclusivity and responsive 
       const faceBox = await face.boundingBox();
       const bubbleBox = await bubble.boundingBox();
       const hero = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCtaBox = await hero.getByRole('link', { name: 'Start Your Free Business Assessment' }).boundingBox();
+      const greenCtaBox = await hero.getByRole('link', { name: 'Start Your Free Assessment' }).boundingBox();
       const ghostCtaBox = await hero.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
 
       expect(await currentGaryPose(page)).not.toBeNull();
@@ -1156,9 +1156,9 @@ test.describe('Homepage responsive images', () => {
   ];
 
   const IMAGE_ALT_TEXTS = [
-    'HVAC professional using AI-assisted scheduling, documents, email, and task management.',
-    'Electrician using a smartphone while AI organizes scheduling, follow-up, and business tasks.',
-    'Construction business owner reviewing an illustrative AI productivity dashboard on a job site.'
+    'Home-service professional receiving a new customer opportunity while working at a residential HVAC property.',
+    'Homeowner completing a service request as a professional home-service technician arrives.',
+    'Chiropractic practice using organized digital workflows while staff assist patients.'
   ];
 
   for (const viewport of REQUIRED_VIEWPORTS) {
@@ -1189,14 +1189,14 @@ test.describe('Homepage responsive images', () => {
     const hvac = page.getByAltText(IMAGE_ALT_TEXTS[0]);
     await hvac.scrollIntoViewIfNeeded();
     const hvacBox = await hvac.boundingBox();
-    // Intrinsic 2048x1143 ≈ 1.792:1.
-    expect(hvacBox!.width / hvacBox!.height).toBeCloseTo(2048 / 1143, 1);
+    // Intrinsic 2752x1536 ≈ 1.792:1.
+    expect(hvacBox!.width / hvacBox!.height).toBeCloseTo(2752 / 1536, 1);
 
     const electrician = page.getByAltText(IMAGE_ALT_TEXTS[1]);
     await electrician.scrollIntoViewIfNeeded();
     const electricianBox = await electrician.boundingBox();
-    // Intrinsic 941x1672 ≈ 0.563:1.
-    expect(electricianBox!.width / electricianBox!.height).toBeCloseTo(941 / 1672, 1);
+    // Intrinsic 1536x2752 ≈ 0.563:1.
+    expect(electricianBox!.width / electricianBox!.height).toBeCloseTo(1536 / 2752, 1);
   });
 
   test('landscape images use a meaningfully larger width than the old fixed 25% sizing (not a tiny thumbnail) on mobile', async ({ page }) => {

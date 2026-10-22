@@ -10,8 +10,8 @@ const tx = {
   contactRateLimitEvent: { count: vi.fn(), create: vi.fn() },
   submission: { count: vi.fn() },
 };
-const transaction = vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx));
-vi.mock('./prisma', () => ({ prisma: { $transaction: (...args: [never]) => transaction(...args) } }));
+const transaction = vi.fn(async (callback: (client: typeof tx) => unknown, _options?: { isolationLevel: string }) => callback(tx));
+vi.mock('./prisma', () => ({ prisma: { $transaction: (...args: Parameters<typeof transaction>) => transaction(...args) } }));
 
 import { admitContactMessage } from './contactRateLimit';
 

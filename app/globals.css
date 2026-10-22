@@ -76,39 +76,20 @@
     width: clamp(200px, 68%, 340px);
   }
 
-  /* Hero video — full width at md+ (overridden there by the md:w-full utility class in page.tsx;
-     Tailwind's utilities layer always wins over this @layer components rule, so no max-width
-     media query is needed to "turn this off" on desktop/tablet — the grid track itself, not this
-     class, controls the video's desktop width). Below md, the hero stacks and this video is the
-     last element in the column — at full width its box is tall enough that its on-screen position
-     falls inside Gary's fixed launcher zone at the bottom of short mobile viewports. Fixed by
-     three things working together, all mobile-only, none of them shrinking the video below a
-     usable size: (1) tighter mobile hero spacing in page.tsx — most of it via a max-[380px]: tier
-     reserved for the very narrowest phones so 390px+ keeps its normal, more generous rhythm; (2)
-     capping the video's own width (not its aspect ratio, so framing is never cropped) via the
-     clamp below, floored well above a "thumbnail" size; (3) a small, bounded upward nudge (see the
-     media query below) for the couple of remaining pixels at the single narrowest breakpoint,
-     applied as a transform so it never disturbs where the next section starts — kept intentionally
-     tiny so it can't read as a stray gap. */
+  /* Keep mobile video in normal flow after the disclaimer. Its bounded width preserves
+     a useful frame while leaving room above Gary; desktop uses the existing grid width. */
   .hero-video-wrap {
     width: clamp(200px, 58%, 260px);
     margin-left: auto;
     margin-right: auto;
   }
 
-  /* The narrowest phones (measured against 360x800) need the video pinned right at the required
-     180px floor plus a few px of upward nudge — everything else in the layout is already as
-     tight as it can go without the text touching. The transform is small on purpose: it moves the
-     video, not the flow, so anything larger would show up as dead space before the next section. */
+  /* Narrow phones retain the 180px minimum and a real gap below the disclaimer.
+     An upward transform overlapped the text without reclaiming any flow space. */
   @media (max-width: 380px) {
     .hero-video-wrap {
       width: 180px;
-      /* -14px -> -22px: the customer-growth hero label is a longer line than the one this was
-         originally measured against and still wraps to two lines here, and every other spacing
-         step at this tier is already collapsed to zero, so the last few pixels of Gary-launcher
-         clearance have to come from this same bounded nudge. Still a transform, so it moves the
-         video only and never leaves a gap in document flow. */
-      transform: translateY(-22px);
+      margin-top: 8px;
     }
   }
 
@@ -478,3 +459,60 @@
     }
   }
 }
+
+/* Homepage story: native anchors and normal document flow remain the fallback. */
+.home-story { --story-ink: #0b1d3a; --story-paper: #f8f4ed; }
+.home-story [id] { scroll-margin-top: 6rem; }
+.story-nav { display: flex; flex-wrap: wrap; gap: 1rem 2rem; padding: 1.5rem max(1rem, calc((100% - 1232px) / 2)); border-bottom: 1px solid #31445e; background: #050e1c; }
+.story-nav a { display: inline-flex; gap: .65rem; align-items: center; color: #d4dce6; font-size: .75rem; line-height: 1.5; padding: .5rem 0; }
+.story-nav a:last-child { margin-left: auto; color: white; }
+.home-story a:focus-visible { outline: 3px solid #8dcece; outline-offset: 5px; }
+.story-loss { padding-block: clamp(3.5rem, 7vw, 6rem); }
+.story-path { background: var(--story-paper); color: var(--story-ink); padding: clamp(3rem, 7vw, 6rem) max(1rem, calc((100% - 1232px) / 2)); display: grid; gap: 2rem; }
+.story-guide h2 { font-size: clamp(2rem, 3.5vw, 3.2rem); line-height: 1.15; margin: 1rem 0 1.5rem; }
+.story-guide > p:not(.eyebrow-silver) { color: #425166; line-height: 1.75; max-width: 30rem; }
+.story-guide a { display: inline-flex; gap: 1rem; border-bottom: 1px solid #267272; padding: 1rem 0 .5rem; margin-top: 1rem; color: #17474a; font-size: .875rem; font-weight: 600; }
+.story-path .eyebrow-silver { color: #1f5f5f; }
+.story-chapter { position: relative; padding: 2rem 0 2.5rem; border-top: 1px solid #c7ccca; }
+.story-number { display: block; color: #267272; font-family: Georgia, serif; font-size: 3rem; line-height: 1; margin-bottom: 1.5rem; }
+.story-chapter .text-white { color: #0b1d3a; }
+.story-chapter .text-silver-light { color: #34455b; }
+.story-chapter .text-silver-dark { color: #526074; }
+.story-chapter h2 { font-size: clamp(1.75rem, 2.5vw, 2.5rem); max-width: 24ch; }
+.story-assessment { background: #102447; padding-block: clamp(3.5rem, 7vw, 6rem); border-top: 3px solid #5ab6b6; }
+.story-service-grid > div { border: 1px solid #34475e; padding: 1.5rem; background: #102447; }
+.story-services > div { display: grid; grid-template-columns: minmax(0, 1fr); }
+.story-services .responsive-media { width: 100%; max-width: 560px; }
+.story-founder { background: #102447; }
+.story-finish { background: linear-gradient(155deg, #163259, #0b1d3a 65%); padding-bottom: 10rem; }
+.story-contact { margin-top: 1.5rem; font-size: .875rem; }
+.story-contact a { text-decoration: underline; text-underline-offset: 5px; }
+@media (min-width: 1024px) {
+  .story-path { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 6rem; align-items: start; }
+  .story-guide { position: sticky; top: 7rem; padding-bottom: 2rem; }
+  .story-chapter { padding: 2.5rem 0 3.5rem; }
+  .story-services > div { grid-template-columns: 1fr 1fr; gap: 0 4rem; align-items: start; }
+  .story-services .story-service-grid, .story-services > div > p { grid-column: 1 / -1; }
+}
+@media (max-width: 639px) {
+  .story-nav { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem 1rem; }
+  .story-nav a:last-child { margin-left: 0; }
+  .story-path { gap: 2.5rem; }
+  .story-finish > div { padding-bottom: 2rem; }
+}
+/* Paint-only enhancement: text is always opaque, with no JS or observer required. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .story-chapter-copy { animation: story-settle linear both; animation-timeline: view(); animation-range: entry 0% entry 80%; }
+    @keyframes story-settle { from { transform: translateY(14px); } to { transform: translateY(0); } }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .story-chapter-copy { animation: none; transform: none; }
+}
+/* Taller phones need horizontal sign clearance from Gary's chat button too. */
+@media (min-height: 845px) and (max-width: 480px) {
+  .gary-launcher .gary-sign-board { right: max(64px, 80%); }
+}
+.story-path a:focus-visible { outline-color: #1f5f5f; }
