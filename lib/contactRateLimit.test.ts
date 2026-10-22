@@ -117,4 +117,3 @@ describe('storage behaviour', () => {
     expect(lockArgument).toBe(`contact:${stored}`);
   });
 });
-

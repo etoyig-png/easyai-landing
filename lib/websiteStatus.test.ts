@@ -89,4 +89,3 @@ describe('customer-facing wording', () => {
     expect(page).not.toMatch(/I don.{1,8}t have a website/);
   });
 });
-

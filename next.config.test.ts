@@ -59,4 +59,3 @@ describe('security headers', () => {
     expect(entries[0].source).toBe('/(.*)');
   });
 });
-
