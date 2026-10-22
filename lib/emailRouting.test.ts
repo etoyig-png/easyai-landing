@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import type { AssessmentSubmission } from './validation';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const repoRoot = path.resolve(__dirname, '..');
@@ -35,7 +36,7 @@ const submission = {
   noWebsite: false,
   consent: true as const,
   formLoadedAt: 1,
-};
+} satisfies AssessmentSubmission & { id: string };
 
 const originalEnv = { ...process.env };
 
@@ -53,6 +54,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   process.env = { ...originalEnv };
 });
 
@@ -180,7 +182,7 @@ describe('non-production email safety', () => {
 
   it('cannot reach a customer from a local run, even with a real key present', async () => {
     delete process.env.VERCEL_ENV;
-    process.env.NODE_ENV = 'production'; // a local production build is NOT a deployment
+    vi.stubEnv('NODE_ENV', 'production'); // a local production build is NOT a deployment
     const { sendResultEmail } = await import('./resend');
     await expect(
       sendResultEmail({ to: 'customer@example.com', firstName: 'Dana', businessName: 'Riverside Plumbing', resultHtml: '<p>Body.</p>' })
@@ -262,3 +264,4 @@ describe('address hygiene across the active repository', () => {
     }
   });
 });
+

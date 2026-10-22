@@ -195,8 +195,8 @@ export default function HomePage() {
               (>=180px at 360px wide, >=200px at 390px+ — see globals.css) rather than shrinking it
               into a thumbnail; the clearance from Gary's launcher instead comes from tighter mobile
               hero spacing above (most of it scoped to a max-[380px]: tier so 390px+ keeps its
-              normal rhythm) plus, only at the narrowest breakpoint, a small bounded upward nudge on
-              the video itself. md:items-start on the row plus hero-video-desktop-align's own
+              normal rhythm). At the narrowest breakpoint the video stays in flow with an 8px
+              gap below the disclaimer. md:items-start on the row plus hero-video-desktop-align's own
               negative margin-top (see globals.css) lift the video to sit near the headline's upper
               half instead of vertically centered against the whole text block — a real layout
               adjustment, not a transform, so it doesn't leave dead space in document flow. Gary's
@@ -531,3 +531,4 @@ export default function HomePage() {
     </div>
   );
 }
+

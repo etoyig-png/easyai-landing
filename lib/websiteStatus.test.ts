@@ -15,7 +15,7 @@ const base = { websiteUrl: 'https://example.com', noWebsite: false, websiteConve
 >;
 
 const skipped = { ...base, websiteUrl: undefined, noWebsite: true };
-const declaredNone = { ...base, websiteUrl: undefined, noWebsite: true, websiteConversion: NO_WEBSITE_ANSWER };
+const declaredNone = { ...base, websiteUrl: undefined, noWebsite: true, websiteConversion: NO_WEBSITE_ANSWER } satisfies typeof base;
 
 describe('three website states', () => {
   it('recognises a supplied address', () => {
@@ -89,3 +89,4 @@ describe('customer-facing wording', () => {
     expect(page).not.toMatch(/I don.{1,8}t have a website/);
   });
 });
+
