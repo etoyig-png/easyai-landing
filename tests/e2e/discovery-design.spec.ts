@@ -21,6 +21,7 @@ test('product scenes fit and product links open existing Gary panel', async ({ p
   for (const id of ['discovery', 'engagement', 'response']) {
     await page.locator(`#${id}`).scrollIntoViewIfNeeded();
     await expect(page.locator(`#${id} h2`)).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   }
   await page.locator('#response a[data-open-gary]').click();
   await expect(page.getByRole('dialog')).toBeVisible();
@@ -66,4 +67,66 @@ test('opening advances from search to brand without layout shift', async ({ page
   const metrics = await page.evaluate(() => (window as unknown as { designMetrics: { lcp: number; cls: number } }).designMetrics);
   console.log(JSON.stringify({ project: testInfo.project.name, metrics }));
   expect(metrics.cls).toBeLessThanOrEqual(0.1);
+});
+
+test('latest visual direction keeps header, centers copy and uses real device art', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('header')).toBeVisible();
+  await expect(page.locator('.story-nav')).toHaveCount(0);
+  await expect(page.locator('#discovery img')).toHaveAttribute('src', /gap-logo/);
+  await expect(page.locator('.phone-device')).toHaveCount(1);
+  await expect(page.locator('.search-phone')).toHaveCount(1);
+  await expect(page.locator('.home-story')).toHaveCSS('background-color', 'rgb(1, 6, 17)');
+  await expect(page.locator('#introduction')).toHaveCSS('text-align', 'center');
+  await expect(page.locator('#discovery .story-chapter-copy')).toHaveCSS('text-align', 'center');
+  await expect(page.locator('.gary-launcher')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('.gary-launcher')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  const logo = await page.locator('.easyai-wordmark').boundingBox();
+  const tagline = await page.locator('.discovery-brand h1').boundingBox();
+  expect(logo!.width).toBeGreaterThan(tagline!.height * 6);
+  await expect(page.locator('.discovery-brand h1')).toHaveCSS('white-space', 'nowrap');
+});
+
+test('search phone resolves to logo and geographic markers keep moving', async ({ page }, testInfo) => {
+  await page.clock.install();
+  await page.goto('/');
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await page.clock.runFor(1200);
+  await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
+  await page.screenshot({ path: testInfo.outputPath('search-phone.png') });
+  await page.clock.runFor(4800);
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
+  const track = page.locator('.location-track-one');
+  const first = await track.evaluate(el => getComputedStyle(el).transform);
+  await page.clock.runFor(1000);
+  expect(await track.evaluate(el => getComputedStyle(el).transform)).not.toBe(first);
+  await page.screenshot({ path: testInfo.outputPath('logo-and-tagline.png') });
+});
+
+test('tablet scroll choreography does not create sideways overflow', async ({ page }) => {
+  for (const width of [768, 1024]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+    for (const id of ['discovery', 'engagement', 'response']) {
+      const top = await page.locator(`#${id}`).evaluate(el => el.getBoundingClientRect().top + scrollY);
+      for (const offset of [-450, 0, 450]) {
+        await page.evaluate(y => scrollTo(0, y), top + offset);
+        await page.waitForTimeout(100);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+      }
+    }
+  }
+});
+
+test('visitors can pause and resume decorative movement', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await page.getByRole('button', { name: 'Pause motion' }).click();
+  await expect(page.locator('.home-story')).not.toHaveAttribute('data-motion-ready');
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.location-track-one')).toHaveCSS('animation-name', 'none');
+  await page.getByRole('button', { name: 'Resume motion' }).click();
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
 });

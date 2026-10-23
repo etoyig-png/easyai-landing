@@ -14,14 +14,32 @@ export default function HomePage() {
       <ScrollCraftMotion />
       <section className="discovery-opening" data-sc-act="flow" aria-label="Get discovered">
         <div className="discovery-stage">
-          <div className="discovery-orbit story-hero-plane" data-sc-parallax="-0.12" aria-hidden="true" />
+          <div className="discovery-reveal" aria-hidden="true" />
+          <div className="discovery-orbit story-hero-plane" data-sc-parallax="-0.08" aria-hidden="true">
+            <svg viewBox="0 0 600 600" className="location-grid">
+              <circle cx="300" cy="300" r="245" /><ellipse cx="300" cy="300" rx="115" ry="245" /><ellipse cx="300" cy="300" rx="245" ry="95" />
+            </svg>
+            <span className="location-track location-track-one"><i /></span>
+            <span className="location-track location-track-two"><i /></span>
+            <span className="location-track location-track-three"><i /></span>
+          </div>
           <div className="discovery-search" aria-hidden="true">
-            <span className="search-symbol">⌕</span><span>Who should you call?</span>
-            <div className="discovery-result"><span className="result-pin">◎</span><div><strong>Your business</strong><small>Ready for your next customer.</small></div><span>↗</span></div>
+            <div className="search-phone">
+              <div className="phone-camera" />
+              <span className="search-phone-label">Looking for a local expert?</span>
+              <div className="search-field"><span>⌕</span><span className="typed-line">Who should you call?</span></div>
+              <svg className="search-map" viewBox="0 0 260 170">
+                <path className="map-road" d="M0 38H260M0 105H260M55 0V170M180 0V170M0 160L260 0" />
+                <circle className="map-signal" cx="130" cy="80" r="38" />
+                <path className="map-pin" d="M130 45c-18 0-30 13-30 29 0 23 30 48 30 48s30-25 30-48c0-16-12-29-30-29z" />
+                <circle cx="130" cy="74" r="10" fill="#010611" />
+              </svg>
+              <div className="search-found"><span className="message-dot mint" />Your business. Found.</div>
+            </div>
           </div>
           <div className="discovery-brand">
-            <Image className="easyai-wordmark" src="/easy-ai-logo-transparent.png" alt="Easy AI. Business AI Solutions." width={1430} height={290} sizes="(max-width: 767px) 75vw, 480px" priority />
-            <h1>Get Found.<br /><span>Get Chosen.</span></h1>
+            <Image className="easyai-wordmark" src="/easy-ai-logo-transparent.png" alt="Easy AI. Business AI Solutions." width={1430} height={290} sizes="(max-width: 1023px) 88vw, 900px" priority />
+            <h1>Get Found. Get Chosen.</h1>
             <a href="#introduction" className="story-link">Discover what’s possible <span aria-hidden="true">↗</span></a>
           </div>
         </div>
@@ -30,16 +48,18 @@ export default function HomePage() {
       <section id="introduction" className="discovery-intro" data-sc-act="flow">
         <p data-sc-in>Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Once they find you, we help turn website attention into conversations, captured leads, and real customer opportunities.</p>
       </section>
-      <nav className="story-nav" aria-label="Explore Easy AI">
-        <a href="#discovery">GAP</a><a href="#engagement">SmartSite</a><a href="#response">AIM</a><a href="#free-assessment">Start here ↗</a>
-      </nav>
+
 
       <div id="how-easy-ai-works">
         <section id="discovery" className="product-scene story-chapter" data-sc-act="flow">
-          <div className="product-art gap-art" aria-hidden="true" data-sc-parallax="0.07">
-            <div className="discovery-rings"><span /><span /><span /></div>
-            <strong>GAP<span className="product-subtitle">Google + AI Presence</span></strong>
-            <span className="art-caption">Be part of the answer.</span>
+          <div className="product-art gap-art device-art" aria-hidden="true">
+            <div className="color-ribbon" />
+            <div className="laptop-device"><div className="laptop-screen">
+              <div className="device-toolbar"><i /><i /><i /><span>Your business. Discovered.</span></div>
+              <div className="gap-screen"><Image src="/gap-logo.png" alt="" width={1254} height={1254} sizes="(max-width: 767px) 65vw, 360px" /></div>
+            </div><div className="laptop-base" /></div>
+            <div className="floating-message message-search"><span className="message-dot" /><span className="typed-line">Who should you call?</span></div>
+            <div className="floating-message message-answer"><span className="message-dot mint" />Get Found. Get Chosen.</div>
           </div>
           <div className="story-chapter-copy">
             <h2 data-sc-in>But can your next customer find you?</h2>
@@ -52,9 +72,15 @@ export default function HomePage() {
         </section>
 
         <section id="engagement" className="product-scene product-scene-reverse story-chapter" data-sc-act="flow">
-          <div className="product-art smartsite-art" aria-hidden="true">
-            <div className="site-window"><div className="window-bar"><i /><i /><i /></div><strong>Smart<span>Site</span></strong><p>More than a website.<br />A conversation that converts.</p><div className="site-conversation" data-sc-in>Let’s talk about what you need. <span>↗</span></div></div>
-            <span className="art-caption">Make the visit matter.</span>
+          <div className="product-art smartsite-art device-art" aria-hidden="true">
+            <div className="color-ribbon ribbon-violet" />
+            <div className="laptop-device"><div className="laptop-screen smartsite-screen">
+              <div className="device-toolbar"><i /><i /><i /><span>Your website</span></div>
+              <strong>SmartSite</strong><p>More than a website.<br />A conversation that converts.</p>
+              <div className="screen-prompt"><span className="typed-line">Let’s talk about what you need.</span></div>
+            </div><div className="laptop-base" /></div>
+            <div className="floating-message message-search">I have a question about your service.</div>
+            <div className="floating-message message-answer"><span className="message-dot mint" />Let’s find your next step.</div>
           </div>
           <div className="story-chapter-copy">
             <h2 data-sc-in>They found you.<br />Now give them a reason to stay.</h2>
@@ -67,10 +93,15 @@ export default function HomePage() {
         </section>
 
         <section id="response" className="product-scene story-chapter" data-sc-act="flow">
-          <div className="product-art aim-art" aria-hidden="true">
-            <strong>AIM<span className="product-subtitle">AI Interaction Manager</span></strong>
-            <div className="conversation-wave">{Array.from({ length: 17 }, (_, i) => <i key={i} style={{ height: `${20 + (8 - Math.abs(8 - i)) * 9}px` }} />)}</div>
-            <span className="art-caption">A conversation. A connection.</span>
+          <div className="product-art aim-art device-art" aria-hidden="true">
+            <div className="color-ribbon ribbon-mint" />
+            <div className="phone-device"><div className="phone-camera" /><span className="phone-label">AIM</span><p>AI Interaction Manager</p>
+              <div className="conversation-wave">{Array.from({ length: 17 }, (_, i) => <i key={i} style={{ height: `${20 + (8 - Math.abs(8 - i)) * 9}px`, animationDelay: `${i * 70}ms` }} />)}</div>
+              <div className="screen-prompt"><span className="typed-line">How can I help?</span></div>
+              <div className="call-symbol">↗</div>
+            </div>
+            <div className="floating-message message-search">A question becomes a conversation.</div>
+            <div className="floating-message message-answer"><span className="message-dot mint" />Keep the human connection.</div>
           </div>
           <div className="story-chapter-copy">
             <h2 data-sc-in>Be there when interest becomes a question.</h2>

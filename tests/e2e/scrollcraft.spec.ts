@@ -6,7 +6,7 @@ test('Scroll-Craft cleans up on navigation and remounts once on return', async (
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   expect(await page.evaluate(instances)).toBe(1);
-  await page.locator('.story-nav a[href="#free-assessment"]').click();
+  await page.locator('#free-assessment').scrollIntoViewIfNeeded();
   await expect(page.locator('#free-assessment h2')).toBeInViewport();
   await page.locator('#free-assessment a[href="/assessment"]').click();
   await expect(page).toHaveURL(/\/assessment$/);
@@ -31,7 +31,7 @@ test('failed motion script leaves the page readable and navigable', async ({ pag
   await page.route('**/scrollcraft/scrollcraft.js', route => route.abort());
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await page.locator('.story-nav a[href="#response"]').click();
+  await page.locator('#response h2').scrollIntoViewIfNeeded();
   await expect(page.locator('#response h2')).toBeInViewport();
   await expect(page.locator('#response .story-chapter-copy')).toHaveCSS('opacity', '1');
 });
