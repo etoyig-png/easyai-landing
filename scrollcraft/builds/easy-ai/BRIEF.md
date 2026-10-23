@@ -1,40 +1,21 @@
-# Easy AI website redesign
+# Easy AI discovery redesign — approved direction, 2026-10-23
 
-Working design brief based on Toy's approved scope and supplied video. Authored design choices below are proposals implemented in a draft, not quotations or founder visual approval.
+Toy authorized implementation after approving the introduction, GAP, SmartSite and AIM scripts. These supersede the former no-product-name copy direction.
 
-## Supplied direction
-- "I want something a little bit more human-centered and human-driven."
-- Use Scroll-Craft's actual infrastructure inside the existing app.
-- Preserve Gary, assessment, routes, backend logic and existing media.
-- HeyGen is available if new assets are needed. No new generation is required for this first integration.
-- Restore/reconcile canonical logging as the final closure task; preserve GitHub evidence meanwhile.
+## Creative authority
+Googlebook is the visual reference; Apple's restrained word movement is secondary. Native HTML animation, no hero video rectangle. Darker blue throughout; no white transitions. Collateral provides limited copy only, never full flyer imagery or implementation details. Original assets remain untouched. Transparent Easy AI logo located in Library and alpha-verified; SmartSite final logo is being created separately. GAP/AIM artwork currently uses temporary typographic treatments pending final branded assets.
 
-## Eight brief topics
-1. Vibe: human, purposeful, clear, dimensional. Authored interpretation of the supplied Scroll-Craft video.
-2. Journey: recognition → missed opportunities → discovery/engagement/response → assessment → broader help → human judgment/founder → next step. Reuses approved existing information order.
-3. Energy: confident opening; quieter explanation; brighter journey; calm founder; resolved close.
-4. Feeling curve: recognition from existing work/family footage; concern from existing loss examples; clarity from connected chapters; agency from assessment; confidence from concrete service descriptions; trust from human-control copy; intimacy from founder statement; resolve from the existing assessment CTA.
-5. Signature seed: an accumulating search → interest → conversation trace in the sticky chapter guide. First pass is decorative and does not claim customer telemetry or operational proof. This is a seed, not yet accepted as the final bespoke interaction.
-6. Range: editorial, bright/dark contrast using existing navy/teal identity. Avoid generic repeated card grids. Preserve approved copy even where it exceeds skill headline length preferences.
-7. Structure: distinct scenes, normal native scrolling. No forced video timeline or scroll trapping. Proposed custom guided-journey grammar: jumpable chapters, shared app header, independently composed founder close; no fake dashboards, no pinned text fading, no identical feature tiles.
-8. Assets: reuse current hero MP4 and three existing business illustrations plus logo. Originals untouched. User's uploaded reference video is guidance, not website footage. No invented portrait or testimonials.
+## Feeling curve before devices
+Curiosity: who should you call? Recognition: a business is discovered. Confidence: Easy AI identity resolves, Get Found. Get Chosen. Clarity: approved introduction. Concern: GAP visibility problem. Possibility: SmartSite conversation. Reassurance: AIM response. Trust: people retain the relationship. Action: Gary or assessment.
 
-## Peak and design limits
-Intended peak: "I can see how being found becomes a real conversation." Lives in the chapter journey, the largest continuous explanatory region. Tell-someone sentence: "It's the site where I can follow where customers slip away, then choose a practical next step."
-No authored empty scroll. Current trace needs richer interaction and visual review before the full creative direction can be declared complete.
+## Grammar and peak
+Guided product journey in native flow. Opening search-to-brand transition is the signature and visual peak. No scroll trap, fake metrics or background video. Alternatives (filmic, gallery, comparison, timeline, spatial, working-surface and editorial grammars) would either overplay motion or obscure the approved short product sequence. This is an authored implementation under Toy's explicit direction, not additional interview answers.
 
-## Score / layers
-Hero: stationary readable copy and footage; rear outline plane moves slowly, near frame moves independently. No subject cutouts, no false photographic depth claim. Mobile drops the frame and keeps tested CTA/video order.
-Loss: static photographic context.
-Journey: native sticky guide, custom progress trace, one-time flow settle on copy.
-Assessment: restrained media parallax; actual assessment route unchanged.
-Services: plain ruled rows rather than icon cards.
-Founder: decorative rule reveal and large quotation on cool light ground.
-Close: persistent complete text and existing routes, no fading CTA.
-Four device families: parallax, flow entrance, reveal, bespoke progress trace. Upstream engine unchanged.
+## Score
+Opening: CSS one-shot search/result-to-brand transition, 4.5 seconds; ScrollCraft rear-plane parallax. Intro: subtle vertical settling. GAP: concentric discovery motif with mild parallax. SmartSite: perspective browser composition and conversation settling. AIM: static voice-wave motif. Human/close: stable readable copy and real links. Fewer device families than the skill's generic four-family target deliberately respects Toy's restrained motion and anti-bloat requirements. Approved script punctuation is preserved verbatim.
 
-## Grammar decision
-The eight upstream grammars do not fit wholesale while preserving the approved shared header, existing hero video and copy contract. Filmic/continuous-world require media and navigation changes; live-surface requires a real product surface; poster discards existing imagery; gallery prioritizes options over customer journey; split-stage forces a comparison; cutlist sacrifices reading time; strict editorial disallows the existing above-fold media. This draft retains a constrained guided journey rather than falsely claiming strict editorial compliance.
+## Progressive enhancement
+All copy and links are server-rendered, not generated by the engine. No-JS and motion-script failure retain content. Reduced motion skips engine download and uses a static brand opening. Gary links fall back to /contact; hydration enhances them using existing GaryLauncher and lazy GaryPanel. No second chat system.
 
-## Verification and closure
-No new dependencies, APIs or paid generation. Existing inherited dependency security warnings remain separate release gates. No merge or production deployment authorized. Compare against PR16 exact head; record checks and limits in the existing reconciliation/map locations. Fingerprint registry remains unaccepted until the finished design passes visual review.
+## Review status
+Desktop contact sheet inspected; dark canvas and alternating visual/copy anchors confirmed. Final mobile screenshots, motion frames, and final browser checks recorded in reconciliation evidence. Not yet founder-approved visual finish. Original fingerprint registry has no completed accepted site rows; this is a revision of the same draft, not a new comparison entry.

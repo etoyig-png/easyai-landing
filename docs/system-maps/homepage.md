@@ -41,3 +41,10 @@ Data flow: server-rendered approved content → optional local Scroll-Craft scri
 Draft visual changes: outline depth planes, unnumbered chapter links, progress trace, ruled service rows replacing equal tiles, light founder ground and decorative quotation rule. Signature interaction and full art direction remain in development; installation is not creative approval. Existing PR16 fixes are ancestors of this branch, not recreated.
 
 Design decisions and proposed journey: `scrollcraft/builds/easy-ai/BRIEF.md`. Finite acceptance and current evidence: `docs/reconciliation/2026-10-23/website-redesign-unsynced.md`. Canonical logging restoration/reconciliation is the final closure task per Toy; this projection does not replace Supabase. No production release or local release sync occurs in this stage. Rollback removes the integration commit while retaining PR16 fixes.
+
+## 2026-10-23 approved discovery redesign
+HomePage remains a server component. Sequence: native search-to-brand opening → exact approved introduction → GAP → SmartSite → AIM → human trust → Gary/assessment close. All backgrounds stay deep blue (#030c1c). Original flyer graphics are reference-only; no methodology published. Transparent Easy AI asset (1430x290 RGBA) is reused in Header and opening. Final SmartSite and GAP brand treatment remain open.
+
+Gary entry: server anchor /contact with data-open-gary → existing GaryLauncher delegated click listener → existing dynamically imported GaryPanel → unchanged /api/gary/message. Modified clicks/no-JS retain normal routing. Early activation cancels the pending entrance timer. Listener and timer cleaned up on unmount. No new API/database/model calls except existing chat requests after explicit user activation.
+
+Failure paths: blocked motion script/static fallback; reduced-motion/static fallback; no-JS/contact links; unavailable Gary API/existing panel error path. Deployment and operational provider behavior remain separate gates. No production release in this task.

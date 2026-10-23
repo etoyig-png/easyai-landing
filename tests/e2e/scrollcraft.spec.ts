@@ -6,9 +6,9 @@ test('Scroll-Craft cleans up on navigation and remounts once on return', async (
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   expect(await page.evaluate(instances)).toBe(1);
-  await page.locator('.story-guide a').click();
+  await page.locator('.story-nav a[href="#free-assessment"]').click();
   await expect(page.locator('#free-assessment h2')).toBeInViewport();
-  await page.locator('#free-assessment a').click();
+  await page.locator('#free-assessment a[href="/assessment"]').click();
   await expect(page).toHaveURL(/\/assessment$/);
   await expect.poll(() => page.evaluate(instances)).toBe(0);
   await page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Home', exact: true }).click();
