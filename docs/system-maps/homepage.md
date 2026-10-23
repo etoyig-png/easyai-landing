@@ -31,3 +31,13 @@ Founder design approval is still required before release. Existing broad claims 
 Fixture success is frontend evidence only. Real Gary, contact, assessment persistence, email and downstream workflows require Claude's repaired/configured backend and an authorized isolated destination. Missing backend configuration must retain existing fail-closed behavior.
 
 Deployment does not require a migration or environment change. Rollback is the prior commit through the existing release process. Existing monitoring remains in place; no new API, retry loop, model call or background job is created. Preview is for design review, not operational proof. Keep performance and exact-head review evidence in the PR/handoff and update existing canonical task records via the authenticated meaningful-update mechanism.
+
+## 2026-10-23 Scroll-Craft integration (draft)
+
+Supersedes only the earlier statement that the reference was unavailable. Source now verified at nateherkai/scroll-craft commit 75d81f74e83692add18cd7a8a8e078b8a887a579, MIT. Complete skill installed under `.agents/skills/scroll-craft/`; original engine retained unchanged. `components/ScrollCraftMotion.tsx` mounts the served engine only on `.home-story`, tears it down on route departure and motion preference changes, and keeps static content if the script fails. The author's stylesheet remains intact but is not globally imported: its resets would affect existing forms and Gary. Only selected flow-device author styles are scoped to the homepage.
+
+Data flow: server-rendered approved content → optional local Scroll-Craft script → decorative transforms/progress. No request to an AI provider, new API, database write or customer tracking is introduced. Assessment and Gary contracts remain unchanged. Runtime asset URL is `/scrollcraft/scrollcraft.js`, with MIT license alongside it. No Kie/HeyGen generation or credentials used.
+
+Draft visual changes: outline depth planes, unnumbered chapter links, progress trace, ruled service rows replacing equal tiles, light founder ground and decorative quotation rule. Signature interaction and full art direction remain in development; installation is not creative approval. Existing PR16 fixes are ancestors of this branch, not recreated.
+
+Design decisions and proposed journey: `scrollcraft/builds/easy-ai/BRIEF.md`. Finite acceptance and current evidence: `docs/reconciliation/2026-10-23/website-redesign-unsynced.md`. Canonical logging restoration/reconciliation is the final closure task per Toy; this projection does not replace Supabase. No production release or local release sync occurs in this stage. Rollback removes the integration commit while retaining PR16 fixes.
