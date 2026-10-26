@@ -9,8 +9,8 @@ for (const [width, height] of [[360, 800], [390, 844], [412, 915], [768, 1024], 
     await page.goto('/');
 
     for (const [section, kind, logicalRatio] of [
-      ['discovery', 'laptop', 760 / 600],
-      ['engagement', 'laptop', 760 / 600],
+      ['discovery', 'laptop', 1950 / 1350],
+      ['engagement', 'laptop', 1950 / 1350],
       ['response', 'phone', 400 / 680],
     ] as const) {
       const canvas = page.locator(`#${section} .photograph-canvas`);
