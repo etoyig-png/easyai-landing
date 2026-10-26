@@ -104,8 +104,9 @@ test('latest visual direction keeps header, centers copy and uses real device ar
   await expect(page.locator('.discovery-brand h1')).toHaveCSS('white-space', 'nowrap');
 });
 
-test('search phone resolves to logo and geographic markers keep moving', async ({ page }, testInfo) => {
+test('search phone resolves to a fixed identity while continent traces keep moving', async ({ page }, testInfo) => {
   await gotoGaryReady(page);
+
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   const opening = page.locator('.discovery-search, .discovery-brand');
   await setNativeAnimationTime(opening, 2300);
@@ -114,11 +115,14 @@ test('search phone resolves to logo and geographic markers keep moving', async (
   await setNativeAnimationTime(opening, 2300 + 7800);
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
-  const track = page.locator('.location-track-one');
-  await setNativeAnimationTime(track, 0);
-  const first = await track.evaluate(el => getComputedStyle(el).transform);
-  await setNativeAnimationTime(track, 1000);
-  expect(await track.evaluate(el => getComputedStyle(el).transform)).not.toBe(first);
+  const globe = page.locator('.globe-traces');
+  await expect(globe).toHaveAttribute('data-rendered', 'true');
+  const first = await globe.evaluate(el => (el as HTMLCanvasElement).toDataURL());
+  const fixedLogo = await page.locator('.easyai-wordmark').evaluate(el => getComputedStyle(el).transform);
+  await page.waitForTimeout(1000);
+  expect(await globe.evaluate(el => (el as HTMLCanvasElement).toDataURL())).not.toBe(first);
+  expect(await page.locator('.easyai-wordmark').evaluate(el => getComputedStyle(el).transform)).toBe(fixedLogo);
+
   await page.screenshot({ path: testInfo.outputPath('logo-and-tagline.png') });
 });
 
@@ -144,7 +148,7 @@ test('visitors can pause and resume decorative movement', async ({ page }) => {
   await page.getByRole('button', { name: 'Pause motion' }).click();
   await expect(page.locator('.home-story')).not.toHaveAttribute('data-motion-ready');
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
-  await expect(page.locator('.location-track-one')).toHaveCSS('animation-name', 'none');
+  await expect(page.locator('.globe-traces')).toHaveCSS('opacity', '0');
   await page.getByRole('button', { name: 'Resume motion' }).click();
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
 });
@@ -186,11 +190,14 @@ test('opening holds photographed phone for four seconds and GAP screen reveals a
   await expect(page.locator('.home-story')).toHaveAttribute('data-opening-complete', 'true');
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
-  const globe = page.locator('.location-grid');
-  await setNativeAnimationTime(globe, 0);
-  const first = await globe.evaluate(el => getComputedStyle(el).transform);
-  await setNativeAnimationTime(globe, 1000);
-  expect(await globe.evaluate(el => getComputedStyle(el).transform)).not.toBe(first);
+  const globe = page.locator('.globe-traces');
+  await expect(globe).toHaveAttribute('data-rendered', 'true');
+  const first = await globe.evaluate(el => (el as HTMLCanvasElement).toDataURL());
+  const fixedLogo = await page.locator('.easyai-wordmark').evaluate(el => getComputedStyle(el).transform);
+  await page.waitForTimeout(1000);
+  expect(await globe.evaluate(el => (el as HTMLCanvasElement).toDataURL())).not.toBe(first);
+  expect(await page.locator('.easyai-wordmark').evaluate(el => getComputedStyle(el).transform)).toBe(fixedLogo);
+
   await page.locator('#discovery .laptop-device').scrollIntoViewIfNeeded();
   await page.waitForTimeout(2000);
   const action = page.getByRole('link', { name: 'Talk with Gary about your GAP Score', exact: true });
@@ -332,4 +339,36 @@ test('supplied product identities and fictional workup stay inside the restored 
     expect(box!.y + box!.height).toBeLessThanOrEqual(screen!.y + screen!.height);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
+
+test('continent and product traces paint, pause and leave static artwork readable', async ({ page }) => {
+  await page.goto('/');
+  const globe = page.locator('.globe-traces');
+  await expect(globe).toHaveAttribute('data-rendered', 'true');
+  await page.locator('.product-identities').scrollIntoViewIfNeeded();
+  for (const canvas of await page.locator('.identity-traces').all()) await expect(canvas).toHaveAttribute('data-rendered', 'true');
+  await page.getByRole('button', { name: 'Pause motion' }).click();
+  await expect(globe).toHaveCSS('opacity', '0');
+  await expect(page.locator('.globe-map-static')).toHaveCSS('opacity', '0.65');
+  await expect(page.locator('.discovery-reveal')).toHaveCSS('opacity', '0');
+  const logo = await page.locator('.easyai-wordmark').boundingBox();
+  expect(logo!.width).toBeGreaterThan(200);
+  await page.getByRole('button', { name: 'Resume motion' }).click();
+  await expect(globe).toHaveAttribute('data-rendered', 'true');
+  await page.emulateMedia({ reducedMotion:'reduce' });
+  await expect(globe).toHaveCSS('opacity', '0');
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
+});
+
+
+test('unavailable coastline asset preserves the static globe and business identity', async ({ page }) => {
+  await page.route('**/data/continent-traces.json', route => route.fulfill({ status:404, body:'' }));
+  await page.goto('/');
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await expect(page.locator('.globe-map-static')).toHaveCSS('opacity', '0.65');
+  await expect(page.locator('.globe-traces')).not.toHaveAttribute('data-rendered');
+  await page.getByRole('button', { name:'Pause motion' }).click();
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.discovery-reveal')).toHaveCSS('opacity', '0');
 });

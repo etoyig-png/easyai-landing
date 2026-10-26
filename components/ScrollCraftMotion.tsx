@@ -2,6 +2,7 @@
 
 import Script from 'next/script';
 import { useEffect, useState } from 'react';
+import { mountTraceMotion } from '@/lib/trace-motion';
 
 type ScrollCraftInstance = { destroy: () => void };
 declare global {
@@ -44,6 +45,7 @@ export default function ScrollCraftMotion() {
     if (!ready || !root || !window.ScrollCraft) return;
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
     let instance: ScrollCraftInstance | undefined;
+    let traces: ReturnType<typeof mountTraceMotion> | undefined;
     const scenes = Array.from(root.querySelectorAll('.product-scene, .discovery-intro, .discovery-human'));
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => entry.target.classList.toggle('scene-visible', entry.isIntersecting));
@@ -67,6 +69,8 @@ export default function ScrollCraftMotion() {
     const update = () => {
       syncVideo();
       instance?.destroy();
+      traces?.destroy();
+      traces = undefined;
       instance = undefined;
       root.removeAttribute('data-motion-ready');
       root.removeAttribute('data-opening-pending');
@@ -75,6 +79,7 @@ export default function ScrollCraftMotion() {
       if (!preference.matches && !paused) {
         instance = window.ScrollCraft?.mount(root, {});
         root.setAttribute('data-motion-ready', 'true');
+        traces = mountTraceMotion(root);
       }
     };
     const opening = root.querySelector<HTMLElement>('.discovery-search');
@@ -100,6 +105,7 @@ export default function ScrollCraftMotion() {
       video?.pause();
       scenes.forEach(scene => scene.classList.remove('scene-visible'));
       instance?.destroy();
+      traces?.destroy();
       root.removeAttribute('data-motion-ready');
     };
   }, [ready, paused]);
