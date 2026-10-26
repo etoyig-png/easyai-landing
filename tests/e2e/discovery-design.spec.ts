@@ -59,7 +59,7 @@ test('opening advances from search to brand without layout shift', async ({ page
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   await page.screenshot({ path: testInfo.outputPath('opening-search.png') });
-  await page.waitForTimeout(8200);
+  await page.waitForTimeout(9000);
   await page.screenshot({ path: testInfo.outputPath('opening-transition.png') });
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
@@ -70,6 +70,7 @@ test('opening advances from search to brand without layout shift', async ({ page
 });
 
 test('latest visual direction keeps header, centers copy and uses real device art', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   await expect(page.locator('header')).toBeVisible();
   await expect(page.locator('.story-nav')).toHaveCount(0);
@@ -81,6 +82,7 @@ test('latest visual direction keeps header, centers copy and uses real device ar
   await expect(page.locator('#discovery .story-chapter-copy')).toHaveCSS('text-align', 'center');
   await expect(page.locator('.gary-launcher')).toBeVisible({ timeout: 8000 });
   await expect(page.locator('.gary-launcher')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   const logo = await page.locator('.easyai-wordmark').boundingBox();
   const tagline = await page.locator('.discovery-brand h1').boundingBox();
   expect(logo!.width).toBeGreaterThan(tagline!.height * 6);
@@ -91,7 +93,7 @@ test('search phone resolves to logo and geographic markers keep moving', async (
   await page.clock.install();
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
-  await page.clock.runFor(1200);
+  await page.clock.runFor(2300);
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   await page.screenshot({ path: testInfo.outputPath('search-phone.png') });
   await page.clock.runFor(7800);
@@ -160,7 +162,7 @@ test('opening holds photographed phone for four seconds and GAP screen reveals a
   await page.clock.install();
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
-  await expect(page.locator('.discovery-search')).toHaveCSS('animation-duration', '7.2s');
+  await expect(page.locator('.discovery-search')).toHaveCSS('animation-duration', '8.4s');
   await page.clock.runFor(4500);
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '0');
@@ -202,4 +204,55 @@ test('missing device photograph leaves the business identity readable', async ({
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.home-story')).not.toHaveAttribute('data-motion-ready');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+});
+
+
+test('screenshot corrections center the curved logo and direct conversation toward the phone', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const logo = await page.locator('.logo-depth').boundingBox();
+  expect(Math.abs(logo!.x + logo!.width / 2 - page.viewportSize()!.width / 2)).toBeLessThan(2);
+  await expect(page.locator('.easyai-wordmark')).toHaveAttribute('role', 'img');
+  await expect(page.locator('.product-identities')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Start Your Consultation ↗', exact: true })).toHaveAttribute('href', '/assessment?intent=consultation');
+  const pointer = await page.locator('.aim-art .message-answer').evaluate(el => {
+    const style = getComputedStyle(el, '::after'); return { top: style.top, bottom: style.bottom };
+  });
+  expect(pointer.top).toBe('-8px');
+  expect(parseFloat(pointer.bottom)).toBeGreaterThan(0);
+  await expect(page.locator('#engagement image[data-device-photograph]')).toHaveAttribute('href', '/devices/laptop-complete-photograph.webp');
+});
+
+test('conversation footage loads near view and pauses with the motion control', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  const video = page.locator('[data-conversation-video]');
+  await expect(video.locator('source')).not.toHaveAttribute('src');
+  await video.scrollIntoViewIfNeeded();
+  await expect(video.locator('source')).toHaveAttribute('src', '/business-conversation.mp4');
+  await expect.poll(() => video.evaluate(el => !(el as HTMLVideoElement).paused)).toBeTruthy();
+  await page.getByRole('button', { name: 'Pause motion' }).click();
+  await expect.poll(() => video.evaluate(el => (el as HTMLVideoElement).paused)).toBeTruthy();
+  await page.getByRole('button', { name: 'Resume motion' }).click();
+  await video.scrollIntoViewIfNeeded();
+  await expect.poll(() => video.evaluate(el => !(el as HTMLVideoElement).paused)).toBeTruthy();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(() => video.evaluate(el => (el as HTMLVideoElement).paused)).toBeTruthy();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect.poll(() => video.evaluate(el => !(el as HTMLVideoElement).paused)).toBeTruthy();
+});
+
+test('phone entrance is gradual and reacts to scrolling before brand handoff', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await page.locator('.discovery-search').evaluate(el => { for (const animation of el.getAnimations()) { animation.pause(); animation.currentTime = 1000; } });
+  const opacity = await page.locator('.discovery-search').evaluate(el => Number(getComputedStyle(el).opacity));
+  expect(opacity).toBeGreaterThan(0);
+  expect(opacity).toBeLessThan(1);
+  await page.locator('.discovery-search').evaluate(el => { for (const animation of el.getAnimations()) animation.currentTime = 2600; });
+  await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
+  const phone = page.locator('.discovery-search .photograph-phone');
+  const before = await phone.evaluate(el => getComputedStyle(el).transform);
+  await page.evaluate(() => scrollTo({ top: 100, behavior: 'instant' }));
+  await expect.poll(() => phone.evaluate(el => getComputedStyle(el).transform)).not.toBe(before);
 });
