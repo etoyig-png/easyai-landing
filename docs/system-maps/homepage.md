@@ -76,3 +76,12 @@ Verification closeout for this increment: 69/72 original browser cases passed; t
 - Lint, TypeScript, production build and 417 unit tests passed. Homepage/layout JS gzip 117586 -> 118340 bytes (+754, +0.64%); unchanged separate Scrollcraft engine excluded from both. Added image transfer is separate; lab figures are not field performance proof.
 - Selected browser run initially27/28; one 360px fake-clock completion check sampled just before opacity1. Explicit8s duration assertion and additional simulated completion time added without changing production duration or test timeout. Subsequent screen-fit/visual direction run8/8 passed; final timing/globe/GAP-action run4/4 passed at desktop/360/390/412.
 - Production remains untouched. This is a visual review draft. Final new logos, full choreography review, dedicated security release gates and final canonical Supabase reconciliation remain open.
+
+### AIM artwork and bubble correction — 2026-10-26
+
+- Reused supplied transparent AIM logo.png (Library libfile_6e7c8a4807f081919768942d036cdb9c); web derivative public/aim-logo.webp preserves the artwork and alpha. Replaced text placeholder, removed decorative call dot to preserve screen space.
+- Outbound/reply bubbles now have speech tails, start from phone-side offsets and appear in sequence at1.5s/3s. Positions are below the logo, with responsive sizing. Reuses existing observer, pause and reduced-motion lifecycle.
+- Independent production geometry review PASS: AIM content fits and neither bubble overlaps the logo at360/390/768/1440; laptop retains source600:400 proportions.
+- Production build/lint/typecheck pass. Targeted browser run12/12 passes: reduced-motion/accessibility, screen fit/message sequence, actual AIM asset, bubble/logo nonoverlap across desktop/360/390/412. Previous417 unit tests apply to unchanged business logic; not rerun for this asset/layout-only follow-up.
+- Homepage/layout JS gzip118340 ->118567 bytes (+227, +0.19%); combined from pre-correction117586 ->118567 (+0.83%). Photo device sources27724 bytes combined; AIM derivative adds about36KB. No runtime dependencies, API, database or chat-contract changes.
+- No rectangular video embedded. Current visuals are alpha device images plus native screen/bubble animations. Any future generated media must prove seamless compositing and browser playback before adoption.

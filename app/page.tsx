@@ -99,10 +99,9 @@ export default function HomePage() {
         <section id="response" className="product-scene story-chapter" data-sc-act="flow">
           <div className="product-art aim-art device-art" aria-hidden="true">
             <div className="color-ribbon ribbon-mint" />
-            <Iphone className="phone-device"><span className="phone-label">AIM</span><p>AI Interaction Manager</p>
+            <Iphone className="phone-device"><Image className="aim-device-logo" src="/aim-logo.webp" alt="AIM Digital / Voice" width={640} height={256} sizes="260px" /><p>AI Interaction Manager</p>
               <div className="conversation-wave">{Array.from({ length: 17 }, (_, i) => <i key={i} style={{ height: `${20 + (8 - Math.abs(8 - i)) * 9}px`, animationDelay: `${i * 70}ms` }} />)}</div>
               <div className="screen-prompt"><span className="typed-line">How can I help?</span></div>
-              <div className="call-symbol">↗</div>
               <div className="demo-conversation">
                 <span className="demo-step">Can you help me get started?</span>
                 <span className="demo-step demo-reply">Of course. What does your business need?</span>

@@ -179,3 +179,18 @@ test('opening holds phone for five seconds and GAP screen reveals a working acti
   await action.click();
   await expect(page.getByRole('dialog')).toBeVisible();
 });
+
+test('AIM uses saved artwork and speech bubbles keep the logo clear', async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const logo = page.locator('.aim-device-logo');
+  await logo.scrollIntoViewIfNeeded();
+  await expect(logo).toHaveAttribute('src', /aim-logo/);
+  const logoBox = await logo.boundingBox();
+  for (const bubble of await page.locator('.aim-art .floating-message').all()) {
+    const box = await bubble.boundingBox();
+    expect(box!.y >= logoBox!.y + logoBox!.height || box!.x + box!.width <= logoBox!.x || box!.x >= logoBox!.x + logoBox!.width).toBeTruthy();
+  }
+  expect(await page.locator('#engagement .smartsite-screen').evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBeTruthy();
+  await page.locator('.aim-art').screenshot({ path: testInfo.outputPath('aim-artwork-and-bubbles.png') });
+});
