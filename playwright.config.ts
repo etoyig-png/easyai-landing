@@ -14,11 +14,16 @@ export default defineConfig({
     trace: 'retain-on-failure',
     launchOptions: {
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-      args: chromium.args.filter((argument) => argument !== '--single-process')
+      // Let Chromium select graphics: forced SwiftShader stalls animated SVG captures
+      // on the unchanged baseline too. Keep the same binary and all test assertions.
+      args: chromium.args.filter((argument) => ![
+        '--single-process', '--in-process-gpu', '--use-gl=angle',
+        '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
+      ].includes(argument))
     }
   },
   webServer: {
-    command: 'npm run dev -- --hostname 127.0.0.1 --port 3200',
+    command: process.env.E2E_PRODUCTION ? 'npm run start -- --hostname 127.0.0.1 --port 3200' : 'npm run dev -- --hostname 127.0.0.1 --port 3200',
     url: 'http://127.0.0.1:3200',
     reuseExistingServer: true,
     timeout: 120_000

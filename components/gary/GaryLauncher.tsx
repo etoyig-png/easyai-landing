@@ -40,6 +40,7 @@ export default function GaryLauncher() {
   const [routineFinished, setRoutineFinished] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
   const timers = useRef<number[]>([]);
+  const launchTimer = useRef<number>();
 
   function clearScheduledTimers() {
     timers.current.forEach((id) => window.clearTimeout(id));
@@ -91,6 +92,7 @@ export default function GaryLauncher() {
       markLaunchAnimationPlayed();
       runRoutine();
     }, LAUNCH_DELAY_MS);
+    launchTimer.current = timer;
     return () => {
       window.clearTimeout(timer);
       clearScheduledTimers();
@@ -105,11 +107,26 @@ export default function GaryLauncher() {
   // Closing it always resumes the safe seated state, never mid-routine.
   useEffect(() => {
     if (!open) return;
+    window.clearTimeout(launchTimer.current);
     clearScheduledTimers();
     setEntering(false);
     setPose('seated');
     setRoutineFinished(true);
   }, [open]);
+
+  // Progressive enhancement: server-rendered contact links also work without JavaScript.
+  useEffect(() => {
+    const openFromPage = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('a[data-open-gary]')) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+      event.preventDefault();
+      setVisible(true);
+      setOpen(true);
+    };
+    document.addEventListener('click', openFromPage);
+    return () => document.removeEventListener('click', openFromPage);
+  }, []);
 
   if (!visible) return null;
 

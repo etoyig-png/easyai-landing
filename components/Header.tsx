@@ -26,18 +26,13 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" className="flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver rounded">
           <Image
-            src="/easy-ai-logo.png"
+            src="/easy-ai-logo-transparent.png"
             alt="Easy AI — Business AI Advisory"
-            width={200}
-            height={54}
-            // Doubled at md+ (52px -> 104px). The mark is ~3.7:1, so a full 104px would render
-            // ~385px wide and crowd the hamburger on a 360px phone; mobile therefore scales to
-            // 72px, which is the largest size that still leaves room for the menu button.
-            // w-auto + object-contain keep the original proportions; mixBlendMode preserves the
-            // transparent background against navy with no box behind it.
-            className="h-[72px] md:h-[104px] w-auto object-contain"
+            width={1430}
+            height={290}
+            sizes="(min-width: 1024px) 220px, 190px"
+            className="w-[190px] lg:w-[220px] h-auto object-contain"
             priority
-            style={{ mixBlendMode: 'screen' }}
           />
         </Link>
 
