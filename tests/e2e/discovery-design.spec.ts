@@ -1,3 +1,4 @@
+import { gotoGaryReady } from './garyReady';
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
@@ -39,7 +40,7 @@ test('motion fallback, accessibility and screenshots', async ({ page }, testInfo
 test('opening Gary early cancels the pending entrance routine', async ({ page }) => {
   await page.route('**/api/gary/message', route => route.fulfill({ json: { sessionId: 'early-test', reply: { text: 'How can I help?' } } }));
   await page.clock.install();
-  await page.goto('/');
+  await gotoGaryReady(page);
   await page.locator('#discovery .story-chapter-copy a[data-open-gary]').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.clock.fastForward(6000);
@@ -91,7 +92,7 @@ test('latest visual direction keeps header, centers copy and uses real device ar
 
 test('search phone resolves to logo and geographic markers keep moving', async ({ page }, testInfo) => {
   await page.clock.install();
-  await page.goto('/');
+  await gotoGaryReady(page);
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   await page.clock.runFor(2300);
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
@@ -135,7 +136,7 @@ test('visitors can pause and resume decorative movement', async ({ page }) => {
 
 test('device conversations animate in sequence and remain readable with motion off', async ({ page }) => {
   await page.clock.install();
-  await page.goto('/');
+  await gotoGaryReady(page);
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   const laptopScreen = page.locator('#engagement .smartsite-screen');
   expect(await laptopScreen.evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBeTruthy();
@@ -160,7 +161,7 @@ test('device conversations animate in sequence and remain readable with motion o
 
 test('opening holds photographed phone for four seconds and GAP screen reveals a working action', async ({ page }) => {
   await page.clock.install();
-  await page.goto('/');
+  await gotoGaryReady(page);
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   await expect(page.locator('.discovery-search')).toHaveCSS('animation-duration', '8.4s');
   await page.clock.runFor(4500);

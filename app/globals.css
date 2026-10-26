@@ -256,6 +256,11 @@
     .gary-launcher .gary-character-wrap {
       width: clamp(42px, 12vw, 50px);
     }
+    /* The smaller character also needs the existing compact sign offset. Applying
+       it only below 844px left the sign crossing the button on 412x915/430x932. */
+    .gary-launcher .gary-sign-board {
+      top: 38px;
+    }
   }
 
   /* Preserve one pixel of CTA clearance on the shortest supported phones without transform:
@@ -263,10 +268,6 @@
   @media (max-height: 844px) and (max-width: 480px) {
     .gary-launcher {
       bottom: calc(max(1rem, env(safe-area-inset-bottom)) - 1px) !important;
-    }
-
-    .gary-launcher .gary-sign-board {
-      top: 38px;
     }
   }
 

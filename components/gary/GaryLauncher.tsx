@@ -98,7 +98,11 @@ export default function GaryLauncher() {
       runRoutine();
     }, LAUNCH_DELAY_MS);
     launchTimer.current = timer;
+    // Initialization is distinct from visibility: clocks/hosts can wait for the
+    // existing launch timer to be registered without changing its delay.
+    document.documentElement.setAttribute('data-gary-ready', 'true');
     return () => {
+      document.documentElement.removeAttribute('data-gary-ready');
       window.clearTimeout(timer);
       clearScheduledTimers();
     };

@@ -1,3 +1,4 @@
+import { gotoGaryReady } from './garyReady';
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {
@@ -67,7 +68,7 @@ async function mockContactServer(page: Page, outcomes: Outcome[] = ['sent']): Pr
 
 async function openFromContactPage(page: Page, outcomes?: Outcome[]) {
   const state = await mockContactServer(page, outcomes);
-  await page.goto('/contact');
+  await gotoGaryReady(page, '/contact');
   await page.getByRole('button', { name: 'Talk to Gary' }).click();
   const dialog = page.getByRole('dialog', { name: DIALOG_NAME });
   await expect(dialog).toBeVisible();
