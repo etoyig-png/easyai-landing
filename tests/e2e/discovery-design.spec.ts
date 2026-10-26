@@ -1,6 +1,19 @@
 import { gotoGaryReady } from './garyReady';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+
+// Playwright's JS clock does not own the CSS compositor timeline. Seek the
+// real CSS animations for phase assertions; duration is still pinned below.
+async function setNativeAnimationTime(locator: Locator, milliseconds: number) {
+  await locator.evaluateAll(async (elements, time) => {
+    const animations = elements.flatMap(element => element.getAnimations());
+    if (animations.length === 0) throw new Error('Expected an active native CSS animation');
+    for (const animation of animations) animation.pause();
+    await Promise.all(animations.map(animation => animation.ready));
+    for (const animation of animations) animation.currentTime = time;
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  }, milliseconds);
+}
 
 test('initial HTML includes approved content and real fallback links', async ({ request, browser }) => {
   const html = await (await request.get('/')).text();
@@ -92,18 +105,19 @@ test('latest visual direction keeps header, centers copy and uses real device ar
 });
 
 test('search phone resolves to logo and geographic markers keep moving', async ({ page }, testInfo) => {
-  await page.clock.install();
   await gotoGaryReady(page);
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
-  await page.clock.runFor(2300);
+  const opening = page.locator('.discovery-search, .discovery-brand');
+  await setNativeAnimationTime(opening, 2300);
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   await page.screenshot({ path: testInfo.outputPath('search-phone.png') });
-  await page.clock.runFor(7800);
+  await setNativeAnimationTime(opening, 2300 + 7800);
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
   const track = page.locator('.location-track-one');
+  await setNativeAnimationTime(track, 0);
   const first = await track.evaluate(el => getComputedStyle(el).transform);
-  await page.clock.runFor(1000);
+  await setNativeAnimationTime(track, 1000);
   expect(await track.evaluate(el => getComputedStyle(el).transform)).not.toBe(first);
   await page.screenshot({ path: testInfo.outputPath('logo-and-tagline.png') });
 });
@@ -136,7 +150,6 @@ test('visitors can pause and resume decorative movement', async ({ page }) => {
 });
 
 test('device conversations animate in sequence and remain readable with motion off', async ({ page }) => {
-  await page.clock.install();
   await gotoGaryReady(page);
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   const laptopScreen = page.locator('#engagement .smartsite-screen');
@@ -144,7 +157,7 @@ test('device conversations animate in sequence and remain readable with motion o
   const phone = page.locator('#response .magic-phone-screen');
   await phone.scrollIntoViewIfNeeded();
   await expect(page.locator('#response')).toHaveClass(/scene-visible/);
-  await page.clock.runFor(4000);
+  await page.waitForTimeout(4000);
   for (const message of await phone.locator('.demo-step').all()) {
     await expect(message).toHaveCSS('opacity', '1');
     expect(await message.evaluate(el => {
@@ -161,24 +174,25 @@ test('device conversations animate in sequence and remain readable with motion o
 
 
 test('opening holds photographed phone for four seconds and GAP screen reveals a working action', async ({ page }) => {
-  await page.clock.install();
   await gotoGaryReady(page);
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   await expect(page.locator('.discovery-search')).toHaveCSS('animation-duration', '8.4s');
-  await page.clock.runFor(4500);
+  const opening = page.locator('.discovery-search, .discovery-brand');
+  await setNativeAnimationTime(opening, 4500);
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '0');
-  await page.clock.runFor(5500);
-  // Fake timers do not complete the native CSS animation; observe its real end.
+  await setNativeAnimationTime(opening, 4500 + 5500);
+  // Use the native timeline for native CSS; keep the exact duration and phase assertions.
   await expect(page.locator('.home-story')).toHaveAttribute('data-opening-complete', 'true');
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
   const globe = page.locator('.location-grid');
+  await setNativeAnimationTime(globe, 0);
   const first = await globe.evaluate(el => getComputedStyle(el).transform);
-  await page.clock.runFor(1000);
+  await setNativeAnimationTime(globe, 1000);
   expect(await globe.evaluate(el => getComputedStyle(el).transform)).not.toBe(first);
   await page.locator('#discovery .laptop-device').scrollIntoViewIfNeeded();
-  await page.clock.runFor(2000);
+  await page.waitForTimeout(2000);
   const action = page.getByRole('link', { name: 'Talk with Gary about your GAP Score', exact: true });
   await expect(action).toHaveCSS('opacity', '1');
   await page.route('**/api/gary/message', route => route.fulfill({ json: { sessionId: 'gap-device-test', reply: { text: 'How can I help?' } } }));
@@ -249,16 +263,27 @@ test('conversation footage loads near view and pauses with the motion control', 
 test('phone entrance is gradual and reacts to scrolling before brand handoff', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
-  await page.locator('.discovery-search').evaluate(el => { for (const animation of el.getAnimations()) { animation.pause(); animation.currentTime = 1000; } });
+  await page.locator('.discovery-search').evaluate(async el => {
+    const animations = el.getAnimations();
+    for (const animation of animations) { animation.pause(); animation.currentTime = 1000; }
+    // pause() is pending until the native animation frame commits. Observe that
+    // commit before seeking/capturing a descendant's separate CSS transition.
+    await Promise.all(animations.map(animation => animation.ready));
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  });
   const opacity = await page.locator('.discovery-search').evaluate(el => Number(getComputedStyle(el).opacity));
   expect(opacity).toBeGreaterThan(0);
   expect(opacity).toBeLessThan(1);
-  await page.locator('.discovery-search').evaluate(el => { for (const animation of el.getAnimations()) animation.currentTime = 2600; });
+  await page.locator('.discovery-search').evaluate(async el => {
+    for (const animation of el.getAnimations()) animation.currentTime = 2600;
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  });
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   const phone = page.locator('.discovery-search .photograph-phone');
   const before = await phone.evaluate(el => getComputedStyle(el).transform);
   await page.evaluate(() => scrollTo({ top: 100, behavior: 'instant' }));
   await expect.poll(() => phone.evaluate(el => getComputedStyle(el).transform)).not.toBe(before);
+  await expect.poll(() => phone.evaluate(el => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41)).toBeGreaterThan(0);
 });
 
 

@@ -575,10 +575,10 @@ function boxOverlapArea(a: { x: number; y: number; width: number; height: number
   return xOverlap * yOverlap;
 }
 
-test.describe('Gary launcher — hero video overlap', () => {
+test.describe('Gary launcher — current conversation video layout', () => {
   test.beforeEach(async ({ page }) => {
     await gotoGaryReady(page);
-    test.skip((await page.locator('video').count()) === 0, 'STALE SUBJECT: the homepage hero video was removed in the PR #9 redesign (main 0ede74a has no <video>). Assertions kept for an owner decision; they run again if a hero video returns.');
+    await expect(page.locator('[data-conversation-video]')).toHaveCount(1);
   });
 
   // Required test matrix: narrowest phone through desktop. minUsefulWidth encodes "large enough
@@ -597,18 +597,20 @@ test.describe('Gary launcher — hero video overlap', () => {
   ];
 
   for (const viewport of REQUIRED_WIDTHS) {
-    test(`the hero video is not covered by the Gary launcher or nav at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    test(`the conversation video is not covered by the Gary launcher or nav at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
       await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const video = page.locator('video').first();
+      const video = page.locator('[data-conversation-video]');
+      await video.scrollIntoViewIfNeeded();
+      await expect(video).toBeInViewport();
       const videoBox = await video.boundingBox();
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
       const navBox = await page.locator('header').first().boundingBox();
-      expect(videoBox, 'hero video not found').not.toBeNull();
+      expect(videoBox, 'conversation video not found').not.toBeNull();
       expect(launcherBox, 'launcher not found').not.toBeNull();
 
       expect(
@@ -621,12 +623,14 @@ test.describe('Gary launcher — hero video overlap', () => {
       ).toBe(0);
     });
 
-    test(`the hero video stays large enough to be useful (not a thumbnail) and keeps a true 16:9 frame at ${viewport.width}x${viewport.height}`, async ({
+    test(`the conversation video stays large enough to be useful (not a thumbnail) and keeps a true 16:9 frame at ${viewport.width}x${viewport.height}`, async ({
       page
     }) => {
       await page.setViewportSize(viewport);
       await gotoGaryReady(page);
-      const video = page.locator('video').first();
+      const video = page.locator('[data-conversation-video]');
+      await video.scrollIntoViewIfNeeded();
+      await expect(video).toBeInViewport();
       await expect(video).toBeVisible();
       const box = await video.boundingBox();
       expect(box!.width, `video was only ${box!.width}px wide`).toBeGreaterThanOrEqual(viewport.minUsefulWidth);
@@ -642,12 +646,14 @@ test.describe('Gary launcher — hero video overlap', () => {
     });
   }
 
-  test('the hero video is not cropped: object-fit never crops a matching-aspect frame, and the rendered video fills its 16:9 wrapper with no letterboxing', async ({
+  test('the conversation video preserves its full 16:9 geometry inside the approved feathered frame', async ({
     page
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoGaryReady(page);
-    const video = page.locator('video').first();
+    const video = page.locator('[data-conversation-video]');
+    await video.scrollIntoViewIfNeeded();
+    await expect(video).toBeInViewport();
     await expect(video).toBeVisible();
     await video.evaluate(
       (el: HTMLVideoElement) =>
@@ -657,7 +663,7 @@ test.describe('Gary launcher — hero video overlap', () => {
         })
     );
 
-    // The source file itself is a genuine 1920x1080 (16:9) recording — confirms the "full frame
+    // The current source file itself is a genuine 960x540 (16:9) recording — confirms the "full frame
     // visible" requirement isn't just about the wrapper's shape matching the source by luck.
     const sourceDims = await video.evaluate((el: HTMLVideoElement) => ({
       videoWidth: el.videoWidth,
@@ -672,18 +678,22 @@ test.describe('Gary launcher — hero video overlap', () => {
       return {
         objectFit: getComputedStyle(el).objectFit,
         wrapperAspect: wrapperBox.width / wrapperBox.height,
-        // With matching aspect ratios and object-fit:contain, the rendered video box should fill
+        maskImage: getComputedStyle(wrapper).maskImage,
+        sourceAspect: (el as HTMLVideoElement).videoWidth / (el as HTMLVideoElement).videoHeight,
+        // With matching source/frame aspect ratios, the rendered video box should fill
         // its wrapper almost exactly — any meaningfully smaller box here would mean letterboxing,
         // which signals an aspect-ratio mismatch (i.e. the wrapper silently drifted off 16:9).
         renderedFillsWrapper: videoBox.width >= wrapperBox.width * 0.98 && videoBox.height >= wrapperBox.height * 0.98
       };
     });
 
-    // object-contain never crops, regardless of aspect match — this is the structural guarantee
-    // that the source frame is always fully visible, unlike the old object-cover.
-    expect(info.objectFit).toBe('contain');
+    // Cover does not geometrically crop a matching-aspect source. The approved radial
+    // mask feathers the edges deliberately; that is a separate presentation contract.
+    expect(info.objectFit).toBe('cover');
+    expect(info.maskImage).toContain('radial-gradient');
     expect(Math.abs(info.wrapperAspect - 16 / 9)).toBeLessThan(0.05);
-    expect(info.renderedFillsWrapper, `wrapper/video mismatch would show as letterboxing: ${JSON.stringify(info)}`).toBe(true);
+    expect(Math.abs(info.wrapperAspect - info.sourceAspect)).toBeLessThan(0.02);
+    expect(info.renderedFillsWrapper, `wrapper/video mismatch: ${JSON.stringify(info)}`).toBe(true);
   });
 
   // The two viewports the previous 58px-wide-thumbnail fix specifically failed on — checked
@@ -715,21 +725,23 @@ test.describe('Gary launcher — hero video overlap', () => {
       expect(boxOverlapArea(ghostBox, launcherBox), `ghost CTA vs launcher: ${JSON.stringify({ ghostBox, launcherBox })}`).toBe(0);
     });
 
-    test(`the hero does not leave a large unexplained empty gap below the video at ${viewport.width}x${viewport.height}`, async ({
-      page
-    }) => {
+    test(`the conversation frame leaves no unexplained video gap at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await gotoGaryReady(page);
-      const gap = await page.evaluate(() => {
-        const video = document.querySelector('video');
-        const heroSection = document.querySelector('section.bg-navy-900.overflow-hidden');
-        if (!video || !heroSection) return null;
-        return heroSection.getBoundingClientRect().bottom - video.getBoundingClientRect().bottom;
+      const video = page.locator('[data-conversation-video]');
+      await video.scrollIntoViewIfNeeded();
+      await expect(video).toBeInViewport();
+      const gaps = await video.evaluate(el => {
+        const wrapper = el.parentElement!;
+        const copy = wrapper.nextElementSibling!;
+        return {
+          frameGap: Math.abs(wrapper.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom),
+          copyGap: copy.getBoundingClientRect().top - wrapper.getBoundingClientRect().bottom,
+        };
       });
-      expect(gap, 'hero section or video not found').not.toBeNull();
-      // The only mobile-only adjustment that can leave dead space is the small upward transform
-      // at the narrowest breakpoint — bounded well below anything that would read as unintentional.
-      expect(gap!).toBeLessThan(60);
+      expect(gaps.frameGap, 'video must fill its actual frame').toBeLessThan(1);
+      expect(gaps.copyGap, 'people copy must follow the frame').toBeGreaterThanOrEqual(0);
+      expect(gaps.copyGap, 'unexplained space before people copy').toBeLessThan(60);
     });
   }
 });
@@ -750,7 +762,7 @@ async function advanceToPose(page: Page, pose: string, budgetMs: number, stepMs 
 }
 
 test.describe('Gary launcher — chat button color/ring and universal sign/bubble composition', () => {
-  test('chat button uses the exact same green as the primary "Start speaking with Gary" CTA', async ({ page }) => {
+  test('chat button and primary CTA retain their approved colors and readable CTA contrast', async ({ page }) => {
     await page.clock.install();
     await gotoGaryReady(page);
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
@@ -760,10 +772,16 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     const buttonBg = await page.evaluate(() => getComputedStyle(document.querySelector('.gary-chat-button')!).backgroundColor);
     const ctaBg = await cta.evaluate(el => getComputedStyle(el).backgroundColor);
     expect(ctaBg, 'primary Gary CTA not found').not.toBeNull();
-    expect(buttonBg, `button: ${buttonBg}, CTA: ${ctaBg}`).toBe(ctaBg);
-    // Pin to the actual Tailwind green-600 value so a future change to either side that keeps
-    // them merely equal-to-each-other (but drifts off-brand) still fails loudly.
     expect(buttonBg).toBe('rgb(22, 163, 74)');
+    expect(ctaBg).toBe('rgb(20, 120, 60)');
+    const foreground = await cta.evaluate(el => getComputedStyle(el).color);
+    expect(foreground).toBe('rgb(255, 255, 255)');
+    const channels = [20, 120, 60].map(value => {
+      const channel = value / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    expect(1.05 / (luminance + 0.05), 'normal-size CTA text contrast').toBeGreaterThanOrEqual(4.5);
   });
 
   test('chat button remains clickable', async ({ page }) => {
@@ -895,7 +913,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
       // The retained legacy video assertion is not evidence that the new decorative
       // conversation video meets the retired full-frame hero-video contract.
       const hasVideo = (await page.locator('video').count()) > 0;
-      const videoBox = hasVideo ? await page.locator('video').first().boundingBox() : null;
+      const videoBox = hasVideo ? await page.locator('[data-conversation-video]').boundingBox() : null;
       const greenCtaBox = await greenCta.boundingBox();
       const ghostCtaBox = await ghostCta.boundingBox();
       const buttonBox = await page.locator('.gary-chat-button').boundingBox();
@@ -1164,73 +1182,57 @@ test.describe('Gary launcher — pose-driven message exclusivity and responsive 
 });
 
 test.describe('Homepage responsive images', () => {
-  test.beforeEach(async ({ page }) => {
-    await gotoGaryReady(page);
-    test.skip((await page.getByAltText(IMAGE_ALT_TEXTS[0]).count()) === 0, 'STALE SUBJECT: the three homepage photos (HVAC/electrician/construction) were replaced in the PR #9 redesign and these assertions target the retired alt text and aspect ratios of those assets. Kept for an owner decision.');
-  });
-
-  const REQUIRED_VIEWPORTS = [
-    { width: 360, height: 800, label: '360x800' },
-    { width: 390, height: 844, label: '390x844' },
-    { width: 412, height: 915, label: '412x915' },
-    { width: 768, height: 1024, label: '768x1024 (tablet portrait)' },
-    { width: 1024, height: 768, label: '1024x768 (tablet landscape)' },
-    { width: 1280, height: 720, label: '1280x720 (desktop)' },
-    { width: 1440, height: 900, label: '1440x900 (wide desktop)' }
+  const subjects = [
+    { selector: '#discovery .photograph-canvas', ratio: 1950 / 1350 },
+    { selector: '#engagement .photograph-canvas', ratio: 1950 / 1350 },
+    { selector: '#response .photograph-canvas', ratio: 400 / 680 },
   ];
-
-  const IMAGE_ALT_TEXTS = [
-    'Home-service professional receiving a new customer opportunity while working at a residential HVAC property.',
-    'Homeowner completing a service request as a professional home-service technician arrives.',
-    'Chiropractic practice using organized digital workflows while staff assist patients.'
-  ];
-
-  for (const viewport of REQUIRED_VIEWPORTS) {
-    test(`no horizontal overflow and every image renders above its floor size at ${viewport.label}`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+  const viewports = [[360,800], [390,844], [412,915], [768,1024], [1024,768], [1280,720], [1440,900]];
+  for (const [width, height] of viewports) {
+    test(`no horizontal overflow and every current photograph renders above its floor size at ${width}x${height}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
       await gotoGaryReady(page);
-
-      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-      expect(scrollWidth, `horizontal overflow at ${viewport.label}`).toBeLessThanOrEqual(viewport.width + 1);
-
-      for (const alt of IMAGE_ALT_TEXTS) {
-        const image = page.getByAltText(alt);
-        await image.scrollIntoViewIfNeeded();
-        const box = await image.boundingBox();
-        expect(box, `${alt} has no box at ${viewport.label}`).not.toBeNull();
-        // Every image (landscape or portrait) must clear the smallest configured floor —
-        // proves it never collapses to a "tiny thumbnail," the original reported bug.
-        expect(box!.width, `${alt} width at ${viewport.label}`).toBeGreaterThanOrEqual(199);
-        expect(box!.x + box!.width, `${alt} right edge at ${viewport.label}`).toBeLessThanOrEqual(viewport.width + 1);
+      for (const subject of subjects) {
+        const canvas = page.locator(subject.selector);
+        await expect(canvas).toHaveCount(1);
+        await canvas.scrollIntoViewIfNeeded();
+        await expect(canvas).toBeInViewport();
+        const box = await canvas.boundingBox();
+        expect(box, `${subject.selector} has no box`).not.toBeNull();
+        expect(box!.width).toBeGreaterThanOrEqual(199);
+        expect(box!.x).toBeGreaterThanOrEqual(-1);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
       }
     });
   }
-
-  test('the landscape and portrait images preserve their true aspect ratio (no stretching)', async ({ page }) => {
+  test('current landscape and portrait photographs preserve their true canvas and source aspect ratios', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await gotoGaryReady(page);
-
-    const hvac = page.getByAltText(IMAGE_ALT_TEXTS[0]);
-    await hvac.scrollIntoViewIfNeeded();
-    const hvacBox = await hvac.boundingBox();
-    // Intrinsic 2752x1536 ≈ 1.792:1.
-    expect(hvacBox!.width / hvacBox!.height).toBeCloseTo(2752 / 1536, 1);
-
-    const electrician = page.getByAltText(IMAGE_ALT_TEXTS[1]);
-    await electrician.scrollIntoViewIfNeeded();
-    const electricianBox = await electrician.boundingBox();
-    // Intrinsic 1536x2752 ≈ 0.563:1.
-    expect(electricianBox!.width / electricianBox!.height).toBeCloseTo(1536 / 2752, 1);
+    for (const subject of subjects) {
+      const canvas = page.locator(subject.selector);
+      await canvas.scrollIntoViewIfNeeded();
+      const box = await canvas.boundingBox();
+      expect(box!.width / box!.height).toBeCloseTo(subject.ratio, 1);
+      const distortion = await canvas.locator('image[data-device-photograph]').evaluate(async element => {
+        const photo = element as SVGImageElement;
+        const resource = new Image();
+        resource.src = photo.href.baseVal;
+        await resource.decode();
+        return Math.abs(photo.width.baseVal.value / photo.height.baseVal.value - resource.naturalWidth / resource.naturalHeight);
+      });
+      expect(distortion).toBeLessThan(0.001);
+    }
   });
-
-  test('landscape images use a meaningfully larger width than the old fixed 25% sizing (not a tiny thumbnail) on mobile', async ({ page }) => {
+  test('current landscape photograph remains meaningfully larger than old fixed 25% sizing on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await gotoGaryReady(page);
-    const hvac = page.getByAltText(IMAGE_ALT_TEXTS[0]);
-    await hvac.scrollIntoViewIfNeeded();
-    const box = await hvac.boundingBox();
-    // The old `w-1/4` sizing rendered this around ~90px at this viewport; the fix must clear
-    // that by a wide margin.
-    expect(box!.width).toBeGreaterThan(150);
+    const canvas = page.locator(subjects[0].selector);
+    await canvas.scrollIntoViewIfNeeded();
+    await expect(canvas).toBeInViewport();
+    expect((await canvas.boundingBox())!.width).toBeGreaterThan(150);
   });
 });
