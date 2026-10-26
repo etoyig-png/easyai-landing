@@ -427,9 +427,9 @@ test.describe('Gary character — mobile viewport usability', () => {
   });
 });
 
-// The hero's own "Book a Consultation" ghost button — the CTA the launcher was measured
-// overlapping on the shortest required viewport before the compact-mode fix.
-const HOMEPAGE_CTA_TEXT = 'Book a Consultation';
+// The approved consultation link now lives in the closing section. Keep testing its
+// actual accessible name and assessment intent rather than the retired hero copy.
+const HOMEPAGE_CTA_TEXT = 'Start Your Consultation ↗';
 
 test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
   const REQUIRED_MOBILE_VIEWPORTS = [
@@ -446,7 +446,7 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const cta = page.locator('main section').first().getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      const cta = page.locator('#free-assessment').getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
       await cta.scrollIntoViewIfNeeded();
       const ctaBox = await cta.boundingBox();
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
@@ -472,16 +472,15 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const cta = page.locator('main section').first().getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      const cta = page.locator('#free-assessment').getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
       await cta.scrollIntoViewIfNeeded();
       // elementFromPoint at the CTA's own center must resolve to the CTA itself, not the
       // launcher (or anything else) sitting on top of it — the strict version of "clickable".
       const ctaBox = await cta.boundingBox();
-      const resolvesToCta = await page.evaluate(
-        ([x, y]) => {
+      const resolvesToCta = await cta.evaluate(
+        (link, [x, y]) => {
           const el = document.elementFromPoint(x, y);
-          const link = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Book a Consultation'));
-          return el === link || (link ? link.contains(el) : false);
+          return el === link || (el ? link.contains(el) : false);
         },
         [ctaBox!.x + ctaBox!.width / 2, ctaBox!.y + ctaBox!.height / 2]
       );
@@ -701,11 +700,13 @@ test.describe('Gary launcher — hero video overlap', () => {
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
+      const closingSection = page.locator('#free-assessment');
+      const greenCta = closingSection.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true });
+      const ghostCta = closingSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
+      await ghostCta.scrollIntoViewIfNeeded();
+      await expect(greenCta).toBeInViewport();
+      await expect(ghostCta).toBeInViewport();
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
-      const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCta = heroSection.getByRole('link', { name: 'Start Your Free Assessment' });
-      const ghostCta = heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
-      await greenCta.scrollIntoViewIfNeeded();
       const greenBox = await greenCta.boundingBox();
       const ghostBox = await ghostCta.boundingBox();
 
@@ -748,17 +749,16 @@ async function advanceToPose(page: Page, pose: string, budgetMs: number, stepMs 
 }
 
 test.describe('Gary launcher — chat button color/ring and universal sign/bubble composition', () => {
-  test('chat button uses the exact same green as the "Start Your Free Assessment" CTA', async ({ page }) => {
+  test('chat button uses the exact same green as the primary "Start speaking with Gary" CTA', async ({ page }) => {
     await page.clock.install();
     await page.goto('/');
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
+    const cta = page.locator('#free-assessment').getByRole('link', { name: 'Start speaking with Gary', exact: true });
+    await cta.scrollIntoViewIfNeeded();
     const buttonBg = await page.evaluate(() => getComputedStyle(document.querySelector('.gary-chat-button')!).backgroundColor);
-    const ctaBg = await page.evaluate(() => {
-      const cta = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Start Your Free Assessment'));
-      return cta ? getComputedStyle(cta).backgroundColor : null;
-    });
-    expect(ctaBg, 'assessment CTA not found').not.toBeNull();
+    const ctaBg = await cta.evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(ctaBg, 'primary Gary CTA not found').not.toBeNull();
     expect(buttonBg, `button: ${buttonBg}, CTA: ${ctaBg}`).toBe(ctaBg);
     // Pin to the actual Tailwind green-600 value so a future change to either side that keeps
     // them merely equal-to-each-other (but drifts off-brand) still fails loudly.
@@ -884,14 +884,19 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
       await page.goto('/');
       await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
 
+      const closingSection = page.locator('#free-assessment');
+      const greenCta = closingSection.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true });
+      const ghostCta = closingSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
+      await ghostCta.scrollIntoViewIfNeeded();
+      await expect(greenCta).toBeInViewport();
+      await expect(ghostCta).toBeInViewport();
       const signBox = await page.locator('.gary-sign-board').boundingBox();
-      // The hero video was removed in the PR #9 redesign; when absent, only the video overlap
-      // assertion is skipped and the CTA/face/readability checks below still run.
+      // The retained legacy video assertion is not evidence that the new decorative
+      // conversation video meets the retired full-frame hero-video contract.
       const hasVideo = (await page.locator('video').count()) > 0;
       const videoBox = hasVideo ? await page.locator('video').first().boundingBox() : null;
-      const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCtaBox = await heroSection.getByRole('link', { name: 'Start Your Free Assessment' }).boundingBox();
-      const ghostCtaBox = await heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
+      const greenCtaBox = await greenCta.boundingBox();
+      const ghostCtaBox = await ghostCta.boundingBox();
       const buttonBox = await page.locator('.gary-chat-button').boundingBox();
       const faceBox = await page.locator('.gary-glasses').boundingBox();
 
@@ -1106,13 +1111,18 @@ test.describe('Gary launcher — pose-driven message exclusivity and responsive 
       const button = page.locator('.gary-chat-button');
       const face = page.locator('.gary-glasses');
       const bubble = page.locator('.gary-speech-bubble');
+      const closingSection = page.locator('#free-assessment');
+      const greenCta = closingSection.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true });
+      const ghostCta = closingSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
+      await ghostCta.scrollIntoViewIfNeeded();
+      await expect(greenCta).toBeInViewport();
+      await expect(ghostCta).toBeInViewport();
       const launcherBox = await launcher.boundingBox();
       const buttonBox = await button.boundingBox();
       const faceBox = await face.boundingBox();
       const bubbleBox = await bubble.boundingBox();
-      const hero = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCtaBox = await hero.getByRole('link', { name: 'Start Your Free Assessment' }).boundingBox();
-      const ghostCtaBox = await hero.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
+      const greenCtaBox = await greenCta.boundingBox();
+      const ghostCtaBox = await ghostCta.boundingBox();
 
       expect(await currentGaryPose(page)).not.toBeNull();
       expect(await isIntroBubbleShown(page)).toBe(true);
