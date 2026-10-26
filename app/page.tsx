@@ -4,6 +4,8 @@ import type { Metadata } from 'next';
 import { Iphone } from '@/components/magicui/Iphone';
 import PhotographicDevice from '@/components/PhotographicDevice';
 import ScrollCraftMotion from '@/components/ScrollCraftMotion';
+import continentOutlines from '@/public/data/continent-traces.json';
+import { globeVector, projectGlobe } from '@/lib/trace-motion';
 
 export const metadata: Metadata = {
   title: 'Easy AI | Get Found. Get Chosen.',
@@ -20,17 +22,20 @@ export default function HomePage() {
           <div className="discovery-reveal" aria-hidden="true" />
           <div className="opening-seed" aria-hidden="true" />
           <div className="discovery-orbit story-hero-plane" data-sc-parallax="-0.08" aria-hidden="true">
-            <svg viewBox="0 0 600 600" className="location-grid">
-              <circle cx="300" cy="300" r="245" /><ellipse cx="300" cy="300" rx="115" ry="245" /><ellipse cx="300" cy="300" rx="245" ry="95" />
+            <div className="globe-surface" />
+            <svg viewBox="0 0 600 600" className="globe-map-static">
+              {continentOutlines.map((outline, index) => {
+                let connected = false;
+                const path = outline.map(([longitude, latitude]) => {
+                  const point = projectGlobe(globeVector(longitude, latitude),25);
+                  if (point.z <= 0) { connected = false; return ''; }
+                  const command = connected ? 'L' : 'M'; connected = true;
+                  return `${command}${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+                }).join('');
+                return <path key={index} d={path} />;
+              })}
             </svg>
-            <svg viewBox="0 0 600 600" className="circuit-current">
-              <path className="current-yellow" d="M300 50 A250 250 0 0 1 550 300 L520 330 A220 220 0 0 1 300 520" />
-              <path className="current-red" d="M80 300 A220 220 0 0 1 300 80 L330 110 A190 190 0 0 1 490 300" />
-              <path className="current-green" d="M300 490 A190 190 0 0 1 110 300 L140 270 A160 160 0 0 1 300 140" />
-            </svg>
-            <span className="location-track location-track-one"><i /></span>
-            <span className="location-track location-track-two"><i /></span>
-            <span className="location-track location-track-three"><i /></span>
+            <canvas aria-hidden="true" className="globe-traces" width="600" height="600" data-light-trace="globe" />
           </div>
           <div className="discovery-search" aria-hidden="true">
             <Iphone className="search-phone">
@@ -59,9 +64,11 @@ export default function HomePage() {
                   // Preserve supplied glyph pixels; close gaps, then wrap around the sphere.
                   const x = part.x + part.width * index / part.slices;
                   const position = (x + part.width / part.slices / 2) / 1240 * 2 - 1;
-                  const scale = 1 - .08 * position * position;
-                  const curveX = (value: number) => (Math.sin((value / 1240 * 2 - 1) * .85) / Math.sin(.85) + 1) * 620;
-                  return <svg key={`${partIndex}-${index}`} x={curveX(x)} y={part.y * scale + 20 * position * position} width={curveX(x + part.width / part.slices) - curveX(x) + .2} height={part.height * scale} viewBox={`${part.sx + part.width * index / part.slices} ${part.sy} ${part.width / part.slices} ${part.height}`} preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>;
+                  const angle = position;
+                  const scale = 1480 / (2100 - 620 * Math.cos(angle));
+                  const projectX = (theta: number) => 1480 * Math.sin(theta) / (2100 - 620 * Math.cos(theta));
+                  const curveX = (value: number) => (projectX(value / 1240 * 2 - 1) / projectX(1) + 1) * 620;
+                  return <svg key={`${partIndex}-${index}`} x={curveX(x)} y={120 + (part.y - 120) * scale + 18 * position * position} width={curveX(x + part.width / part.slices) - curveX(x) + .2} height={part.height * scale} viewBox={`${part.sx + part.width * index / part.slices} ${part.sy} ${part.width / part.slices} ${part.height}`} preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>;
                 }))}
               <svg x="592" y="200" width="647" height="39" viewBox="630 185 760 48" preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>
             </svg></div>
@@ -74,18 +81,21 @@ export default function HomePage() {
       <section id="introduction" className="discovery-intro" data-sc-act="flow">
         <p data-sc-in>Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Once they find you, we help turn website attention into conversations, captured leads, and real customer opportunities.</p>
         <div className="product-identities" aria-label="GAP, SmartSite, and AIM" data-sc-in>
-          <svg width="0" height="0" className="logo-mask-definitions" aria-hidden="true" focusable="false"><defs><filter id="gap-paper-mask" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 2.85" result="paperless" /><feComposite in="paperless" in2="SourceAlpha" operator="in" /></filter></defs></svg>
+          <svg width="0" height="0" className="logo-mask-definitions" aria-hidden="true" focusable="false"><defs><filter id="gap-paper-mask" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 2.85" result="paperless" /><feComposite in="paperless" in2="SourceAlpha" operator="in" /></filter><filter id="brand-radiance" colorInterpolationFilters="sRGB"><feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncG type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncB type="gamma" amplitude="1" exponent=".55" offset="0" /></feComponentTransfer></filter></defs></svg>
           <div className="product-identity identity-gap">
+            <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#ffe28a" />
             <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><circle cx="180" cy="120" r="100" /><circle cx="180" cy="120" r="74" /><path d="M30 155H100L150 70H255L330 135M55 55L130 120H290M70 205L220 50" /><circle cx="100" cy="155" r="6" /><circle cx="255" cy="70" r="6" /></svg>
-            <Image className="gap-identity" src="/gap-logo.png" alt="GAP — Google and AI Presence" width={1254} height={1254} sizes="(max-width:767px) 300px, 300px" />
+            <Image quality={90} className="gap-identity" src="/gap-logo.png" alt="GAP — Google and AI Presence" width={1254} height={1254} sizes="(max-width:767px) 300px, 300px" />
           </div>
           <div className="product-identity identity-web">
+            <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#ff9a80" />
             <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><rect x="30" y="35" width="300" height="170" rx="20" /><path d="M30 70H330M60 110H140M60 135H115M200 115H290V160H240L220 180V160H200Z" /><circle cx="54" cy="52" r="3" /><circle cx="68" cy="52" r="3" /></svg>
-            <Image className="smartsite-identity" src="/smartsite-logo.webp" alt="SmartSite" width={2048} height={682} sizes="(max-width:767px) 340px, 340px" />
+            <Image quality={90} className="smartsite-identity" src="/smartsite-logo.webp" alt="SmartSite" width={2048} height={682} sizes="(max-width:767px) 340px, 340px" />
           </div>
           <div className="product-identity identity-aim">
+            <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#bbff91" />
             <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><path d="M35 120H65L80 80L100 165L120 60L140 175L160 75L180 155L200 90L220 140H325M80 200H270L295 220V200H315V40H80Z" /></svg>
-            <Image src="/aim-logo.webp" alt="AIM Digital / Voice" width={640} height={256} sizes="(max-width:767px) 360px, 360px" />
+            <Image quality={90} src="/aim-logo.webp?v=1983" alt="AIM Digital / Voice" width={1983} height={793} sizes="(max-width:767px) 360px, 360px" />
           </div>
         </div>
       </section>
@@ -122,7 +132,7 @@ export default function HomePage() {
             <div className="color-ribbon ribbon-violet" />
             <PhotographicDevice kind="laptop" className="laptop-device" screenClassName="laptop-screen smartsite-screen">
               <div className="device-toolbar"><i /><i /><i /><span>Your website</span></div>
-              <strong><Image className="smartsite-screen-logo" src="/smartsite-logo.webp" alt="SmartSite" width={2048} height={682} sizes="350px" /></strong>
+              <strong><Image quality={90} className="smartsite-screen-logo" src="/smartsite-logo.webp" alt="SmartSite" width={2048} height={682} sizes="350px" /></strong>
               <div className="demo-conversation website-conversation">
                 <span className="demo-step">Do you offer the service I need?</span>
                 <span className="demo-step demo-reply">Let’s find the right next step together.</span>
@@ -145,7 +155,7 @@ export default function HomePage() {
         <section id="response" className="product-scene story-chapter" data-sc-act="flow">
           <div className="product-art aim-art device-art" aria-hidden="true">
             <div className="color-ribbon ribbon-mint" />
-            <Iphone className="phone-device"><Image className="aim-device-logo" src="/aim-logo.webp" alt="AIM Digital / Voice" width={640} height={256} sizes="260px" /><p>AI Interaction Manager</p>
+            <Iphone className="phone-device"><Image quality={90} className="aim-device-logo" src="/aim-logo.webp?v=1983" alt="AIM Digital / Voice" width={1983} height={793} sizes="260px" /><p>AI Interaction Manager</p>
               <div className="conversation-wave">{Array.from({ length: 17 }, (_, i) => <i key={i} style={{ height: `${20 + (8 - Math.abs(8 - i)) * 9}px`, animationDelay: `${i * 70}ms` }} />)}</div>
               <div className="screen-prompt"><span className="typed-line">How can I help?</span></div>
               <div className="demo-conversation">
