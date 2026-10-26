@@ -11,7 +11,10 @@ test('Scroll-Craft cleans up on navigation and remounts once on return', async (
   await page.locator('#free-assessment a[href="/assessment"]').click();
   await expect(page).toHaveURL(/\/assessment$/);
   await expect.poll(() => page.evaluate(instances)).toBe(0);
-  await page.getByRole('navigation', { name: 'Main navigation', exact: true }).getByRole('link', { name: 'Home', exact: true }).click();
+  const mobileToggle = page.getByRole('button', { name: 'Open menu', exact: true });
+  const mobile = await mobileToggle.isVisible();
+  if (mobile) await mobileToggle.click();
+  await page.getByRole('navigation', { name: mobile ? 'Mobile navigation' : 'Main navigation', exact: true }).getByRole('link', { name: 'Home', exact: true }).click();
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   expect(await page.evaluate(instances)).toBe(1);
 });
