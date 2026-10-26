@@ -8,7 +8,7 @@ test('initial HTML includes approved content and real fallback links', async ({ 
   const page = await context.newPage();
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await page.locator('#discovery a[data-open-gary]').click();
+  await page.locator('#discovery .story-chapter-copy a[data-open-gary]').click();
   await expect(page).toHaveURL(/\/contact$/);
   await context.close();
 });
@@ -16,7 +16,7 @@ test('initial HTML includes approved content and real fallback links', async ({ 
 test('product scenes fit and product links open existing Gary panel', async ({ page }) => {
   await page.route('**/api/gary/message', route => route.fulfill({ json: { sessionId: 'design-test', reply: { text: 'How can I help?' } } }));
   await page.goto('/');
-  await page.waitForTimeout(4800);
+  await page.waitForTimeout(8500);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   for (const id of ['discovery', 'engagement', 'response']) {
     await page.locator(`#${id}`).scrollIntoViewIfNeeded();
@@ -40,7 +40,7 @@ test('opening Gary early cancels the pending entrance routine', async ({ page })
   await page.route('**/api/gary/message', route => route.fulfill({ json: { sessionId: 'early-test', reply: { text: 'How can I help?' } } }));
   await page.clock.install();
   await page.goto('/');
-  await page.locator('#discovery a[data-open-gary]').click();
+  await page.locator('#discovery .story-chapter-copy a[data-open-gary]').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.clock.fastForward(6000);
   await page.getByRole('button', { name: 'Close chat', exact: true }).click();
@@ -59,7 +59,7 @@ test('opening advances from search to brand without layout shift', async ({ page
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
   await page.screenshot({ path: testInfo.outputPath('opening-search.png') });
-  await page.waitForTimeout(2200);
+  await page.waitForTimeout(8200);
   await page.screenshot({ path: testInfo.outputPath('opening-transition.png') });
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
@@ -73,7 +73,7 @@ test('latest visual direction keeps header, centers copy and uses real device ar
   await page.goto('/');
   await expect(page.locator('header')).toBeVisible();
   await expect(page.locator('.story-nav')).toHaveCount(0);
-  await expect(page.locator('#discovery img')).toHaveAttribute('src', /gap-logo/);
+  await expect(page.locator('#discovery .gap-device-action img')).toHaveAttribute('src', /gap-logo/);
   await expect(page.locator('.phone-device')).toHaveCount(1);
   await expect(page.locator('.search-phone')).toHaveCount(1);
   await expect(page.locator('.home-story')).toHaveCSS('background-color', 'rgb(1, 6, 17)');
@@ -94,7 +94,7 @@ test('search phone resolves to logo and geographic markers keep moving', async (
   await page.clock.runFor(1200);
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   await page.screenshot({ path: testInfo.outputPath('search-phone.png') });
-  await page.clock.runFor(4800);
+  await page.clock.runFor(7800);
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
   const track = page.locator('.location-track-one');
@@ -135,6 +135,8 @@ test('device conversations animate in sequence and remain readable with motion o
   await page.clock.install();
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  const laptopScreen = page.locator('#engagement .smartsite-screen');
+  expect(await laptopScreen.evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBeTruthy();
   const phone = page.locator('#response .magic-phone-screen');
   await phone.scrollIntoViewIfNeeded();
   await expect(page.locator('#response')).toHaveClass(/scene-visible/);
@@ -151,4 +153,29 @@ test('device conversations animate in sequence and remain readable with motion o
   await expect(phone.locator('.demo-step').first()).toHaveCSS('animation-name', 'none');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(phone.locator('.demo-step').last()).toHaveCSS('opacity', '1');
+});
+
+
+test('opening holds phone for five seconds and GAP screen reveals a working action', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('/');
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await expect(page.locator('.discovery-search')).toHaveCSS('animation-duration', '8s');
+  await page.clock.runFor(4500);
+  await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '0');
+  await page.clock.runFor(5500);
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
+  const globe = page.locator('.location-grid');
+  const first = await globe.evaluate(el => getComputedStyle(el).transform);
+  await page.clock.runFor(1000);
+  expect(await globe.evaluate(el => getComputedStyle(el).transform)).not.toBe(first);
+  await page.locator('#discovery .laptop-device').scrollIntoViewIfNeeded();
+  await page.clock.runFor(2000);
+  const action = page.getByRole('link', { name: 'Talk with Gary about your GAP Score', exact: true });
+  await expect(action).toHaveCSS('opacity', '1');
+  await page.route('**/api/gary/message', route => route.fulfill({ json: { sessionId: 'gap-device-test', reply: { text: 'How can I help?' } } }));
+  await action.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
 });

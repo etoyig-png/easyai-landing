@@ -25,8 +25,7 @@ export default function HomePage() {
             <span className="location-track location-track-three"><i /></span>
           </div>
           <div className="discovery-search" aria-hidden="true">
-            <div className="search-phone">
-              <div className="phone-camera" />
+            <Iphone className="search-phone">
               <span className="search-phone-label">Looking for a local expert?</span>
               <div className="search-field"><span>⌕</span><span className="typed-line">Who should you call?</span></div>
               <svg className="search-map" viewBox="0 0 260 170">
@@ -36,7 +35,7 @@ export default function HomePage() {
                 <circle cx="130" cy="74" r="10" fill="#010611" />
               </svg>
               <div className="search-found"><span className="message-dot mint" />Your business. Found.</div>
-            </div>
+            </Iphone>
           </div>
           <div className="discovery-brand">
             <Image className="easyai-wordmark" src="/easy-ai-logo-transparent.png" alt="Easy AI. Business AI Solutions." width={1430} height={290} sizes="(max-width: 1023px) 88vw, 900px" priority />
@@ -53,11 +52,11 @@ export default function HomePage() {
 
       <div id="how-easy-ai-works">
         <section id="discovery" className="product-scene story-chapter" data-sc-act="flow">
-          <div className="product-art gap-art device-art" aria-hidden="true">
+          <div className="product-art gap-art device-art">
             <div className="color-ribbon" />
-            <div className="laptop-device"><div className="laptop-screen">
+            <div className="laptop-device"><Image className="laptop-photo" src="/devices/laptop-front.webp" alt="" width={600} height={400} sizes="(max-width: 767px) 95vw, 640px" /><div className="laptop-screen">
               <div className="device-toolbar"><i /><i /><i /><span>Your business. Discovered.</span></div>
-              <div className="gap-screen"><Image src="/gap-logo.png" alt="" width={1254} height={1254} sizes="(max-width: 767px) 65vw, 360px" /></div>
+              <div className="gap-screen"><a href="/contact" data-open-gary className="gap-device-action" aria-label="Talk with Gary about your GAP Score"><Image src="/gap-logo.png" alt="GAP — Google and AI Presence" width={1254} height={1254} sizes="(max-width: 767px) 45vw, 260px" /><span>Explore your GAP Score ↗</span></a></div>
             </div><div className="laptop-base" /></div>
             <div className="floating-message message-search"><span className="message-dot" /><span className="typed-line">Who should you call?</span></div>
             <div className="floating-message message-answer"><span className="message-dot mint" />Get Found. Get Chosen.</div>
@@ -75,10 +74,9 @@ export default function HomePage() {
         <section id="engagement" className="product-scene product-scene-reverse story-chapter" data-sc-act="flow">
           <div className="product-art smartsite-art device-art" aria-hidden="true">
             <div className="color-ribbon ribbon-violet" />
-            <div className="laptop-device"><div className="laptop-screen smartsite-screen">
+            <div className="laptop-device"><Image className="laptop-photo" src="/devices/laptop-front.webp" alt="" width={600} height={400} sizes="(max-width: 767px) 95vw, 640px" /><div className="laptop-screen smartsite-screen">
               <div className="device-toolbar"><i /><i /><i /><span>Your website</span></div>
-              <strong>SmartSite</strong><p>More than a website.<br />A conversation that converts.</p>
-              <div className="screen-prompt"><span className="typed-line">Let’s talk about what you need.</span></div>
+              <strong>SmartSite</strong>
               <div className="demo-conversation website-conversation">
                 <span className="demo-step">Do you offer the service I need?</span>
                 <span className="demo-step demo-reply">Let’s find the right next step together.</span>
