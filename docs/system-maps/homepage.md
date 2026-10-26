@@ -51,3 +51,14 @@ Failure paths: blocked motion script/static fallback; reduced-motion/static fall
 
 ## Founder visual correction — 2026-10-23
 Header retained on all routes. Product shortcut navigation removed. Hero HTML now includes decorative search phone/map, transparent brand image, one-line h1 tagline, black reveal and geographic orbit markers. Approved copy and links remain in initial HTML. Existing ScrollCraft progress drives devices/headings; one IntersectionObserver controls scene entry classes and disconnects on cleanup. Existing motion adapter adds local pause state; pause destroys engine/restores static branding, resume honors OS preference. No added client boundary/package. Product art is server-rendered decorative markup; GAP PNG uses next/image with fixed dimensions and responsive sizes. Tablet layouts stack below1024px; homepage overflow-x:clip contains decorative travel. Narrow body selector no longer paints Gary's fixed wrapper. Gary implementation, APIs, database, auth, provider and environment contracts unchanged. Canonical Supabase logging restoration/reconciliation remains the final closure task, currently UNSYNCED.
+
+### Magic UI device continuation — 2026-10-26
+
+- AIM phone frame adapted from Magic UI `apps/www/registry/magicui/iphone.tsx`, upstream `efe76fc5755eca1142dd4f74c1d6f0ace2887e3c`; MIT notice retained at `LICENSE.magicui.md`.
+- `components/magicui/Iphone.tsx` is server-rendered and accepts native screen content. Media/stock-video branches omitted; unique SVG mask IDs prevent collisions. Existing laptop components retained.
+- SmartSite/AIM screen messages use the existing Scrollcraft scene observer and motion-ready attribute. Pause, reduced-motion and offscreen states show static readable content with no extra animation engine.
+- No API, database, Gary contract, runtime dependency, schema, or lockfile changes. No video downloads. Custom media and final new product logos remain outstanding.
+- Same-environment homepage/layout JS gzip: 117118 -> 117586 bytes (+468, +0.40%); separate unchanged Scrollcraft engine excluded from both. Not field performance evidence.
+- Lint, TypeScript, 417 unit tests and production build passed. Four new production-browser checks verify message sequence completion, screen fit, pause and reduced motion on desktop/360/390/412. Existing browser suite result to be recorded after completion.
+- Independent reviewer: PASS WITH WARNING; no blocking issue, 390px screen content fits. Unused constants and clip path removed in response.
+- This is an incremental device demo, not completed Googlebook choreography. Production release/security/performance gates and final canonical Supabase reconciliation remain open. No claim of canonical synchronization.

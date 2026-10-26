@@ -130,3 +130,25 @@ test('visitors can pause and resume decorative movement', async ({ page }) => {
   await page.getByRole('button', { name: 'Resume motion' }).click();
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
 });
+
+test('device conversations animate in sequence and remain readable with motion off', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('/');
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  const phone = page.locator('#response .magic-phone-screen');
+  await phone.scrollIntoViewIfNeeded();
+  await expect(page.locator('#response')).toHaveClass(/scene-visible/);
+  await page.clock.runFor(4000);
+  for (const message of await phone.locator('.demo-step').all()) {
+    await expect(message).toHaveCSS('opacity', '1');
+    expect(await message.evaluate(el => {
+      const box = el.getBoundingClientRect();
+      const screen = el.closest('.magic-phone-screen')!.getBoundingClientRect();
+      return box.bottom <= screen.bottom && box.left >= screen.left && box.right <= screen.right;
+    })).toBeTruthy();
+  }
+  await page.getByRole('button', { name: 'Pause motion' }).click();
+  await expect(phone.locator('.demo-step').first()).toHaveCSS('animation-name', 'none');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(phone.locator('.demo-step').last()).toHaveCSS('opacity', '1');
+});

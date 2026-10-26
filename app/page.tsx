@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
+import { Iphone } from '@/components/magicui/Iphone';
 import ScrollCraftMotion from '@/components/ScrollCraftMotion';
 
 export const metadata: Metadata = {
@@ -78,6 +79,11 @@ export default function HomePage() {
               <div className="device-toolbar"><i /><i /><i /><span>Your website</span></div>
               <strong>SmartSite</strong><p>More than a website.<br />A conversation that converts.</p>
               <div className="screen-prompt"><span className="typed-line">Let’s talk about what you need.</span></div>
+              <div className="demo-conversation website-conversation">
+                <span className="demo-step">Do you offer the service I need?</span>
+                <span className="demo-step demo-reply">Let’s find the right next step together.</span>
+                <span className="demo-step demo-handoff">From website visit to a real conversation.</span>
+              </div>
             </div><div className="laptop-base" /></div>
             <div className="floating-message message-search">I have a question about your service.</div>
             <div className="floating-message message-answer"><span className="message-dot mint" />Let’s find your next step.</div>
@@ -95,11 +101,16 @@ export default function HomePage() {
         <section id="response" className="product-scene story-chapter" data-sc-act="flow">
           <div className="product-art aim-art device-art" aria-hidden="true">
             <div className="color-ribbon ribbon-mint" />
-            <div className="phone-device"><div className="phone-camera" /><span className="phone-label">AIM</span><p>AI Interaction Manager</p>
+            <Iphone className="phone-device"><span className="phone-label">AIM</span><p>AI Interaction Manager</p>
               <div className="conversation-wave">{Array.from({ length: 17 }, (_, i) => <i key={i} style={{ height: `${20 + (8 - Math.abs(8 - i)) * 9}px`, animationDelay: `${i * 70}ms` }} />)}</div>
               <div className="screen-prompt"><span className="typed-line">How can I help?</span></div>
               <div className="call-symbol">↗</div>
-            </div>
+              <div className="demo-conversation">
+                <span className="demo-step">Can you help me get started?</span>
+                <span className="demo-step demo-reply">Of course. What does your business need?</span>
+                <span className="demo-step demo-handoff">A conversation your team can follow up.</span>
+              </div>
+            </Iphone>
             <div className="floating-message message-search">A question becomes a conversation.</div>
             <div className="floating-message message-answer"><span className="message-dot mint" />Keep the human connection.</div>
           </div>
