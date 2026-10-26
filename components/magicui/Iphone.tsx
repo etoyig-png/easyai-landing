@@ -1,10 +1,7 @@
-import Image from 'next/image';
 import type { HTMLAttributes } from 'react';
+import PhotographicDevice from '@/components/PhotographicDevice';
 
-/** Native screen over a photographic device frame; shared by search and AIM. */
-export function Iphone({ children, className = '', style, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={`photo-phone ${className}`} style={style} {...props}>
-    <Image className="photo-phone-frame" src="/devices/phone-front.webp" alt="" width={400} height={600} sizes="320px" />
-    <div className="magic-phone-screen">{children}</div>
-  </div>;
+/** Existing adapter retained; both phone scenes use the actual photographed handset. */
+export function Iphone({ children, className = '' }: HTMLAttributes<HTMLDivElement>) {
+  return <PhotographicDevice kind="phone" className={`photo-phone ${className}`} screenClassName="magic-phone-screen">{children}</PhotographicDevice>;
 }

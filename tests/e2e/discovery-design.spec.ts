@@ -156,11 +156,11 @@ test('device conversations animate in sequence and remain readable with motion o
 });
 
 
-test('opening holds phone for five seconds and GAP screen reveals a working action', async ({ page }) => {
+test('opening holds photographed phone for four seconds and GAP screen reveals a working action', async ({ page }) => {
   await page.clock.install();
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
-  await expect(page.locator('.discovery-search')).toHaveCSS('animation-duration', '8s');
+  await expect(page.locator('.discovery-search')).toHaveCSS('animation-duration', '7.2s');
   await page.clock.runFor(4500);
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '0');
@@ -193,4 +193,13 @@ test('AIM uses saved artwork and speech bubbles keep the logo clear', async ({ p
   }
   expect(await page.locator('#engagement .smartsite-screen').evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBeTruthy();
   await page.locator('.aim-art').screenshot({ path: testInfo.outputPath('aim-artwork-and-bubbles.png') });
+});
+
+
+test('missing device photograph leaves the business identity readable', async ({ page }) => {
+  await page.route('**/devices/phone-photograph-crop.webp', route => route.fulfill({ status: 404, body: '' }));
+  await page.goto('/');
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.home-story')).not.toHaveAttribute('data-motion-ready');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });

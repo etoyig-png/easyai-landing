@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 import { Iphone } from '@/components/magicui/Iphone';
+import PhotographicDevice from '@/components/PhotographicDevice';
 import ScrollCraftMotion from '@/components/ScrollCraftMotion';
 
 export const metadata: Metadata = {
@@ -16,6 +17,7 @@ export default function HomePage() {
       <section className="discovery-opening" data-sc-act="flow" aria-label="Get discovered">
         <div className="discovery-stage">
           <div className="discovery-reveal" aria-hidden="true" />
+          <div className="opening-seed" aria-hidden="true" />
           <div className="discovery-orbit story-hero-plane" data-sc-parallax="-0.08" aria-hidden="true">
             <svg viewBox="0 0 600 600" className="location-grid">
               <circle cx="300" cy="300" r="245" /><ellipse cx="300" cy="300" rx="115" ry="245" /><ellipse cx="300" cy="300" rx="245" ry="95" />
@@ -35,10 +37,11 @@ export default function HomePage() {
                 <circle cx="130" cy="74" r="10" fill="#010611" />
               </svg>
               <div className="search-found"><span className="message-dot mint" />Your business. Found.</div>
+              <Image className="screen-brand-mark" src="/easy-ai-logo-transparent.png" alt="" width={1430} height={290} sizes="180px" />
             </Iphone>
           </div>
           <div className="discovery-brand">
-            <Image className="easyai-wordmark" src="/easy-ai-logo-transparent.png" alt="Easy AI. Business AI Solutions." width={1430} height={290} sizes="(max-width: 1023px) 88vw, 900px" priority />
+            <div className="logo-depth"><Image className="easyai-wordmark" src="/easy-ai-logo-transparent.png" alt="Easy AI. Business AI Solutions." width={1430} height={290} sizes="(max-width: 1023px) 88vw, 900px" priority /></div>
             <h1>Get Found. Get Chosen.</h1>
             <a href="#introduction" className="story-link">Discover what’s possible <span aria-hidden="true">↗</span></a>
           </div>
@@ -54,10 +57,10 @@ export default function HomePage() {
         <section id="discovery" className="product-scene story-chapter" data-sc-act="flow">
           <div className="product-art gap-art device-art">
             <div className="color-ribbon" />
-            <div className="laptop-device"><Image className="laptop-photo" src="/devices/laptop-front.webp" alt="" width={600} height={400} sizes="(max-width: 767px) 95vw, 640px" /><div className="laptop-screen">
+            <PhotographicDevice kind="laptop" className="laptop-device" screenClassName="laptop-screen">
               <div className="device-toolbar"><i /><i /><i /><span>Your business. Discovered.</span></div>
               <div className="gap-screen"><a href="/contact" data-open-gary className="gap-device-action" aria-label="Talk with Gary about your GAP Score"><Image src="/gap-logo.png" alt="GAP — Google and AI Presence" width={1254} height={1254} sizes="(max-width: 767px) 45vw, 260px" /><span>Explore your GAP Score ↗</span></a></div>
-            </div><div className="laptop-base" /></div>
+            </PhotographicDevice>
             <div className="floating-message message-search"><span className="message-dot" /><span className="typed-line">Who should you call?</span></div>
             <div className="floating-message message-answer"><span className="message-dot mint" />Get Found. Get Chosen.</div>
           </div>
@@ -74,7 +77,7 @@ export default function HomePage() {
         <section id="engagement" className="product-scene product-scene-reverse story-chapter" data-sc-act="flow">
           <div className="product-art smartsite-art device-art" aria-hidden="true">
             <div className="color-ribbon ribbon-violet" />
-            <div className="laptop-device"><Image className="laptop-photo" src="/devices/laptop-front.webp" alt="" width={600} height={400} sizes="(max-width: 767px) 95vw, 640px" /><div className="laptop-screen smartsite-screen">
+            <PhotographicDevice kind="laptop" className="laptop-device" screenClassName="laptop-screen smartsite-screen">
               <div className="device-toolbar"><i /><i /><i /><span>Your website</span></div>
               <strong>SmartSite</strong>
               <div className="demo-conversation website-conversation">
@@ -82,7 +85,7 @@ export default function HomePage() {
                 <span className="demo-step demo-reply">Let’s find the right next step together.</span>
                 <span className="demo-step demo-handoff">From website visit to a real conversation.</span>
               </div>
-            </div><div className="laptop-base" /></div>
+            </PhotographicDevice>
             <div className="floating-message message-search">I have a question about your service.</div>
             <div className="floating-message message-answer"><span className="message-dot mint" />Let’s find your next step.</div>
           </div>

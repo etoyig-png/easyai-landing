@@ -543,9 +543,9 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 .home-story .btn-green { background:#14783c; color:#fff; min-height:48px; }
 .home-story .btn-green:hover { background:#116533; }
 @media (prefers-reduced-motion:no-preference) {
- .home-story[data-motion-ready] .discovery-search { display:grid; animation:discovery-search 8s both; }
- .home-story[data-motion-ready] .discovery-brand { animation:discovery-brand 8s both; }
- .home-story[data-motion-ready] .discovery-reveal { animation:discovery-expand 8s both; }
+ .home-story[data-motion-ready] .discovery-search { display:grid; animation:discovery-search 7.2s both; }
+ .home-story[data-motion-ready] .discovery-brand { animation:discovery-brand 7.2s both; }
+ .home-story[data-motion-ready] .discovery-reveal { animation:discovery-expand 7.2s both; }
  .home-story[data-motion-ready] .location-track { animation:location-orbit 24s linear infinite; }
  .home-story[data-motion-ready] .location-track-two { animation-delay:-8s; animation-direction:reverse; }
  .home-story[data-motion-ready] .location-track-three { animation-delay:-16s; }
@@ -558,8 +558,8 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
  .home-story[data-motion-ready] .scene-visible .message-answer { animation-delay:1.2s; }
  .home-story[data-motion-ready] .scene-visible .typed-line { animation:type-line 2s steps(32,end) both; }
  .home-story[data-motion-ready] .scene-visible .conversation-wave i { animation:voice-wave 1s ease-in-out 4 alternate; }
- @keyframes discovery-search { 0% { opacity:0; transform:translateX(-50px) scale(.92); } 5%,70% { opacity:1; transform:none; } 90%,100% { opacity:0; transform:translateX(100px) scale(.8); visibility:hidden; } }
- @keyframes discovery-brand { 0%,70% { opacity:0; transform:translateY(20px); } 100% { opacity:1; transform:none; } }
+ @keyframes discovery-search { 0%,6% { opacity:0; transform:scale(.2) rotateY(50deg); clip-path:circle(0% at 50% 50%); } 12.5%,68% { opacity:1; transform:none; clip-path:circle(100% at 50% 50%); } 90%,100% { opacity:0; transform:scale(1.12) translateY(-15px); visibility:hidden; clip-path:circle(100% at 50% 50%); } }
+ @keyframes discovery-brand { 0%,68% { opacity:0; transform:translateY(40px); } 100% { opacity:1; transform:none; } }
  @keyframes discovery-expand { 0%,60% { transform:scale(.4); opacity:1; } 100% { transform:scale(2.3); opacity:0; } }
  @keyframes location-orbit { to { transform:rotate(360deg); } }
  @keyframes map-pulse { to { transform:scale(1.5); opacity:0; } }
@@ -684,3 +684,59 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
  .aim-art .message-search { left:-3%; top:44%; font-size:.7rem; max-width:51%; }
  .aim-art .message-answer { right:-3%; bottom:-2%; font-size:.7rem; max-width:64%; }
 }
+
+/* Authentic camera photographs, native cutouts and perspective-mapped HTML screens. */
+.photograph-device { position:relative; }
+.photograph-canvas { display:block; width:100%; height:100%; overflow:visible; }
+.home-story .photograph-phone { aspect-ratio:400/680; width:330px; transform:none; }
+.home-story .photograph-laptop { aspect-ratio:1950/1350; width:100%; transform:none; }
+.photograph-screen { box-sizing:border-box; width:100%; height:100%; overflow:hidden; background:#10213b; color:white; }
+.photograph-phone .magic-phone-screen { position:static; inset:auto; border-radius:9px; padding:42px 16px 15px; line-height:1.4; }
+.photograph-phone .magic-phone-screen .aim-device-logo { width:100%; margin:.4rem auto; }
+.photograph-phone .magic-phone-screen .conversation-wave { height:62px; }
+.photograph-laptop .laptop-screen { position:static; inset:auto; width:100%; height:100%; border-radius:0; min-height:0; padding:0; }
+.photograph-laptop .device-toolbar { padding:15px 20px; font-size:20px; }
+.photograph-laptop .device-toolbar i { width:10px; height:10px; }
+.photograph-laptop .gap-screen { height:calc(100% - 58px); }
+.photograph-laptop .gap-device-action img { height:80%; max-height:none; }
+.photograph-laptop .gap-device-action { font-size:24px; }
+.photograph-laptop .smartsite-screen > strong { font-size:64px; margin:30px 40px; }
+.photograph-laptop .website-conversation { margin:20px 40px; gap:24px; }
+.photograph-laptop .demo-step { padding:30px; font-size:28px; }
+.screen-brand-mark { display:block; width:90%; height:auto; margin:1rem auto 0; }
+.opening-seed { display:none; position:absolute; width:180px; aspect-ratio:1; border:2px solid #a7efff; border-radius:50%; box-shadow:0 0 24px #60dcff,inset 0 0 35px #60dcff33; pointer-events:none; }
+@media (prefers-reduced-motion:no-preference) {
+ .home-story[data-motion-ready] .opening-seed { display:block; animation:opening-seed 7.2s both; }
+ .home-story[data-motion-ready] .search-found { animation:screen-pop .6s 2.8s both; }
+ .home-story[data-motion-ready] .screen-brand-mark { animation:screen-pop .65s 4.1s both; }
+ .home-story[data-motion-ready] .search-phone .search-field .typed-line { animation-delay:1.1s; }
+ @keyframes opening-seed { 0% { opacity:0; transform:scaleX(3) scaleY(.01); } 3% { opacity:1; transform:scaleX(3) scaleY(.01); } 7% { opacity:1; transform:rotateY(60deg) scale(.7); } 14%,100% { opacity:0; transform:scale(1.6); } }
+}
+@media (max-width:767px) {
+ .discovery-search .photograph-phone { width:250px; }
+ .home-story .aim-art { min-height:600px; }
+ .home-story .photograph-laptop { width:115%; max-width:calc(100vw - 24px); }
+ .aim-art .message-search { top:43%; }
+}
+
+/* Reference treatment: lit identity and coordinated foreground/background planes. */
+.logo-depth { position:relative; width:min(900px,88vw); margin:0 auto .35rem; transform-style:preserve-3d; perspective:1100px; }
+.logo-depth .easyai-wordmark { width:100%; margin:0; transform:rotateY(-8deg) rotateX(3deg) translateZ(18px); filter:drop-shadow(1px 1px 0 #7394ac) drop-shadow(1px 2px 0 #243d55) drop-shadow(1px 3px 0 #122437) drop-shadow(0 12px 12px #000b); }
+.logo-depth::after { content:''; position:absolute; inset:0; pointer-events:none; mask:url('/easy-ai-logo-transparent.png') center/contain no-repeat; background:linear-gradient(110deg,transparent 35%,#c4f3ffb3 48%,#fff9 50%,transparent 63%); background-size:280% 100%; opacity:0; transform:rotateY(-8deg) rotateX(3deg) translateZ(19px); }
+@media (prefers-reduced-motion:no-preference) {
+ .home-story[data-motion-ready] .logo-depth { animation:logo-emerge 7.2s both; }
+ .home-story[data-motion-ready] .logo-depth::after { animation:logo-metal-light 7.2s both; }
+ .home-story[data-motion-ready] .product-scene .photograph-device { transform:perspective(1400px) translateY(calc((.5 - var(--sc-p,.5)) * 60px)) rotateY(calc((var(--sc-p,.5) - .5) * 8deg)) scale(clamp(.94,calc(.94 + var(--sc-p,.5) * .12),1.04)); }
+ .home-story[data-motion-ready] .story-chapter-copy h2 { filter:blur(clamp(0px,calc((.18 - var(--sc-p,.5)) * 18px),3px)); }
+ @keyframes logo-emerge { 0%,68% { transform:perspective(900px) translateZ(-500px) scale(.2); } 100% { transform:none; } }
+ @keyframes logo-metal-light { 0%,68% { opacity:0; background-position:100% 0; } 78%,92% { opacity:.65; } 100% { opacity:0; background-position:0 0; } }
+}
+@media (max-width:767px) {
+ .home-story[data-motion-ready] .product-scene .photograph-device { transform:translateY(calc((.5 - var(--sc-p,.5)) * 24px)); }
+}
+/* Keep the lower discovery action clear of Gary on tablet-height layouts. */
+@media (min-width:768px) and (max-width:1023px) {
+ .discovery-brand .story-link { top:calc(100% + 3.5rem); }
+}
+/* Reveal the photographed camera notch rather than painting over the hardware. */
+.photograph-phone .photograph-screen { clip-path:polygon(0 0,30% 0,31% 3%,33% 3.6%,65% 3.6%,68% 3%,69% 0,100% 0,100% 100%,0 100%); }

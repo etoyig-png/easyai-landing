@@ -17,10 +17,18 @@ export default function ScrollCraftMotion() {
   const [requested, setRequested] = useState(false);
   useEffect(() => {
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
-    const request = () => { if (!preference.matches) setRequested(true); };
+    let active = true;
+    const request = async () => {
+      if (preference.matches) return;
+      // Start the opening only after its actual photograph can be painted.
+      const image = new window.Image();
+      image.src = '/devices/phone-photograph-crop.webp';
+      try { await image.decode(); } catch { return; /* Keep static content if the photograph cannot load. */ }
+      if (active && !preference.matches) setRequested(true);
+    };
     request();
     preference.addEventListener('change', request);
-    return () => preference.removeEventListener('change', request);
+    return () => { active = false; preference.removeEventListener('change', request); };
   }, []);
   useEffect(() => {
     const root = document.querySelector('.home-story');
