@@ -986,7 +986,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
       page
     }) => {
       await page.setViewportSize(viewport);
-      await page.clock.install();
+      await installGaryClock(page);
       await gotoGaryReady(page);
 
       // The exact >=5000ms hold duration is asserted directly against the routine's real source
