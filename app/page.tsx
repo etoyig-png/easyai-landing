@@ -22,6 +22,11 @@ export default function HomePage() {
             <svg viewBox="0 0 600 600" className="location-grid">
               <circle cx="300" cy="300" r="245" /><ellipse cx="300" cy="300" rx="115" ry="245" /><ellipse cx="300" cy="300" rx="245" ry="95" />
             </svg>
+            <svg viewBox="0 0 600 600" className="circuit-current">
+              <path className="current-yellow" d="M300 50 A250 250 0 0 1 550 300 L520 330 A220 220 0 0 1 300 520" />
+              <path className="current-red" d="M80 300 A220 220 0 0 1 300 80 L330 110 A190 190 0 0 1 490 300" />
+              <path className="current-green" d="M300 490 A190 190 0 0 1 110 300 L140 270 A160 160 0 0 1 300 140" />
+            </svg>
             <span className="location-track location-track-one"><i /></span>
             <span className="location-track location-track-two"><i /></span>
             <span className="location-track location-track-three"><i /></span>
@@ -41,7 +46,19 @@ export default function HomePage() {
             </Iphone>
           </div>
           <div className="discovery-brand">
-            <div className="logo-depth"><Image className="easyai-wordmark" src="/easy-ai-logo-transparent.png" alt="Easy AI. Business AI Solutions." width={1430} height={290} sizes="(max-width: 1023px) 88vw, 900px" priority /></div>
+            <div className="logo-depth"><svg className="easyai-wordmark" viewBox="0 0 1400 300" role="img" aria-label="Easy AI. Business AI Solutions.">
+              <title>Easy AI. Business AI Solutions.</title>
+              {Array.from({ length: 40 }, (_, index) => {
+                // Curve the existing artwork around the globe: larger center, receding edges.
+                const position = (index + .5) / 40 * 2 - 1;
+                const scale = 1 - .08 * position * position;
+                const lift = 30 * position * position;
+                const curveX = (value: number) => (Math.sin(value * .85) / Math.sin(.85) + 1) * 700;
+                const left = curveX(index / 40 * 2 - 1);
+                const right = curveX((index + 1) / 40 * 2 - 1);
+                return <svg key={index} x={left} y={lift} width={right - left + .2} height={260 * scale} viewBox={`${27 + index * 1358 / 40} 10 ${1358 / 40} 216`} preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>;
+              })}
+            </svg></div>
             <h1>Get Found. Get Chosen.</h1>
             <a href="#introduction" className="story-link">Discover what’s possible <span aria-hidden="true">↗</span></a>
           </div>
@@ -50,6 +67,12 @@ export default function HomePage() {
 
       <section id="introduction" className="discovery-intro" data-sc-act="flow">
         <p data-sc-in>Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Once they find you, we help turn website attention into conversations, captured leads, and real customer opportunities.</p>
+        <div className="product-identities" aria-label="GAP, SmartSite, and AIM" data-sc-in>
+          <svg width="0" height="0" className="logo-mask-definitions" aria-hidden="true" focusable="false"><defs><filter id="gap-paper-mask" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 3" result="paperless" /><feComposite in="paperless" in2="SourceAlpha" operator="in" /></filter></defs></svg>
+          <Image className="gap-identity" src="/gap-logo.png" alt="GAP — Google and AI Presence" width={1254} height={1254} sizes="150px" />
+          <span className="smartsite-identity">SmartSite</span>
+          <Image src="/aim-logo.webp" alt="AIM Digital / Voice" width={640} height={256} sizes="180px" />
+        </div>
       </section>
 
 
@@ -126,6 +149,11 @@ export default function HomePage() {
       </div>
 
       <section className="discovery-human story-guide">
+        <div className="human-conversation" role="img" aria-label="A businesswoman having a phone conversation in her office">
+          <video muted loop playsInline preload="none" poster="/business-conversation-poster.webp" data-conversation-video>
+            <source data-src="/business-conversation.mp4" type="video/mp4" />
+          </video>
+        </div>
         <p>Technology starts the conversation.<br /><strong>People build the relationship.</strong></p>
         <Link href="/ai-trust" className="story-link">Our approach to AI + Trust ↗</Link>
         <Link href="/about" className="story-link">Meet Etoyi, founder of Easy AI ↗</Link>
@@ -135,7 +163,7 @@ export default function HomePage() {
         <p>Let’s help them find you.</p>
         <a href="/contact" data-open-gary className="btn-green">Start speaking with Gary</a>
         <Link href="/assessment" className="story-link">Start Your Free Assessment ↗</Link>
-        <Link href="/assessment?intent=consultation" className="story-link">Book a Consultation ↗</Link>
+        <Link href="/assessment?intent=consultation" className="story-link">Start Your Consultation ↗</Link>
       </section>
     </div>
   );
