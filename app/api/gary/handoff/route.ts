@@ -1,3 +1,4 @@
+import { waitUntil } from '@vercel/functions';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -7,7 +8,7 @@ import { buildGaryConversationSummary } from '@/lib/gary/conversationSummary';
 import { enqueueFunnelEvent } from '@/lib/gary/funnelEvents';
 import type { ChatMessage } from '@/lib/gary/llm/types';
 import { verifySessionCapability } from '@/lib/gary/sessionCapability';
-import { readLimitedJson } from '@/lib/requestSafety';
+import { PROVIDER_TIMEOUT_MS, readLimitedJson, withTimeout } from '@/lib/requestSafety';
 import { isHandoffRateLimited } from '@/lib/gary/handoffRateLimit';
 
 export const runtime = 'nodejs';
@@ -59,20 +60,20 @@ export async function POST(req: NextRequest) {
 
   const funnelCorrelationId = session.id;
 
-  if (handoffState.firstHandoff) void enqueueFunnelEvent({
+  if (handoffState.firstHandoff) waitUntil(enqueueFunnelEvent({
     eventType: 'assessment.started',
     idempotencyKey: `assessment.started:${session.id}`,
     payload: { sessionId: session.id, funnelCorrelationId, occurredAt: new Date().toISOString() },
-  });
+  }));
 
   // Best-effort, non-blocking: building the conversation summary calls the LLM again, which
   // shouldn't hold up the redirect the visitor is waiting on.
-  if (handoffState.firstHandoff) void (async () => {
+  if (handoffState.firstHandoff) waitUntil((async () => {
     try {
       const history: ChatMessage[] = session.messages
         .filter((m) => m.role !== 'system')
         .map((m) => ({ role: m.role === 'visitor' ? 'user' : 'assistant', content: m.content }));
-      const summary = await buildGaryConversationSummary(createGaryLlmAdapter(), history);
+      const summary = await withTimeout(buildGaryConversationSummary(createGaryLlmAdapter(), history), PROVIDER_TIMEOUT_MS, 'conversation summary');
       await enqueueFunnelEvent({
         eventType: 'contact.captured',
         idempotencyKey: `contact.captured:${session.id}`,
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error('Failed to build/send Gary conversation summary', err);
     }
-  })();
+  })());
 
   const redirectUrl = `/assessment?token=${encodeURIComponent(token)}&funnelCorrelationId=${encodeURIComponent(funnelCorrelationId)}`;
   return NextResponse.json({ redirectUrl });

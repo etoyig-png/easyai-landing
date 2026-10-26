@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import ContactForm from '@/components/ContactForm';
+import TalkToGaryButton from '@/components/TalkToGaryButton';
 
 export const metadata: Metadata = { title: 'Contact' };
 
@@ -48,6 +49,7 @@ export default function ContactPage() {
           <div className="mt-14 max-w-2xl">
             <h2 className="font-serif font-semibold text-white text-2xl mb-6">Send a message</h2>
             <ContactForm />
+            <div className="mt-6"><TalkToGaryButton /></div>
           </div>
 
           {/* Always-present alternate path, so the page is never a dead end even if the chat

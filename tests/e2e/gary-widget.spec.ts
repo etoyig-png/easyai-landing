@@ -576,6 +576,11 @@ function boxOverlapArea(a: { x: number; y: number; width: number; height: number
 }
 
 test.describe('Gary launcher — hero video overlap', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    test.skip((await page.locator('video').count()) === 0, 'STALE SUBJECT: the homepage hero video was removed in the PR #9 redesign (main 0ede74a has no <video>). Assertions kept for an owner decision; they run again if a hero video returns.');
+  });
+
   // Required test matrix: narrowest phone through desktop. minUsefulWidth encodes "large enough
   // to be useful, not merely technically visible" — 180px at 360 and 200px at 390 are the
   // explicit floors; wider breakpoints get a floor comfortably below their actual rendered size
@@ -880,7 +885,10 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
       await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
 
       const signBox = await page.locator('.gary-sign-board').boundingBox();
-      const videoBox = await page.locator('video').first().boundingBox();
+      // The hero video was removed in the PR #9 redesign; when absent, only the video overlap
+      // assertion is skipped and the CTA/face/readability checks below still run.
+      const hasVideo = (await page.locator('video').count()) > 0;
+      const videoBox = hasVideo ? await page.locator('video').first().boundingBox() : null;
       const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
       const greenCtaBox = await heroSection.getByRole('link', { name: 'Start Your Free Assessment' }).boundingBox();
       const ghostCtaBox = await heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
@@ -889,7 +897,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
 
       expect(signBox!.x).toBeGreaterThanOrEqual(-1);
       expect(signBox!.x + signBox!.width).toBeLessThanOrEqual(viewport.width + 1);
-      expect(boxOverlapArea(signBox, videoBox), `sign vs video: ${JSON.stringify({ signBox, videoBox })}`).toBe(0);
+      if (hasVideo) expect(boxOverlapArea(signBox, videoBox), `sign vs video: ${JSON.stringify({ signBox, videoBox })}`).toBe(0);
       expect(boxOverlapArea(signBox, greenCtaBox), `sign vs green CTA`).toBe(0);
       expect(boxOverlapArea(signBox, ghostCtaBox), `sign vs ghost CTA`).toBe(0);
       expect(boxOverlapArea(signBox, buttonBox), `sign vs button: ${JSON.stringify({ signBox, buttonBox })}`).toBe(0);
@@ -1145,6 +1153,11 @@ test.describe('Gary launcher — pose-driven message exclusivity and responsive 
 });
 
 test.describe('Homepage responsive images', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    test.skip((await page.getByAltText(IMAGE_ALT_TEXTS[0]).count()) === 0, 'STALE SUBJECT: the three homepage photos (HVAC/electrician/construction) were replaced in the PR #9 redesign and these assertions target the retired alt text and aspect ratios of those assets. Kept for an owner decision.');
+  });
+
   const REQUIRED_VIEWPORTS = [
     { width: 360, height: 800, label: '360x800' },
     { width: 390, height: 844, label: '390x844' },

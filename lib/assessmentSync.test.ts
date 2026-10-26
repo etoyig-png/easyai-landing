@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildAssessmentPackage, buildQuestionsAndAnswers } from './assessmentSync';
 import type { AssessmentSubmission } from './validation';
 
@@ -23,6 +23,27 @@ const submission = {
 } as AssessmentSubmission;
 
 describe('assessment synchronization contract', () => {
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.resetModules(); });
+
+  it('sends the current CC contract and one stable key for retries of the same submission', async () => {
+    vi.stubEnv('COMMAND_CENTER_ASSESSMENT_SYNC_URL', 'https://fixture.example/api/easy-ai/assessments');
+    vi.stubEnv('COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN', 'fixture-only');
+    vi.resetModules();
+    const fetch = vi.fn().mockResolvedValue(new Response('{}', { status: 201 }));
+    vi.stubGlobal('fetch', fetch);
+    const { syncCompleteAssessmentToCommandCenter } = await import('./assessmentSync');
+    const params = { submissionId: 'fixture-1', submission, resultHtml: '<p>result</p>', status: 'completed' as const, emailDeliveryStatus: 'sent' as const };
+    await syncCompleteAssessmentToCommandCenter(params);
+    await syncCompleteAssessmentToCommandCenter(params);
+    for (const [, request] of fetch.mock.calls as unknown as [string, RequestInit][]) {
+      expect(JSON.parse(request.body as string)).toMatchObject({
+        companyName: submission.businessName, contactName: 'A B', contactEmail: submission.email,
+        idempotencyKey: 'easy-ai-assessment-fixture-1', submissionId: 'fixture-1',
+        processingStatus: 'completed', emailDeliveryStatus: 'sent',
+      });
+    }
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
   it('includes both discovery and website conversion answers', () => {
     const answers = buildQuestionsAndAnswers(submission);
     expect(answers).toContainEqual({

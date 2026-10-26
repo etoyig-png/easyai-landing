@@ -40,3 +40,11 @@ email-existence oracle, cosmetic named-entity email rendering, and broader dead-
 - Branch-protection settings and production Vercel configuration.
 - Preview/production database separation, retention/deletion periods, and migration/deployment coupling.
 - Production Supabase changes and production deployment.
+
+## Gary / AIM backend reconciliation (2026-10-26)
+
+See `docs/gary-contact-pipeline.md` for current code, boundaries, isolated evidence,
+retry limitations and the proposed migration/recovery packet. Historical production
+migration and secret observations from PR #15 are unverified in this task. Production
+Supabase/Vercel access, preview isolation, actual-schema backup/restore, funnel Lead
+consumption and dedicated security-scan capability remain release blockers.
