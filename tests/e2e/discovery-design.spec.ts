@@ -9,6 +9,7 @@ test('initial HTML includes approved content and real fallback links', async ({ 
   const page = await context.newPage();
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await page.locator('#discovery .story-chapter-copy a[data-open-gary]').click();
   await expect(page).toHaveURL(/\/contact$/);
   await context.close();
@@ -221,7 +222,7 @@ test('screenshot corrections center the curved logo and direct conversation towa
   });
   expect(pointer.top).toBe('-8px');
   expect(parseFloat(pointer.bottom)).toBeGreaterThan(0);
-  await expect(page.locator('#engagement image[data-device-photograph]')).toHaveAttribute('href', '/devices/laptop-complete-photograph.webp');
+  await expect(page.locator('#engagement image[data-device-photograph]')).toHaveAttribute('href', '/devices/laptop-photograph.webp');
 });
 
 test('conversation footage loads near view and pauses with the motion control', async ({ page }) => {
@@ -256,4 +257,52 @@ test('phone entrance is gradual and reacts to scrolling before brand handoff', a
   const before = await phone.evaluate(el => getComputedStyle(el).transform);
   await page.evaluate(() => scrollTo({ top: 100, behavior: 'instant' }));
   await expect.poll(() => phone.evaluate(el => getComputedStyle(el).transform)).not.toBe(before);
+});
+
+
+test('late intro script never replaces an already visible finished identity', async ({ page }) => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/scrollcraft/scrollcraft.js', async route => { await gate; await route.continue(); });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '0');
+  // The bounded fallback becomes final; a late script must not restart the phone.
+  await expect(page.locator('.home-story')).toHaveAttribute('data-opening-complete', 'true');
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
+  release();
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await expect(page.locator('.discovery-search')).toHaveCSS('display', 'none');
+  await expect(page.locator('.discovery-brand')).toHaveCSS('animation-name', 'none');
+});
+
+test('completed opening stays complete when decorative motion resumes', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await page.getByRole('button', { name: 'Pause motion' }).click();
+  await expect(page.locator('.home-story')).toHaveAttribute('data-opening-complete', 'true');
+  await page.getByRole('button', { name: 'Resume motion' }).click();
+  await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
+  await expect(page.locator('.discovery-brand')).toHaveCSS('animation-name', 'none');
+  await expect(page.locator('.discovery-search')).toHaveCSS('display', 'none');
+});
+
+test('supplied product identities and fictional workup stay inside the restored laptop', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await expect(page.locator('.product-identities img[alt="SmartSite"]')).toHaveAttribute('src', /smartsite-logo/);
+  await expect(page.locator('.product-identity')).toHaveCount(3);
+  await expect(page.locator('#discovery .gap-device-action')).toContainText('BrightPath Home Services');
+  await expect(page.locator('.home-story')).not.toContainText('Sample Data');
+  await expect(page.locator('#discovery .growth-chart')).toHaveCount(1);
+  await expect(page.locator('#discovery .report-bar')).toHaveCount(3);
+  const report = page.locator('#discovery .gap-device-action');
+  await report.scrollIntoViewIfNeeded();
+  expect(await report.evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBeTruthy();
+  const screen = await page.locator('#discovery .photograph-screen').boundingBox();
+  for (const chart of await page.locator('#discovery .report-charts > div').all()) {
+    const box = await chart.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(screen!.x);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(screen!.y + screen!.height);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });

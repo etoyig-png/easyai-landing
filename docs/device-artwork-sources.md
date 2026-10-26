@@ -24,3 +24,10 @@ Conversation footage: cottonbro studio, https://www.pexels.com/video/woman-talki
 Original Easy AI logo pixels are curved using narrow SVG windows into a55,706byte1430×290alphaWebP delivery copy of the same PNG, centered using visible bounds(27,10)–(1385,226), with center enlarged and outer ends receding. Native CSS supplies depth lighting and a rotating circuit sphere; no generated/replacement logo, video decoder, new package, or external runtime is required for this treatment. Yellow/red/green currents move on three sparse circuit paths. GAP and AIM use existing artwork in the introduction row; SmartSite remains its existing text treatment because no approved standalone artwork was found.
 
 The GAP introduction thumbnail reuses the original NextImage and a native alpha matrix composed with SourceAlpha to remove white paper while preserving original colored artwork and transparent filter bounds. Device-screen GAP artwork keeps its original white background. No Universal logo or reference-photo asset is included in the site.
+
+
+## Founder correction after supplied SmartSite artwork
+
+The earlier Alienware photograph `public/devices/laptop-photograph.webp` is restored at Toy's express request; he preferred its hardware and intended only screen content to change. The MacBook delivery file remains provenance/history, not the current on-page laptop. Original Alienware author/source/license above still apply; no image/model regeneration performed.
+
+SmartSite: user-supplied `SmartSite logo with compact upper-right icon.png`,2048×682RGBA, converted without resizing/redrawing to `public/smartsite-logo.webp` (195498bytes). Original artwork is retained; delivery compression only. SVG decorations are original native code and do not alter the marks. GAP row alpha cutoff now removes near-white paper while retaining SourceAlpha. Fictional screen values are code-generated illustrations for BrightPath Home Services, not sourced business data; user requested omission of the on-screen “Sample Data” label.

@@ -18,17 +18,25 @@ export default function ScrollCraftMotion() {
   useEffect(() => {
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
     let active = true;
+    const root = document.querySelector('.home-story');
+    const revealStatic = () => {
+      if (!active || root?.hasAttribute('data-motion-ready')) return;
+      root?.removeAttribute('data-opening-pending');
+      root?.setAttribute('data-opening-complete', 'true');
+    };
+    // Never show the finished brand, then take it away for a late-loading intro.
+    const deadline = window.setTimeout(revealStatic, 2500);
     const request = async () => {
-      if (preference.matches) return;
+      if (preference.matches) { revealStatic(); return; }
       // Start the opening only after its actual photograph can be painted.
       const image = new window.Image();
       image.src = '/devices/phone-photograph-crop.webp';
-      try { await image.decode(); } catch { return; /* Keep static content if the photograph cannot load. */ }
-      if (active && !preference.matches) setRequested(true);
+      try { await image.decode(); } catch { revealStatic(); return; }
+      if (active && !preference.matches && !root?.hasAttribute('data-opening-complete')) setRequested(true);
     };
     request();
     preference.addEventListener('change', request);
-    return () => { active = false; preference.removeEventListener('change', request); };
+    return () => { active = false; clearTimeout(deadline); preference.removeEventListener('change', request); };
   }, []);
   useEffect(() => {
     const root = document.querySelector('.home-story');
@@ -60,6 +68,8 @@ export default function ScrollCraftMotion() {
       instance?.destroy();
       instance = undefined;
       root.removeAttribute('data-motion-ready');
+      root.removeAttribute('data-opening-pending');
+      if (preference.matches || paused) root.setAttribute('data-opening-complete', 'true');
       // Do not mount the engine for motion-off visitors, including live preference changes.
       if (!preference.matches && !paused) {
         instance = window.ScrollCraft?.mount(root, {});
@@ -67,6 +77,10 @@ export default function ScrollCraftMotion() {
       }
     };
     const opening = root.querySelector<HTMLElement>('.discovery-search');
+    const finishOpening = (event: Event) => {
+      if ((event as AnimationEvent).animationName === 'discovery-search') root.setAttribute('data-opening-complete', 'true');
+    };
+    root.addEventListener('animationend', finishOpening);
     const movePhone = () => {
       if (preference.matches || paused) return;
       const progress = Math.min(1, scrollY / Math.max(1, innerHeight));
@@ -77,6 +91,7 @@ export default function ScrollCraftMotion() {
     update();
     preference.addEventListener('change', update);
     return () => {
+      root.removeEventListener('animationend', finishOpening);
       window.removeEventListener('scroll', movePhone);
       preference.removeEventListener('change', update);
       observer.disconnect();
