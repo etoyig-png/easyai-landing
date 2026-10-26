@@ -169,6 +169,8 @@ test('opening holds photographed phone for four seconds and GAP screen reveals a
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '0');
   await page.clock.runFor(5500);
+  // Fake timers do not complete the native CSS animation; observe its real end.
+  await expect(page.locator('.home-story')).toHaveAttribute('data-opening-complete', 'true');
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '0');
   const globe = page.locator('.location-grid');
