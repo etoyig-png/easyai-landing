@@ -10,6 +10,7 @@ import type { ChatMessage } from '@/lib/gary/llm/types';
 import { verifySessionCapability } from '@/lib/gary/sessionCapability';
 import { PROVIDER_TIMEOUT_MS, readLimitedJson, withTimeout } from '@/lib/requestSafety';
 import { isHandoffRateLimited } from '@/lib/gary/handoffRateLimit';
+import { getSiteConfig } from '@/lib/siteConfig';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -17,6 +18,10 @@ export const maxDuration = 60;
 const requestSchema = z.object({ sessionId: z.string().min(1), sessionCapability: z.string().min(1).max(2048) });
 
 export async function POST(req: NextRequest) {
+  // Server-side switch: a disabled handoff issues no token and queues no assessment events.
+  if (!getSiteConfig().actions.assessmentHandoff) {
+    return NextResponse.json({ error: 'Assessment handoff is not enabled' }, { status: 404 });
+  }
   let body: unknown;
   try {
     body = await readLimitedJson(req);

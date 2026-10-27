@@ -236,6 +236,8 @@ export async function POST(req: NextRequest) {
 
   const adapter = createGaryLlmAdapter();
   const reply = await generateGaryReply(adapter, state, history);
+  // A site that switches the assessment handoff off never offers it, whatever the model says.
+  const offerAssessment = site.actions.assessmentHandoff && reply.offerAssessment;
 
   await prisma.publicChatMessage.create({
     data: { sessionId: session.id, role: 'gary', content: reply.text, model: reply.model },
@@ -245,7 +247,7 @@ export async function POST(req: NextRequest) {
     where: { id: session.id },
     data: {
       visitorTurnCount: { increment: 1 },
-      assessmentOfferCount: reply.offerAssessment ? { increment: 1 } : undefined,
+      assessmentOfferCount: offerAssessment ? { increment: 1 } : undefined,
     },
   });
 
@@ -253,6 +255,6 @@ export async function POST(req: NextRequest) {
     sessionId: session.id,
     sessionCapability: capability,
     reply: { text: reply.text },
-    offerAssessment: reply.offerAssessment,
+    offerAssessment,
   });
 }
