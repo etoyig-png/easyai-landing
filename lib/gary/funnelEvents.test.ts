@@ -285,3 +285,44 @@ describe('exhausted rows and health', () => {
     expect(health).toEqual({ configured: true, undelivered: 3, exhausted: 1, oldestUndeliveredAgeSeconds: 7200 });
   });
 });
+
+describe('assessment sync rows share the outbox but not the funnel destination', () => {
+  afterEach(() => {
+    delete process.env.COMMAND_CENTER_ASSESSMENT_SYNC_URL;
+    delete process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN;
+  });
+  const row = { id: 'row-a', idempotencyKey: 'assessment.sync:sub-1', eventType: 'assessment.sync', eventVersion: 1, payload: { companyName: 'C', submissionId: 'sub-1' }, attempts: 0 };
+
+  it('posts the stored body as is to the assessment intake with its own token', async () => {
+    process.env.COMMAND_CENTER_ASSESSMENT_SYNC_URL = 'https://command-center.example/api/easy-ai/assessments';
+    process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN = 'assessment-token';
+    mockOutbox.findMany.mockResolvedValue([row]);
+    mockOutbox.update.mockResolvedValue({});
+    global.fetch = vi.fn().mockResolvedValue({ ok: true }) as never;
+    const { drainFunnelEventOutbox } = await import('./funnelEvents');
+    await expect(drainFunnelEventOutbox()).resolves.toEqual({ delivered: 1, failed: 0 });
+    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(url).toBe('https://command-center.example/api/easy-ai/assessments');
+    expect(init.headers.Authorization).toBe('Bearer assessment-token');
+    expect(JSON.parse(init.body)).toEqual(row.payload);
+  });
+
+  it('leaves assessment rows untouched while only the funnel webhook is configured', async () => {
+    mockOutbox.findMany.mockResolvedValue([]);
+    const { drainFunnelEventOutbox, deliverFunnelEvent } = await import('./funnelEvents');
+    await drainFunnelEventOutbox();
+    expect(mockOutbox.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ eventType: { not: 'assessment.sync' } }) }));
+    await expect(deliverFunnelEvent(row.idempotencyKey)).resolves.toBe('not-configured');
+    expect(mockOutbox.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('drains only assessment rows while only the assessment intake is configured', async () => {
+    delete process.env.GARY_FUNNEL_WEBHOOK_URL;
+    process.env.COMMAND_CENTER_ASSESSMENT_SYNC_URL = 'https://command-center.example/api/easy-ai/assessments';
+    process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN = 'assessment-token';
+    mockOutbox.findMany.mockResolvedValue([]);
+    const { drainFunnelEventOutbox } = await import('./funnelEvents');
+    await drainFunnelEventOutbox();
+    expect(mockOutbox.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ eventType: 'assessment.sync' }) }));
+  });
+});

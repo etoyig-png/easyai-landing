@@ -5,6 +5,7 @@ import { sendContactMessage } from '@/lib/resend';
 import { deliverFunnelEvent, recordFunnelEvent, type FunnelDeliveryResult, type FunnelEventInput } from './funnelEvents';
 import { CONTACT_SENT_MARKER } from './contactFlow';
 import type { SiteConfig } from '@/lib/siteConfig';
+import { PROVIDER_TIMEOUT_MS, withTimeout } from '@/lib/requestSafety';
 
 /**
  * The final step of the assistant's contact flow: what happens after the visitor presses
@@ -281,7 +282,9 @@ export async function submitAssistantContact(
   //    accepted" and "state settled" cannot produce a second email (see lib/resend.ts).
   let notified = true;
   try {
-    await deps.send(
+    // Bounded below the 60 s lease and the route's maxDuration, so a hung provider settles as
+    // 'failed' (retryable with the same key) instead of leaving the lease to a killed function.
+    await withTimeout(deps.send(
       {
         name: send.name,
         email: send.email,
@@ -291,7 +294,7 @@ export async function submitAssistantContact(
         brandName: config.brand.name,
       },
       { idempotencyKey: notificationIdempotencyKey(config.siteKey, sessionId) }
-    );
+    ), PROVIDER_TIMEOUT_MS, 'email provider');
   } catch (error) {
     notified = false;
     logFailure('notification', sessionId, error);

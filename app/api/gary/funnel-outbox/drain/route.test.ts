@@ -4,9 +4,10 @@ import { NextRequest } from 'next/server';
 const mockPrisma = { publicContact: { count: vi.fn() } };
 const mockHealth = vi.fn();
 const mockDrain = vi.fn();
+const mockSyncConfigured = vi.fn();
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }));
-vi.mock('@/lib/gary/funnelEvents', () => ({ drainFunnelEventOutbox: mockDrain, funnelOutboxHealth: mockHealth, deliverFunnelEvent: vi.fn(), recordFunnelEvent: vi.fn() }));
+vi.mock('@/lib/gary/funnelEvents', () => ({ drainFunnelEventOutbox: mockDrain, funnelOutboxHealth: mockHealth, assessmentSyncConfigured: mockSyncConfigured, deliverFunnelEvent: vi.fn(), recordFunnelEvent: vi.fn() }));
 vi.mock('@/lib/contactRateLimit', () => ({ admitContactMessage: vi.fn() }));
 vi.mock('@/lib/resend', () => ({ sendContactMessage: vi.fn() }));
 
@@ -19,6 +20,7 @@ function request(method: string, secret?: string) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockSyncConfigured.mockReturnValue(true);
   process.env.GARY_FUNNEL_DRAIN_SECRET = 'drain-secret';
 });
 afterEach(() => {
@@ -63,6 +65,17 @@ describe('GET /api/gary/funnel-outbox/drain (pipeline health)', () => {
     const { GET } = await import('./route');
     expect((await GET(request('GET', 'anything'))).status).toBe(401);
     expect((await GET(request('GET', ''))).status).toBe(401);
+  });
+
+  it('names an unconfigured assessment sync, since its packages wait in the outbox until then', async () => {
+    mockSyncConfigured.mockReturnValue(false);
+    mockDrain.mockResolvedValue({ delivered: 0, failed: 0 });
+    mockHealth.mockResolvedValue({ configured: true, undelivered: 1, exhausted: 0, oldestUndeliveredAgeSeconds: 0 });
+    mockPrisma.publicContact.count.mockResolvedValue(0);
+    const { GET } = await import('./route');
+    const response = await GET(request('GET', 'drain-secret'));
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({ problems: ['assessment sync not configured'] });
   });
 
   it('returns 503 with named problems for exhausted handoffs, unsent notifications, and stuck sends', async () => {

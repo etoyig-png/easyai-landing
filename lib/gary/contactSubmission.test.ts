@@ -286,3 +286,19 @@ describe('normalizePhone', () => {
     expect(normalizePhone(undefined)).toBeNull();
   });
 });
+
+describe('a hung email provider', () => {
+  it('times out inside the lease, settles failed and reports saved but not sent', async () => {
+    vi.useFakeTimers();
+    try {
+      const { deps, calls } = makeDeps({ send: vi.fn(() => new Promise<never>(() => {})) });
+      const pending = submitAssistantContact(params, deps);
+      await vi.advanceTimersByTimeAsync(45_000);
+      await expect(pending).resolves.toMatchObject({ kind: 'saved-not-notified', contactId: 'contact-1' });
+      expect(calls).toContain('settle:failed');
+      expect(45_000).toBeLessThan(SENDING_LEASE_MS);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

@@ -1,11 +1,10 @@
 import type { AssessmentSubmission } from './validation';
+import { prisma } from './prisma';
+import { ASSESSMENT_SYNC_EVENT, assessmentSyncKey, deliverFunnelEvent, recordFunnelEvent } from './gary/funnelEvents';
 
 // Assessment synchronization is independent from Gary. It packages the completed
 // public assessment for the Command Center without sharing chat prompts or state.
 const ASSESSMENT_VERSION = '2026-09-dual-gap-v2';
-
-const SYNC_URL = process.env.COMMAND_CENTER_ASSESSMENT_SYNC_URL;
-const SYNC_TOKEN = process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN;
 
 interface SyncParams {
   submissionId: string;
@@ -62,40 +61,45 @@ export function buildAssessmentPackage(submission: AssessmentSubmission, resultH
   };
 }
 
-export async function syncCompleteAssessmentToCommandCenter(params: SyncParams): Promise<void> {
-  if (!SYNC_URL || !SYNC_TOKEN) return;
-
+/** The exact body the Command Center's /api/easy-ai/assessments intake accepts. */
+export function buildAssessmentSyncBody(params: SyncParams) {
   const { submission, submissionId, resultHtml, status, emailDeliveryStatus } = params;
+  return {
+    companyName: submission.businessName,
+    contactName: `${submission.firstName} ${submission.lastName}`.trim(),
+    contactEmail: submission.email,
+    contactPhone: (submission as unknown as { phone?: string }).phone,
+    profileResult: submission.desiredOutcome,
+    resultSummary: resultHtml,
+    idempotencyKey: `easy-ai-assessment-${submissionId}`,
+    industry: submission.industry,
+    source: 'easyai-landing',
+    assessmentPackage: buildAssessmentPackage(submission, resultHtml),
+    submissionId,
+    funnelCorrelationId: submission.funnelCorrelationId,
+    processingStatus: status,
+    emailDeliveryStatus,
+  };
+}
 
+/**
+ * Records the package in the durable outbox first, then makes one delivery attempt. A Command
+ * Center outage, a timeout or missing sync configuration leaves an undelivered row that the
+ * drain retries and the drain health check reports, instead of a log line and a lost record.
+ * Never throws: it runs after the visitor's response.
+ */
+export async function syncCompleteAssessmentToCommandCenter(params: SyncParams): Promise<void> {
+  const key = assessmentSyncKey(params.submissionId);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8_000);
-    const response = await fetch(SYNC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SYNC_TOKEN}` },
-      body: JSON.stringify({
-        companyName: submission.businessName,
-        contactName: `${submission.firstName} ${submission.lastName}`.trim(),
-        contactEmail: submission.email,
-        contactPhone: (submission as unknown as { phone?: string }).phone,
-        profileResult: submission.desiredOutcome,
-        resultSummary: resultHtml,
-        idempotencyKey: `easy-ai-assessment-${submissionId}`,
-        industry: submission.industry,
-        source: 'easyai-landing',
-        assessmentPackage: buildAssessmentPackage(submission, resultHtml),
-        submissionId,
-        funnelCorrelationId: submission.funnelCorrelationId,
-        processingStatus: status,
-        emailDeliveryStatus,
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!response.ok) {
-      console.error('Complete-assessment sync to Command Center failed', response.status, await response.text().catch(() => ''));
-    }
+    await recordFunnelEvent(prisma, { eventType: ASSESSMENT_SYNC_EVENT, idempotencyKey: key, payload: buildAssessmentSyncBody(params) });
   } catch (err) {
-    console.error('Complete-assessment sync to Command Center threw', err);
+    console.error(`[assessment-sync] stage=store key=${key}`, err);
+    return;
+  }
+  try {
+    const result = await deliverFunnelEvent(key);
+    if (result !== 'delivered' && result !== 'delivered-earlier') console.error(`[assessment-sync] stage=deliver key=${key} result=${result}`);
+  } catch (err) {
+    console.error(`[assessment-sync] stage=deliver key=${key}`, err);
   }
 }

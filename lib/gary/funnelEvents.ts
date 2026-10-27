@@ -8,6 +8,34 @@ import { prisma } from '../prisma';
 const FUNNEL_WEBHOOK_URL = process.env.GARY_FUNNEL_WEBHOOK_URL;
 const FUNNEL_WEBHOOK_SECRET = process.env.GARY_FUNNEL_WEBHOOK_SECRET;
 
+// Completed-assessment packages share this outbox's durability and retry bookkeeping, but go
+// to their own Command Center intake (/api/easy-ai/assessments) exactly as stored, never in the
+// funnel envelope and never to the funnel webhook.
+const ASSESSMENT_SYNC_URL = process.env.COMMAND_CENTER_ASSESSMENT_SYNC_URL;
+const ASSESSMENT_SYNC_TOKEN = process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN;
+export const ASSESSMENT_SYNC_EVENT = 'assessment.sync';
+
+/** The only key shape assessment rows use, so a key alone tells which destination it needs. */
+export function assessmentSyncKey(submissionId: string): string {
+  return `${ASSESSMENT_SYNC_EVENT}:${submissionId}`;
+}
+
+function isAssessmentSync(eventTypeOrKey: string): boolean {
+  return eventTypeOrKey === ASSESSMENT_SYNC_EVENT || eventTypeOrKey.startsWith(`${ASSESSMENT_SYNC_EVENT}:`);
+}
+
+export function assessmentSyncConfigured(): boolean {
+  return Boolean(ASSESSMENT_SYNC_URL && ASSESSMENT_SYNC_TOKEN);
+}
+
+function funnelConfigured(): boolean {
+  return Boolean(FUNNEL_WEBHOOK_URL && FUNNEL_WEBHOOK_SECRET);
+}
+
+function destinationConfigured(eventTypeOrKey: string): boolean {
+  return isAssessmentSync(eventTypeOrKey) ? assessmentSyncConfigured() : funnelConfigured();
+}
+
 export const FUNNEL_MAX_ATTEMPTS = 8;
 const BASE_BACKOFF_MS = 30_000; // 30s, doubling per attempt, capped
 /** Bound on one webhook call so an unresponsive receiver cannot stall a visitor's request. */
@@ -118,16 +146,19 @@ type OutboxRow = { id: string; idempotencyKey: string; eventType: string; eventV
  * for the health check and for manual recovery.
  */
 async function deliverRow(row: OutboxRow): Promise<FunnelDeliveryResult> {
-  if (!FUNNEL_WEBHOOK_URL || !FUNNEL_WEBHOOK_SECRET) return 'not-configured';
+  if (!destinationConfigured(row.eventType)) return 'not-configured';
+  const assessment = isAssessmentSync(row.eventType);
+  const url = (assessment ? ASSESSMENT_SYNC_URL : FUNNEL_WEBHOOK_URL)!;
+  const secret = (assessment ? ASSESSMENT_SYNC_TOKEN : FUNNEL_WEBHOOK_SECRET)!;
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
     let response: Response;
     try {
-      response = await fetch(FUNNEL_WEBHOOK_URL, {
+      response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${FUNNEL_WEBHOOK_SECRET}` },
-        body: JSON.stringify(buildEventEnvelope(row)),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+        body: JSON.stringify(assessment ? row.payload : buildEventEnvelope(row)),
         signal: controller.signal,
       });
     } finally {
@@ -162,7 +193,7 @@ async function deliverRow(row: OutboxRow): Promise<FunnelDeliveryResult> {
  * the caller learns whether the handoff is delivered, queued for retry, or exhausted.
  */
 export async function deliverFunnelEvent(idempotencyKey: string): Promise<FunnelDeliveryResult | 'delivered-earlier' | 'not-due'> {
-  if (!FUNNEL_WEBHOOK_URL || !FUNNEL_WEBHOOK_SECRET) return 'not-configured';
+  if (!destinationConfigured(idempotencyKey)) return 'not-configured';
   const row = await prisma.funnelEventOutbox.findUnique({ where: { idempotencyKey } });
   if (!row) return 'not-due';
   if (row.deliveredAt) return 'delivered-earlier';
@@ -182,10 +213,14 @@ export async function deliverFunnelEvent(idempotencyKey: string): Promise<Funnel
  * visitor; docs/gary-contact-pipeline.md states the exact guarantee per plan.
  */
 export async function drainFunnelEventOutbox(options: { limit?: number } = {}): Promise<{ delivered: number; failed: number }> {
-  if (!FUNNEL_WEBHOOK_URL || !FUNNEL_WEBHOOK_SECRET) return { delivered: 0, failed: 0 };
+  const funnelOn = funnelConfigured();
+  const assessmentOn = assessmentSyncConfigured();
+  if (!funnelOn && !assessmentOn) return { delivered: 0, failed: 0 };
+  // Rows whose destination is unset wait untouched (no attempt consumed) until it is configured.
+  const destination = funnelOn && assessmentOn ? {} : { eventType: funnelOn ? { not: ASSESSMENT_SYNC_EVENT } : ASSESSMENT_SYNC_EVENT };
 
   const due = await prisma.funnelEventOutbox.findMany({
-    where: { deliveredAt: null, nextAttemptAt: { lte: new Date() }, attempts: { lt: FUNNEL_MAX_ATTEMPTS } },
+    where: { deliveredAt: null, nextAttemptAt: { lte: new Date() }, attempts: { lt: FUNNEL_MAX_ATTEMPTS }, ...destination },
     orderBy: { nextAttemptAt: 'asc' },
     take: options.limit ?? 10,
   });

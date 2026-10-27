@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { drainFunnelEventOutbox, funnelOutboxHealth } from '@/lib/gary/funnelEvents';
+import { assessmentSyncConfigured, drainFunnelEventOutbox, funnelOutboxHealth } from '@/lib/gary/funnelEvents';
 import { SENDING_LEASE_MS } from '@/lib/gary/contactSubmission';
 
 export const runtime = 'nodejs';
@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
   ]);
   const problems: string[] = [];
   if (!outbox.configured) problems.push('funnel webhook not configured');
+  if (!assessmentSyncConfigured()) problems.push('assessment sync not configured');
   if (outbox.exhausted > 0) problems.push(`${outbox.exhausted} handoff event(s) exhausted retries`);
   if (outbox.oldestUndeliveredAgeSeconds > STALE_UNDELIVERED_SECONDS) problems.push('undelivered handoff older than 1h');
   if (notificationFailed > 0) problems.push(`${notificationFailed} contact(s) with unsent notification`);

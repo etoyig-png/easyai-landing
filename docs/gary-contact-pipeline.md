@@ -59,6 +59,10 @@ and optional `contactPhone` fields, with a stable key derived from Submission.id
 CC reconciliation retains that external ID, Gary correlation and source delivery status.
 Assessment-package IDs are stable per organization and assessment, so concurrent/replayed
 package saves use database conflict handling and a scoped readback, not new package IDs.
+The sync body is stored first as a FunnelEventOutbox row (`assessment.sync:<Submission.id>`)
+and then delivered as-is to COMMAND_CENTER_ASSESSMENT_SYNC_URL, never to the funnel webhook.
+A CC outage, timeout or missing sync configuration leaves an undelivered row that the same
+drain retries and the drain health check reports ("assessment sync not configured").
 
 Important remaining limitation: the current CC event receiver durably stores funnel events
 but does not call the existing Lead intake service. Event receipt is not proof of a Lead,
