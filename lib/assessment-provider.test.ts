@@ -4,12 +4,25 @@ import type { AssessmentSubmission } from './validation';
 const { constructor, create, validate } = vi.hoisted(() => ({ constructor: vi.fn(), create: vi.fn(), validate: vi.fn() }));
 vi.mock('@anthropic-ai/sdk', () => ({ default: class { messages = { create }; constructor(options: unknown) { constructor(options); } } }));
 vi.mock('./resultValidator', async () => ({ ...await vi.importActual('./resultValidator'), validateResultHtml: validate }));
-const submission = {
-  firstName: 'Fixture', lastName: 'Owner', businessName: 'Fixture Business', email: 'fixture@example.test',
-  industry: 'Retail & E-commerce', workSituation: 'Owner', searchVisibility: 'Unknown', websiteConversion: 'Contact',
-  aiChallenge: 'Calls', desiredOutcome: 'Time', timeDrain: 'Admin', leadResponse: 'Manual', privacyConcern: 'High',
-  noWebsite: true, websiteUrl: '', consent: true, formLoadedAt: 1
-} as AssessmentSubmission;
+const submission: AssessmentSubmission = {
+  workSituation: 'Small business, 1-10 employees ($100K-$1M/yr)',
+  searchVisibility: 'We show up sometimes, but competitors seem more visible',
+  aiChallenge: "I'm excited about AI but overwhelmed by where to start",
+  desiredOutcome: 'Make more money — increase revenue or cut costs',
+  timeDrain: 'Answering calls & following up with leads quickly',
+  privacyConcern: "Somewhat worried — I think about it, but it's not stopping me",
+  industry: 'Construction & Trades (contractors, subs, home services)',
+  leadResponse: 'We respond manually, but follow-up is not always consistent.',
+  websiteConversion: 'Visitors can contact us, but the next step could be clearer',
+  firstName: 'Taylor',
+  lastName: 'Doe',
+  businessName: 'Johnson Electric',
+  email: 'taylor@example.com',
+  websiteUrl: 'https://example.com',
+  noWebsite: false,
+  consent: true,
+  formLoadedAt: 1,
+};
 const response = (stop_reason = 'end_turn') => ({ stop_reason, content: [{ type: 'text', text: '<p>Fixture result.</p>' }] });
 beforeEach(() => {
   vi.resetModules(); vi.clearAllMocks(); vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-28T00:00:00Z'));

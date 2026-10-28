@@ -202,11 +202,14 @@ async function deliverRow(row: OutboxRow): Promise<FunnelDeliveryResult> {
     }
     if (!response.ok) throw new Error(`Command Center responded ${response.status}`);
     if (assessment) {
-      const acknowledged = await prisma.funnelEventOutbox.updateMany({
-        where: { id: row.id, deliveredAt: null, payload: { equals: row.payload as never } },
-        data: { deliveredAt: new Date() },
-      });
-      if (!acknowledged.count) return 'retry-scheduled'; // cannot acknowledge a newer payload
+      // One parameterized atomic compare-and-set. Prisma updateMany otherwise adds
+      // BEGIN/COMMIT around this single acknowledgement outside the completion transaction.
+      const acknowledged = await prisma.$executeRaw`
+        UPDATE "FunnelEventOutbox" SET "deliveredAt" = ${new Date()}
+        WHERE "id" = ${row.id} AND "deliveredAt" IS NULL
+          AND "payload" = ${JSON.stringify(row.payload)}::jsonb
+      `;
+      if (!acknowledged) return 'retry-scheduled'; // cannot acknowledge a newer payload
     } else {
       await prisma.funnelEventOutbox.update({ where: { id: row.id }, data: { deliveredAt: new Date() } });
     }

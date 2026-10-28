@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const executeRaw = vi.hoisted(() => vi.fn());
 const mockOutbox = {
   findUnique: vi.fn(),
   create: vi.fn(),
@@ -11,7 +12,7 @@ const mockOutbox = {
 };
 
 vi.mock('../prisma', () => ({
-  prisma: { funnelEventOutbox: mockOutbox },
+  prisma: { funnelEventOutbox: mockOutbox, $executeRaw: executeRaw },
 }));
 
 const originalFetch = global.fetch;
@@ -299,7 +300,7 @@ describe('assessment sync rows share the outbox but not the funnel destination',
     process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN = 'assessment-token';
     mockOutbox.findMany.mockResolvedValue([row]);
     mockOutbox.update.mockResolvedValue({});
-    mockOutbox.updateMany.mockResolvedValue({ count: 1 });
+    executeRaw.mockResolvedValue(1);
     global.fetch = vi.fn().mockResolvedValue({ ok: true }) as never;
     const { drainFunnelEventOutbox } = await import('./funnelEvents');
     await expect(drainFunnelEventOutbox()).resolves.toEqual({ delivered: 1, failed: 0 });
@@ -307,6 +308,12 @@ describe('assessment sync rows share the outbox but not the funnel destination',
     expect(url).toBe('https://command-center.example/api/easy-ai/assessments');
     expect(init.headers.Authorization).toBe('Bearer assessment-token');
     expect(JSON.parse(init.body)).toEqual(row.payload);
+    const [sql, timestamp, id, payload] = executeRaw.mock.calls[0];
+    expect(Array.from(sql).join('?')).toContain('AND "deliveredAt" IS NULL');
+    expect(Array.from(sql).join('?')).toContain('AND "payload" = ?::jsonb');
+    expect(timestamp).toBeInstanceOf(Date);
+    expect(id).toBe(row.id);
+    expect(JSON.parse(payload)).toEqual(row.payload);
   });
 
   it('leaves assessment rows untouched while only the funnel webhook is configured', async () => {

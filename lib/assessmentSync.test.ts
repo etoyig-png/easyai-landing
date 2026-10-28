@@ -27,6 +27,12 @@ vi.mock('./prisma', () => {
     return row[field] === condition;
   });
   const client = {
+    $executeRaw: async (_parts: TemplateStringsArray, deliveredAt: Date, id: string, serializedPayload: string) => {
+      const row = Array.from(db.rows.values()).find(value => value.id === id);
+      if (!row || row.deliveredAt || JSON.stringify(row.payload) !== serializedPayload) return 0;
+      row.deliveredAt = deliveredAt;
+      return 1;
+    },
     funnelEventOutbox: {
       findUnique: async ({ where }: { where: { idempotencyKey: string } }) => db.rows.get(where.idempotencyKey) ?? null,
       findMany: async ({ where }: { where: Record<string, unknown> }) => Array.from(db.rows.values()).filter((r) => matches(r, where)),
