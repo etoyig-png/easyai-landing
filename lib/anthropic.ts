@@ -1,4 +1,5 @@
 import { assertPreviewProviderIsolation } from './previewIsolation';
+import { PROVIDER_TIMEOUT_MS } from './requestSafety';
 import Anthropic from '@anthropic-ai/sdk';
 import type { AssessmentSubmission } from './validation';
 import { escapeHtmlText } from './htmlEscape';
@@ -10,7 +11,7 @@ import { WEBSITE_NOT_PROVIDED_SENTENCE, websitePromptLine, websiteStatus } from 
 let anthropicClient: Anthropic | undefined;
 function getClient(): Anthropic {
   assertPreviewProviderIsolation();
-  if (!anthropicClient) anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (!anthropicClient) anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 0, timeout: PROVIDER_TIMEOUT_MS });
   return anthropicClient;
 }
 
@@ -209,14 +210,22 @@ function extractRawHtml(response: Anthropic.Message): string | undefined {
 
 export async function generateAssessmentResult({ submission }: GenerateResultInput): Promise<string> {
   const userPrompt = buildUserPrompt(submission);
+  const deadline = Date.now() + PROVIDER_TIMEOUT_MS;
+  const requestOptions = () => {
+    const timeout = deadline - Date.now();
+    if (timeout <= 0) throw new Error('Assessment provider deadline exceeded');
+    return { maxRetries: 0, timeout };
+  };
 
   const response = await getClient().messages.create({
     model: 'claude-opus-5',
     max_tokens: 4096,
     system: ASSESSMENT_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userPrompt }],
-  });
+  }, requestOptions());
 
+  if (Date.now() >= deadline) throw new Error('Assessment provider deadline exceeded');
+  if (response.stop_reason === 'max_tokens') throw new Error('Incomplete assessment provider result');
   if (response.stop_reason === 'refusal') {
     throw new Error('Claude declined to generate the assessment result');
   }
@@ -260,8 +269,10 @@ Rewrite the entire email body from scratch, following every instruction in the s
       { role: 'assistant', content: strippedHtml },
       { role: 'user', content: correctionPrompt },
     ],
-  });
+  }, requestOptions());
 
+  if (Date.now() >= deadline) throw new Error('Assessment provider deadline exceeded');
+  if (correctionResponse.stop_reason === 'max_tokens') throw new Error('Incomplete corrected assessment provider result');
   if (correctionResponse.stop_reason === 'refusal') {
     throw new Error('Claude declined to generate the corrected assessment result');
   }
