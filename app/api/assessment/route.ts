@@ -1,3 +1,4 @@
+import { createSessionCapability } from '@/lib/sessionCapability';
 import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { assessmentSubmissionSchema } from '@/lib/validation';
@@ -11,6 +12,13 @@ import { admitAssessment } from '@/lib/assessmentAdmission';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
+
+function acceptedSubmission(id: string, duplicate = false) {
+  let statusCapability: string | undefined;
+  try { statusCapability = createSessionCapability(`assessment-status:${id}`); }
+  catch { /* Existing assessments can still process when tracking is not provisioned. */ }
+  return NextResponse.json({ success: true, id, ...(duplicate ? { duplicate: true } : {}), statusCapability });
+}
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -43,7 +51,7 @@ export async function POST(req: NextRequest) {
   if (admission.kind === 'limited') {
     return NextResponse.json({ error: 'Too many submissions. Please try again later.' }, { status: 429 });
   }
-  if (admission.kind === 'duplicate') return NextResponse.json({ success: true, id: admission.submission.id, duplicate: true });
+  if (admission.kind === 'duplicate') return acceptedSubmission(admission.submission.id, true);
   const submission = admission.submission;
 
   try {
@@ -89,5 +97,5 @@ export async function POST(req: NextRequest) {
     await notifyCommandCenter({ status: emailSent ? 'assessment_completed' : 'assessment_failed', submissionId: submission.id });
   })());
 
-  return NextResponse.json({ success: true, id: submission.id });
+  return acceptedSubmission(submission.id);
 }

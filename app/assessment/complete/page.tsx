@@ -1,3 +1,5 @@
+import { EASY_AI_CONTACT_EMAIL } from '@/lib/emailRouting';
+import AssessmentDeliveryStatus from '@/components/AssessmentDeliveryStatus';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -8,11 +10,7 @@ export default function AssessmentCompletePage() {
     <>
       <section className="bg-gradient-to-br from-brand-950 to-brand-700 text-white py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="section-label text-teal-300 mb-3">You&rsquo;re all set</p>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Your Customer Opportunity Action Plan is on its way</h1>
-          <p className="text-brand-100 text-lg max-w-2xl">
-            Check your inbox soon — we&rsquo;re researching your business and putting your personalized plan together right now.
-          </p>
+          <AssessmentDeliveryStatus contactEmail={EASY_AI_CONTACT_EMAIL} />
         </div>
       </section>
 
