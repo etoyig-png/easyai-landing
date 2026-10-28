@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const tx = {
   $queryRaw: vi.fn(),
   submission: { findFirst: vi.fn(), count: vi.fn(), create: vi.fn() },
+  funnelEventOutbox: { findUnique: vi.fn(), create: vi.fn() },
 };
 vi.mock('./prisma', () => ({
   prisma: { $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)) },
@@ -18,7 +19,7 @@ const submission = {
 } as never;
 
 describe('atomic assessment admission', () => {
-  beforeEach(() => { vi.clearAllMocks(); tx.submission.findFirst.mockResolvedValue(null); tx.submission.count.mockResolvedValue(0); tx.submission.create.mockResolvedValue({ id: 'new' }); });
+  beforeEach(() => { vi.clearAllMocks(); tx.submission.findFirst.mockResolvedValue(null); tx.submission.count.mockResolvedValue(0); tx.submission.create.mockResolvedValue({ id: 'new' }); tx.funnelEventOutbox.findUnique.mockResolvedValue(null); tx.funnelEventOutbox.create.mockResolvedValue({}); });
   it('creates below the threshold while acquiring identity and email locks', async () => {
     await expect(admitAssessment(submission, 'identity')).resolves.toEqual({ kind: 'created', submission: { id: 'new' } });
     expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
@@ -28,10 +29,22 @@ describe('atomic assessment admission', () => {
       usingAiTools: 'x', leadResponse: 'x', sportsFan: 'x', websiteUrl: 'https://example.com', noWebsite: false,
     }) }));
   });
+  it('records the held-back Command Center sync row in the same transaction as the submission', async () => {
+    await admitAssessment(submission, 'identity');
+    expect(tx.funnelEventOutbox.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      eventType: 'assessment.sync', idempotencyKey: 'assessment.sync:new', nextAttemptAt: expect.any(Date),
+      payload: expect.objectContaining({ submissionId: 'new', contactEmail: 'person@example.com' }),
+    }) });
+  });
+  it('fails the whole admission when the sync row cannot be stored, so no submission lacks recoverable sync work', async () => {
+    tx.funnelEventOutbox.create.mockRejectedValue(new Error('transient store outage'));
+    await expect(admitAssessment(submission, 'identity')).rejects.toThrow('transient store outage');
+  });
   it('returns an existing pending/completed duplicate without new work', async () => {
     tx.submission.findFirst.mockResolvedValue({ id: 'existing' });
     await expect(admitAssessment(submission, 'identity')).resolves.toEqual({ kind: 'duplicate', submission: { id: 'existing' } });
     expect(tx.submission.create).not.toHaveBeenCalled();
+    expect(tx.funnelEventOutbox.create).not.toHaveBeenCalled();
   });
   it('fails closed at the threshold', async () => {
     tx.submission.count.mockResolvedValue(3);

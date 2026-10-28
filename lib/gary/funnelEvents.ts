@@ -46,6 +46,8 @@ export interface FunnelEventInput {
   payload: Record<string, unknown>;
   /** Caller-supplied idempotency key — should be stable across retries of the same logical event. */
   idempotencyKey: string;
+  /** When the row first becomes due. Defaults to now; a later time holds a recovery-only row back. */
+  nextAttemptAt?: Date;
 }
 
 /**
@@ -75,7 +77,10 @@ export async function recordFunnelEvent(db: FunnelEventWriter, input: FunnelEven
   if (existing) return { stored: 'existing' };
   try {
     await db.funnelEventOutbox.create({
-      data: { eventType: input.eventType, payload: input.payload as never, idempotencyKey: input.idempotencyKey },
+      data: {
+        eventType: input.eventType, payload: input.payload as never, idempotencyKey: input.idempotencyKey,
+        ...(input.nextAttemptAt ? { nextAttemptAt: input.nextAttemptAt } : {}),
+      },
     });
     return { stored: 'created' };
   } catch (err) {

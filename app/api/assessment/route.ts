@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
-import { prisma } from '@/lib/prisma';
 import { assessmentSubmissionSchema } from '@/lib/validation';
 import { getClientIp, looksLikeSpam } from '@/lib/rateLimit';
 import { sendInternalNotification, sendResultEmail } from '@/lib/resend';
 import { generateAssessmentResult, buildFallbackResultHtml } from '@/lib/anthropic';
 import { notifyCommandCenter } from '@/lib/commandCenter';
-import { syncCompleteAssessmentToCommandCenter } from '@/lib/assessmentSync';
+import { completeAssessmentSync } from '@/lib/assessmentSync';
 import { PROVIDER_TIMEOUT_MS, readLimitedJson, withTimeout } from '@/lib/requestSafety';
 import { admitAssessment } from '@/lib/assessmentAdmission';
 
@@ -79,39 +78,15 @@ export async function POST(req: NextRequest) {
       console.error('Failed to send result email', err);
     }
 
-    if (emailSent) {
-      try {
-      await prisma.submission.update({
-        where: { id: submission.id },
-        data: { status: 'completed', resultHtml },
-      });
-      } catch (err) {
-        // The customer delivery succeeded. A persistence failure must never rewrite
-        // that completed delivery as an email failure.
-        console.error('Result email sent but completion state update failed', err);
-      }
-      await notifyCommandCenter({ status: 'assessment_completed', submissionId: submission.id });
-      await syncCompleteAssessmentToCommandCenter({
-        submissionId: submission.id,
-        submission: data,
-        resultHtml,
-        status: 'completed',
-        emailDeliveryStatus: 'sent',
-      });
-    } else {
-      try { await prisma.submission.update({
-        where: { id: submission.id },
-        data: { status: 'failed', errorMessage: 'Result email delivery failed' },
-      }); } catch (err) { console.error('Failed to persist email failure state', err); }
-      await notifyCommandCenter({ status: 'assessment_failed', submissionId: submission.id });
-      await syncCompleteAssessmentToCommandCenter({
-        submissionId: submission.id,
-        submission: data,
-        resultHtml,
-        status: 'failed',
-        emailDeliveryStatus: 'failed',
-      });
-    }
+    // Final status and the Command Center sync body commit together; see completeAssessmentSync.
+    await completeAssessmentSync({
+      submissionId: submission.id,
+      submission: data,
+      resultHtml,
+      status: emailSent ? 'completed' : 'failed',
+      emailDeliveryStatus: emailSent ? 'sent' : 'failed',
+    });
+    await notifyCommandCenter({ status: emailSent ? 'assessment_completed' : 'assessment_failed', submissionId: submission.id });
   })());
 
   return NextResponse.json({ success: true, id: submission.id });
