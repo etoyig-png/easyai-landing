@@ -35,7 +35,7 @@ const requestSchema = z.object({
   optionSelected: z.string().max(200).optional(),
   currentPage: z.string().max(500).optional(),
   referrer: z.string().max(500).optional(),
-  utm: z.record(z.string()).optional(),
+  utm: z.record(z.string(), z.string()).optional(),
   // Gary's four-step contact flow. Bounded, and every value is re-validated in contactFlow.ts.
   contactFlow: z
     .object({

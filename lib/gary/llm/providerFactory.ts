@@ -4,6 +4,7 @@ import { createGaryAnthropicAdapter } from './anthropicAdapter';
 import type { GaryLlmProviderId, LlmProviderAdapter } from './types';
 
 function buildAdapter(provider: GaryLlmProviderId, model: string): LlmProviderAdapter {
+  if (provider !== 'openai' && provider !== 'anthropic') throw new Error('Unsupported Gary LLM provider');
   if (provider === 'anthropic') {
     return createGaryAnthropicAdapter({ apiKey: process.env.ANTHROPIC_API_KEY, model });
   }

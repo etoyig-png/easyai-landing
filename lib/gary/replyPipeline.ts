@@ -1,3 +1,4 @@
+import { PROVIDER_TIMEOUT_MS } from '../requestSafety';
 import type { LlmProviderAdapter, ChatMessage } from './llm/types';
 import { buildGarySystemPrompt, type GaryConversationState } from './systemPrompt';
 import { validateGaryResponse } from './responseValidator';
@@ -24,10 +25,11 @@ export async function generateGaryReply(
   state: GaryConversationState,
   history: ChatMessage[]
 ): Promise<GaryReply> {
+  const deadline = Date.now() + PROVIDER_TIMEOUT_MS;
   const systemPrompt = buildGarySystemPrompt(state);
   const lastVisitorMessage = [...history].reverse().find((m) => m.role === 'user')?.content ?? '';
 
-  const first = await adapter.generateChatCompletion({ systemPrompt, messages: history });
+  const first = await adapter.generateChatCompletion({ systemPrompt, messages: history, timeoutMs: deadline - Date.now() });
   const firstExtracted = extractOfferMarker(first.text);
   const firstValidation = validateGaryResponse(firstExtracted.text, { lastVisitorMessage });
 
@@ -45,7 +47,7 @@ export async function generateGaryReply(
       content: `Your last reply violated these rules and must be rewritten: ${firstValidation.violations.join('; ')}. Reply again, following the system prompt exactly, with none of those violations. Keep it natural and conversational.`,
     },
   ];
-  const second = await adapter.generateChatCompletion({ systemPrompt, messages: correctionMessages });
+  const second = await adapter.generateChatCompletion({ systemPrompt, messages: correctionMessages, timeoutMs: deadline - Date.now() });
   const secondExtracted = extractOfferMarker(second.text);
   const secondValidation = validateGaryResponse(secondExtracted.text, { lastVisitorMessage });
 

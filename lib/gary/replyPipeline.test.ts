@@ -63,3 +63,15 @@ describe('generateGaryReply', () => {
     expect(adapter.generateChatCompletion).toHaveBeenCalledTimes(2);
   });
 });
+
+it('shares the original deadline across the correction instead of multiplying it', async () => {
+  const adapter = fakeAdapter(['This is not a small thing, but a drain.', 'That sounds like a drain.']);
+  const clock = vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1000).mockReturnValueOnce(6000);
+  try {
+    await generateGaryReply(adapter, baseState, [{ role: 'user', content: 'We lose leads.' }]);
+    const calls = vi.mocked(adapter.generateChatCompletion).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0][0].timeoutMs).toBe(45000);
+    expect(calls[1][0].timeoutMs).toBe(40000);
+  } finally { clock.mockRestore(); }
+});
