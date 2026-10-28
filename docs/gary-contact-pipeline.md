@@ -63,13 +63,17 @@ The sync row (`assessment.sync:<Submission.id>`) is created in the admission tra
 the submission itself, held back for 15 minutes and without a result or status. Completion
 writes the final Submission status and the full sync body in one transaction, makes the row due
 and attempts delivery as-is to COMMAND_CENTER_ASSESSMENT_SYNC_URL, never to the funnel webhook.
-If completion fails or the process dies, the admission row remains and the drain delivers it
-after the hold with blank status, which the CC intake accepts. A CC outage, timeout or missing
-sync configuration leaves an undelivered row that the same drain retries and the drain health
-check reports ("assessment sync not configured"). An admission that cannot store the row
-fails as a whole (503), so no stored submission lacks sync work. A completion that lands after
-the drain has already delivered the recovery row is not resent; CC would replay the earlier
-receipt for that key.
+If completion persistence fails, a status/result-only retry preserves the final HTML in
+Submission. The drain recovers that complete body; it never sends a pending placeholder.
+An intent with no generated result remains visible and retryable without consuming attempts,
+including after the 15-minute hold. Its age is reported as an operational failure needing
+reconciliation; the drain never regenerates a paid result or claims delivery.
+Acknowledgements compare the exact transmitted payload, so a stale response cannot settle a
+newer body. Completion reopens an old delivered provisional intent. Final bodies use the
+receiver's final-v1 receipt stage and complete the same existing Assessment/package; ambiguous
+external IDs conflict before any package write. Completed results cannot be overwritten.
+The receiver and website must be released as a verified compatible pair, never independently
+pointed at shared production providers from Preview.
 
 Important remaining limitation: the current CC event receiver durably stores funnel events
 but does not call the existing Lead intake service. Event receipt is not proof of a Lead,

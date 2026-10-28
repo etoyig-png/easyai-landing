@@ -1,3 +1,4 @@
+import { assertPreviewProviderIsolation } from '@/lib/previewIsolation';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../prisma';
 
@@ -155,7 +156,37 @@ async function deliverRow(row: OutboxRow): Promise<FunnelDeliveryResult> {
   const assessment = isAssessmentSync(row.eventType);
   const url = (assessment ? ASSESSMENT_SYNC_URL : FUNNEL_WEBHOOK_URL)!;
   const secret = (assessment ? ASSESSMENT_SYNC_TOKEN : FUNNEL_WEBHOOK_SECRET)!;
+  if (assessment) {
+    // Never send the admission placeholder: it would consume the receiver's durable
+    // receipt/package identity without a result. Recover final content from Submission.
+    const payload = row.payload as Record<string, unknown>;
+    if (!payload.processingStatus || !payload.resultSummary) {
+      const submissionId = typeof payload.submissionId === 'string' ? payload.submissionId : '';
+      const final = submissionId ? await prisma.submission.findUnique({
+        where: { id: submissionId }, select: { status: true, resultHtml: true },
+      }) : null;
+      if (!final || final.status === 'pending' || !final.resultHtml) {
+        await prisma.funnelEventOutbox.updateMany({
+          where: { id: row.id, deliveredAt: null, payload: { equals: row.payload as never } },
+          data: { nextAttemptAt: new Date(Date.now() + BASE_BACKOFF_MS) },
+        });
+        return 'retry-scheduled'; // retain the intent and expose its age; no attempt consumed
+      }
+      const finalPayload = {
+        ...payload, syncStage: 'final', resultSummary: final.resultHtml,
+        processingStatus: final.status, emailDeliveryStatus: final.status === 'completed' ? 'sent' : 'failed',
+        assessmentPackage: { ...(payload.assessmentPackage as object), overallResult: final.resultHtml, clientFacingSummary: final.resultHtml },
+      };
+      const changed = await prisma.funnelEventOutbox.updateMany({
+        where: { id: row.id, deliveredAt: null, payload: { equals: row.payload as never } },
+        data: { payload: finalPayload as never },
+      });
+      if (!changed.count) return 'retry-scheduled'; // completion or another drain won; re-read next pass
+      row = { ...row, payload: finalPayload };
+    }
+  }
   try {
+    assertPreviewProviderIsolation();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
     let response: Response;
@@ -170,7 +201,15 @@ async function deliverRow(row: OutboxRow): Promise<FunnelDeliveryResult> {
       clearTimeout(timer);
     }
     if (!response.ok) throw new Error(`Command Center responded ${response.status}`);
-    await prisma.funnelEventOutbox.update({ where: { id: row.id }, data: { deliveredAt: new Date() } });
+    if (assessment) {
+      const acknowledged = await prisma.funnelEventOutbox.updateMany({
+        where: { id: row.id, deliveredAt: null, payload: { equals: row.payload as never } },
+        data: { deliveredAt: new Date() },
+      });
+      if (!acknowledged.count) return 'retry-scheduled'; // cannot acknowledge a newer payload
+    } else {
+      await prisma.funnelEventOutbox.update({ where: { id: row.id }, data: { deliveredAt: new Date() } });
+    }
     return 'delivered';
   } catch (err) {
     const attempts = row.attempts + 1;

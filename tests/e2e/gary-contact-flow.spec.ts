@@ -25,7 +25,7 @@ const DISCLOSURE = "Hi, I'm Gary, Easy AI's AI assistant.";
 const TEXTS = contactOutcomeTexts('Easy AI');
 const DIALOG_NAME = 'Chat with Gary from Accounting';
 
-type Outcome = 'sent' | 'saved-not-notified' | 'already-processed' | 'in-progress';
+type Outcome = 'http-error' | 'sent' | 'saved-not-notified' | 'already-processed' | 'in-progress';
 
 interface MockState {
   outcomes: Outcome[];
@@ -51,6 +51,7 @@ async function mockContactServer(page: Page, outcomes: Outcome[] = ['sent']): Pr
     let done = false;
     if (reply.send) {
       const outcome = state.outcomes.shift() ?? 'sent';
+      if (outcome === 'http-error') { await route.fulfill({ status: 503, body: '{}' }); return; }
       const neutral = { options: undefined, freeText: true, placeholder: 'Type a message...' };
       if (outcome === 'sent') { reply = { ...reply, ...neutral, text: TEXTS.sent }; done = true; }
       else if (outcome === 'already-processed') { reply = { ...reply, ...neutral, text: TEXTS.alreadySent }; done = true; }
@@ -192,6 +193,17 @@ test.describe('Gary contact flow from the Contact page', () => {
     await answer(dialog, 'Help me answer missed calls');
     await expect(dialog.getByText('Reach you at: (555) 010-0100.')).toBeVisible();
     await expect(dialog.getByText('What you need: Help me answer missed calls.')).toBeVisible();
+  });
+
+  test('a failed confirmation preserves Yes and Change controls and retries the same draft', async ({ page }) => {
+    const { dialog, state } = await completeToConfirmation(page, ['http-error', 'sent']);
+    await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
+    await expect(dialog.getByText('Something went wrong.', { exact: false })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_YES })).toBeEnabled();
+    await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_CHANGE })).toBeEnabled();
+    await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
+    await expect(dialog.getByText(TEXTS.sent)).toBeVisible();
+    expect(state.calls.filter((call) => call.action === 'confirm')).toHaveLength(2);
   });
 
   test('saved-but-not-notified keeps the confirmation on screen and a retry succeeds', async ({ page }) => {

@@ -5,6 +5,7 @@ const mockOutbox = {
   create: vi.fn(),
   findMany: vi.fn(),
   update: vi.fn(),
+  updateMany: vi.fn(),
   count: vi.fn(),
   findFirst: vi.fn(),
 };
@@ -291,13 +292,14 @@ describe('assessment sync rows share the outbox but not the funnel destination',
     delete process.env.COMMAND_CENTER_ASSESSMENT_SYNC_URL;
     delete process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN;
   });
-  const row = { id: 'row-a', idempotencyKey: 'assessment.sync:sub-1', eventType: 'assessment.sync', eventVersion: 1, payload: { companyName: 'C', submissionId: 'sub-1' }, attempts: 0 };
+  const row = { id: 'row-a', idempotencyKey: 'assessment.sync:sub-1', eventType: 'assessment.sync', eventVersion: 1, payload: { companyName: 'C', submissionId: 'sub-1', processingStatus: 'completed', resultSummary: '<p>final</p>' }, attempts: 0 };
 
   it('posts the stored body as is to the assessment intake with its own token', async () => {
     process.env.COMMAND_CENTER_ASSESSMENT_SYNC_URL = 'https://command-center.example/api/easy-ai/assessments';
     process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN = 'assessment-token';
     mockOutbox.findMany.mockResolvedValue([row]);
     mockOutbox.update.mockResolvedValue({});
+    mockOutbox.updateMany.mockResolvedValue({ count: 1 });
     global.fetch = vi.fn().mockResolvedValue({ ok: true }) as never;
     const { drainFunnelEventOutbox } = await import('./funnelEvents');
     await expect(drainFunnelEventOutbox()).resolves.toEqual({ delivered: 1, failed: 0 });

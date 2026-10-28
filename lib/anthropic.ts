@@ -1,3 +1,4 @@
+import { assertPreviewProviderIsolation } from './previewIsolation';
 import Anthropic from '@anthropic-ai/sdk';
 import type { AssessmentSubmission } from './validation';
 import { escapeHtmlText } from './htmlEscape';
@@ -8,6 +9,7 @@ import { WEBSITE_NOT_PROVIDED_SENTENCE, websitePromptLine, websiteStatus } from 
 // Constructed lazily so this module can be imported at build time without ANTHROPIC_API_KEY set.
 let anthropicClient: Anthropic | undefined;
 function getClient(): Anthropic {
+  assertPreviewProviderIsolation();
   if (!anthropicClient) anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   return anthropicClient;
 }

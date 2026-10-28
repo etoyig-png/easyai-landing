@@ -1,3 +1,4 @@
+import { cleanupExpiredContactAttempts } from '@/lib/contactRateLimit';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { assessmentSyncConfigured, drainFunnelEventOutbox, funnelOutboxHealth } from '@/lib/gary/funnelEvents';
@@ -41,6 +42,9 @@ export async function GET(request: NextRequest) {
   }
   // Retry first, so the numbers below describe what is still stuck after this attempt.
   const drained = await drainFunnelEventOutbox({ limit: GET_DRAIN_LIMIT });
+  let retentionDeleted: number | null = null;
+  try { retentionDeleted = await cleanupExpiredContactAttempts(); }
+  catch (error) { console.error('Contact limiter retention cleanup failed', error); }
   const now = new Date();
   const [outbox, notificationFailed, sendingStale] = await Promise.all([
     funnelOutboxHealth(now),
@@ -49,6 +53,7 @@ export async function GET(request: NextRequest) {
     prisma.publicContact.count({ where: { notificationStatus: 'sending', updatedAt: { lt: new Date(now.getTime() - SENDING_LEASE_MS) } } }),
   ]);
   const problems: string[] = [];
+  if (retentionDeleted === null) problems.push('contact limiter retention cleanup failed');
   if (!outbox.configured) problems.push('funnel webhook not configured');
   if (!assessmentSyncConfigured()) problems.push('assessment sync not configured');
   if (outbox.exhausted > 0) problems.push(`${outbox.exhausted} handoff event(s) exhausted retries`);
@@ -57,7 +62,7 @@ export async function GET(request: NextRequest) {
   if (sendingStale > 0) problems.push(`${sendingStale} contact(s) stuck in sending`);
 
   return NextResponse.json(
-    { ok: problems.length === 0, checkedAt: now.toISOString(), drained, outbox, contacts: { notificationFailed, sendingStale }, problems },
+    { ok: problems.length === 0, checkedAt: now.toISOString(), drained, retentionDeleted, outbox, contacts: { notificationFailed, sendingStale }, problems },
     { status: problems.length === 0 ? 200 : 503 }
   );
 }

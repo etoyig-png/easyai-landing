@@ -1,3 +1,4 @@
+import { assertPreviewProviderIsolation } from '@/lib/previewIsolation';
 import { createGaryOpenAiAdapter } from './openaiAdapter';
 import { createGaryAnthropicAdapter } from './anthropicAdapter';
 import type { GaryLlmProviderId, LlmProviderAdapter } from './types';
@@ -19,6 +20,7 @@ function buildAdapter(provider: GaryLlmProviderId, model: string): LlmProviderAd
  * should fail loudly at first use rather than silently running an unintended default.
  */
 export function createGaryLlmAdapter(): LlmProviderAdapter {
+  assertPreviewProviderIsolation();
   const provider = (process.env.GARY_LLM_PROVIDER as GaryLlmProviderId | undefined) ?? 'openai';
   const model = process.env.GARY_LLM_MODEL;
   if (!model) throw new Error('GARY_LLM_MODEL is not set — cannot construct the Gary LLM adapter.');

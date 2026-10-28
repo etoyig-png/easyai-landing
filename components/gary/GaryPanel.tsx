@@ -134,7 +134,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
       return;
     }
     setMessages((prev) => [...prev, { id: `visitor-${Date.now()}`, role: 'visitor', text: option }]);
-    setOptions([]);
+    if (option !== CONTACT_CONFIRM_YES) setOptions([]);
     if (option === CONTACT_CONFIRM_YES) {
       void sendToGary({ contactFlow: { action: 'confirm', draft: contactDraft } });
       return;

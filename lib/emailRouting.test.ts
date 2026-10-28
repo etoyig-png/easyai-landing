@@ -1,3 +1,6 @@
+// Provider activation is separately fail-closed in previewIsolation.test.ts.
+// This suite mocks that gate to retain the existing recipient/sender/reply-to contract tests.
+vi.mock('./previewIsolation', () => ({ assertPreviewProviderIsolation: vi.fn() }));
 import fs from 'fs';
 import path from 'path';
 import type { AssessmentSubmission } from './validation';

@@ -88,6 +88,7 @@ export function buildAssessmentSyncBody(params: Omit<SyncParams, 'status' | 'ema
     assessmentPackage: buildAssessmentPackage(submission, resultHtml),
     submissionId,
     funnelCorrelationId: submission.funnelCorrelationId,
+    ...(status ? { syncStage: 'final' } : {}),
     processingStatus: status,
     emailDeliveryStatus,
   };
@@ -114,27 +115,54 @@ type CompletionClient = Pick<typeof prisma, '$transaction'>;
  * one delivery attempt. If that transaction fails, neither lands: the status update is retried
  * alone (a sent result email must never read as pending or failed), and the row recorded at
  * admission stays in the outbox, so the drain still delivers the assessment after the recovery
- * delay. A row the drain already delivered is left alone, since the Command Center would replay
- * the earlier receipt for that key anyway. Never throws: it runs after the visitor's response.
+ * delay, rebuilding final content from Submission. Pending placeholders are never delivered.
+ * Old delivered provisional rows reopen for the final receiver stage. Never throws: it runs
+ * after the visitor's response.
  */
 export async function completeAssessmentSync(params: SyncParams, db: CompletionClient = prisma): Promise<void> {
   const key = assessmentSyncKey(params.submissionId);
   const status: Prisma.SubmissionUpdateInput = params.status === 'completed'
     ? { status: 'completed', resultHtml: params.resultHtml }
-    : { status: 'failed', errorMessage: 'Result email delivery failed' };
+    : { status: 'failed', resultHtml: params.resultHtml, errorMessage: 'Result email delivery failed' };
   const payload = buildAssessmentSyncBody(params);
   try {
     await db.$transaction(async (tx) => {
       await tx.submission.update({ where: { id: params.submissionId }, data: status });
       const updated = await tx.funnelEventOutbox.updateMany({
-        where: { idempotencyKey: key, deliveredAt: null },
-        data: { payload: payload as never, nextAttemptAt: new Date() },
+        where: {
+          idempotencyKey: key,
+          AND: [
+            { OR: [{ deliveredAt: null }, { payload: { path: ['resultSummary'], equals: '' } }] },
+            { OR: [
+              { payload: { path: ['resultSummary'], equals: '' } },
+              { AND: [
+                { payload: { path: ['resultSummary'], equals: params.resultHtml } },
+                { payload: { path: ['processingStatus'], equals: params.status } },
+                { payload: { path: ['emailDeliveryStatus'], equals: params.emailDeliveryStatus } },
+              ] },
+            ] },
+          ],
+        },
+        data: { payload: payload as never, nextAttemptAt: new Date(), deliveredAt: null },
       });
-      // A submission admitted before admission recorded the row has none yet.
-      if (updated.count === 0) await recordFunnelEvent(tx, { eventType: ASSESSMENT_SYNC_EVENT, idempotencyKey: key, payload });
+      if (!updated.count) {
+        // Only retries/conflicts/old shapes need a read; the normal path has two writes.
+        const existing = await tx.funnelEventOutbox.findUnique({ where: { idempotencyKey: key } });
+        const stored = existing?.payload as Record<string, unknown> | undefined;
+        if (stored?.processingStatus && (stored.resultSummary !== params.resultHtml || stored.processingStatus !== params.status || stored.emailDeliveryStatus !== params.emailDeliveryStatus)) throw new Error('FINAL_ASSESSMENT_CONFLICT');
+        if (existing?.deliveredAt && stored?.processingStatus) return;
+        if (existing) {
+          const recovered = await tx.funnelEventOutbox.updateMany({
+            where: { idempotencyKey: key, payload: { equals: existing.payload as never } },
+            data: { payload: payload as never, nextAttemptAt: new Date(), deliveredAt: null },
+          });
+          if (!recovered.count) throw new Error('Assessment sync changed during completion; recover from Submission');
+        } else await recordFunnelEvent(tx, { eventType: ASSESSMENT_SYNC_EVENT, idempotencyKey: key, payload });
+      }
     });
   } catch (err) {
     console.error(`[assessment-sync] stage=store key=${key} recovery=admission-row`, err);
+    if (err instanceof Error && err.message === 'FINAL_ASSESSMENT_CONFLICT') return;
     try {
       await prisma.submission.update({ where: { id: params.submissionId }, data: status });
     } catch (statusErr) {

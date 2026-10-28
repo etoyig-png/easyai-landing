@@ -10,9 +10,16 @@ const db = vi.hoisted(() => ({
 }));
 const rows = db.rows;
 vi.mock('./prisma', () => {
-  const matches = (row: Record<string, unknown>, where: Record<string, unknown>) => Object.entries(where).every(([field, condition]) => {
+  const matches = (row: Record<string, unknown>, where: Record<string, unknown>): boolean => Object.entries(where).every(([field, condition]) => {
+    if (field === 'AND') return (condition as Record<string, unknown>[]).every((part) => matches(row, part));
+    if (field === 'OR') return (condition as Record<string, unknown>[]).some((part) => matches(row, part));
     if (condition && typeof condition === 'object' && !(condition instanceof Date)) {
-      const c = condition as { lte?: Date; lt?: number; not?: unknown };
+      const c = condition as { lte?: Date; lt?: number; not?: unknown; equals?: unknown; path?: string[] };
+      if ('equals' in c) {
+        let candidate: unknown = row[field];
+        for (const part of c.path ?? []) candidate = (candidate as Record<string, unknown>)?.[part];
+        return JSON.stringify(candidate) === JSON.stringify(c.equals);
+      }
       if (c.lte) return (row[field] as Date) <= c.lte;
       if (c.lt !== undefined) return (row[field] as number) < c.lt;
       if ('not' in c) return row[field] !== c.not;
@@ -41,6 +48,7 @@ vi.mock('./prisma', () => {
       },
     },
     submission: {
+      findUnique: async ({ where }: { where: { id: string } }) => db.submissions.get(where.id) ?? null,
       update: async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
         const row = { ...(db.submissions.get(where.id) ?? { id: where.id }), ...data };
         db.submissions.set(where.id, row);

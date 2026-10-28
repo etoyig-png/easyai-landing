@@ -1,3 +1,4 @@
+import { assertPreviewProviderIsolation } from './previewIsolation';
 import { Resend } from 'resend';
 import type { AssessmentSubmission } from './validation';
 import { websiteNotificationValue } from './websiteStatus';
@@ -15,6 +16,7 @@ import {
 // and imported without RESEND_API_KEY set — the key is only required at send time.
 let resendClient: Resend | undefined;
 function getResend(): Resend {
+  assertPreviewProviderIsolation();
   if (!resendClient) resendClient = new Resend(process.env.RESEND_API_KEY);
   return resendClient;
 }

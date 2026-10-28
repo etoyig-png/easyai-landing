@@ -8,7 +8,7 @@ const mockSyncConfigured = vi.fn();
 
 vi.mock('@/lib/prisma', () => ({ prisma: mockPrisma }));
 vi.mock('@/lib/gary/funnelEvents', () => ({ drainFunnelEventOutbox: mockDrain, funnelOutboxHealth: mockHealth, assessmentSyncConfigured: mockSyncConfigured, deliverFunnelEvent: vi.fn(), recordFunnelEvent: vi.fn() }));
-vi.mock('@/lib/contactRateLimit', () => ({ admitContactMessage: vi.fn() }));
+vi.mock('@/lib/contactRateLimit', () => ({ admitContactMessage: vi.fn(), cleanupExpiredContactAttempts: async () => 0 }));
 vi.mock('@/lib/resend', () => ({ sendContactMessage: vi.fn() }));
 
 function request(method: string, secret?: string) {
