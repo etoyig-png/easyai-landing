@@ -159,3 +159,44 @@ These character counts are not a tokenizer/latency or real-model-quality measure
 The original eight website layout failures and Next15performance acceptance remain open;
 no redesign or layout was changed to obtain these passes. Final independent/operational
 acceptance is pending.
+
+### Isolated application journey verification (2026-10-29)
+
+`lib/isolatedJourney.postgres.test.ts` exercises actual assessment/Gary route handlers,
+Prisma transactions and notification rendering. It captures only the Resend SDK boundary
+into an in-memory test inbox; model generation is deterministic and all unexpected fetches
+fail closed. This is not provider acceptance, SMTP delivery, Company IQ or CC receipt proof.
+
+Use a newly created, empty local PostgreSQL database whose name starts `easyai_journey_`.
+Apply this repository's migrations there with `DATABASE_URL` and `DIRECT_URL` set to that
+local URL. Set `ISOLATED_JOURNEY_DATABASE_URL` to the same URL and run:
+
+```sh
+./node_modules/.bin/vitest run lib/isolatedJourney.postgres.test.ts
+```
+
+For the browser case, serve this exact candidate build on `127.0.0.1:3200`, also set
+`ISOLATED_JOURNEY_BROWSER=1` and select the installed test browser using
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. Browser API requests bridge to the real handlers
+in the test process; external browser requests are blocked. The application server and
+HTTP hosting boundary are therefore not verified by this bridge. The complete run proves
+all eleven assessment steps, saved result, protected status, test notification content,
+Gary's four-step contact, duplicate suppression and notification failure/retry persistence.
+Use a fresh database for each run; retained synthetic records permit separate inspection.
+The existing ordinary browser and PostgreSQL suites remain required independently.
+
+At application head `6fb0a504a904a4df35b510dfeae7fe0dd860fe46`, the final local run passed
+4/4 cases with Chromium149 (not the Playwright151 matching build). Initial failures were
+fixture collisions with real IP limits and a browser submission under the three-second
+spam threshold. Separate synthetic visitors and waiting through the actual fill-time
+requirement corrected them without weakening either guard or any assertion.
+
+The subsequent measured application fix reserves the assessment's existing `min-h-screen`
+section while its search-parameter Suspense boundary hydrates. The loaded form/design is
+unchanged. Before: footer movement caused CLS0.31640625 in five local samples; after: CLS0
+in all five. Browser journey regression asserts CLS≤0.1 and passes at desktop and390×844.
+Local LCP samples: before120–200ms, after76–248ms; interaction-event samples16–48ms across
+both sets. These small unthrottled samples are not field INP, launch acceptance or evidence
+of a statistically meaningful latency delta. Real page-load/interaction verification remains
+a final-launch gate under Toy's provisional acceptance of the previously measured shared-JS,
+middleware and email-durability costs. Security and durability remain intact.

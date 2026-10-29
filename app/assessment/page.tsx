@@ -67,7 +67,7 @@ function emailLooksValid(email: string) {
 
 export default function AssessmentPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<section className="min-h-screen bg-slate-50 py-16" aria-busy="true" aria-label="Loading assessment" />}>
       <AssessmentPageInner />
     </Suspense>
   );
