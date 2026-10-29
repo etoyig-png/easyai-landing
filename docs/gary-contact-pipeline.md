@@ -1,12 +1,12 @@
 # Gary and contact intake: reconciled development state
 
-Updated 2026-10-26. This document describes code and isolated tests, not production readiness.
+Updated 2026-10-29. This document describes code and isolated tests, not production readiness.
 Historical PR #15 environment observations have not been reverified with provider access.
 
 ## Existing paths and preservation
 
-The backend reconciliation is stacked on website design commit
-`0148b750ba70a96fc75e5848786afb9c148d79da`, which contains PR #16 commit
+The current candidate preserves website PR #17 design commit
+`eaed8409a6e4855ed0255d12988fd4628ec28ce9` and PR #16 commit
 `6bd2f8ba581cc89ae9be64f7fa389f924586176e`. Homepage, global styles and existing
 mobile fixes are preserved. PR #15's contact-form removal and hello@ routing change
 are intentionally excluded: the existing form remains, and email destinations still
@@ -75,23 +75,43 @@ external IDs conflict before any package write. Completed results cannot be over
 The receiver and website must be released as a verified compatible pair, never independently
 pointed at shared production providers from Preview.
 
-Important remaining limitation: the current CC event receiver durably stores funnel events
-but does not call the existing Lead intake service. Event receipt is not proof of a Lead,
-Prospect, business follow-up or notification. Automatic Lead consumption/enrichment remains
-unfinished; Lead → Prospect must remain founder-controlled. Company IQ runtime connectivity
-is unverified; no new knowledge system was added.
+The paired CC PR #58 candidate at `32ed74a728bb8b4226599e9d2afaea3c861c5653`
+now invokes `processPublicFunnelContact` and the existing `ingestFunnelContact` service.
+It validates logical contact/session identity, retains each event's immutable intake key,
+and records a scoped processing receipt. Bounded recovery runs through the existing archive
+cron; an older failed attempt cannot overwrite a completed receipt. Ambiguous matches stay
+pending review, and Lead → Prospect remains founder-controlled. The consumer does not send
+email, call a model or write assessment packages. These are published implementation and
+local-test facts, not verified deployed behavior. Event receipt alone still does not prove
+a processed Lead, notification or human follow-up. Company IQ runtime connectivity remains
+unverified; no new knowledge system was added.
+
+## Contact abuse retention
+
+The existing authenticated funnel drain also calls `cleanupExpiredContactAttempts`.
+It removes strictly older-than-seven-day events in bounded `SKIP LOCKED` batches while
+retaining the one-hour admission window. Local PostgreSQL checks cover concurrent workers,
+active denial, the exact cutoff and its millisecond neighbors, empty drains and a 1,504-row
+backlog with invalid/oversized/fractional batch inputs. The cutoff assertion rejects a
+deliberate inclusive-cutoff mutation. These checks do not prove that the deployed scheduler
+runs or that its failure alert reaches an owner.
 
 ## Migration and recovery packet (not authorization to execute in production)
 
 Required website migrations are the four on main plus:
 - 20260914000000_public_contact_reason_channel
 - 20260914120000_public_contact_session_idempotency
+- 20261028000000_server_only_tables
 
-Both new migrations explicitly use BEGIN/COMMIT. Synthetic PostgreSQL rehearsal preserved
+The two contact migrations explicitly use BEGIN/COMMIT. Synthetic PostgreSQL rehearsal preserved
 contacts; a pre-change pg_dump restored into a second database. A duplicate-session negative
 control rejected the unique index and left zero partial notification columns. All six
 migrations also passed Prisma migrate deploy against a fresh isolated database, followed
-by a repeat run with zero pending migrations. This is not a production backup verification.
+by a repeat run with zero pending migrations. The later seventh migration enables RLS and
+revokes PUBLIC/anon/authenticated table grants while retaining owner/BYPASSRLS server access;
+it was separately rehearsed on local PostgreSQL. Actual runtime-role/grant compatibility
+still needs a representative isolated restoration. Neither rehearsal is production backup
+verification or evidence that production migrations have been applied.
 
 Before any production change: verify the website project identity, SELECT 1, table names,
 migration names and preservation counts; obtain an operator-owned verified private backup;
@@ -113,5 +133,5 @@ or database binding is configured in this task. A live homepage GET returns 200;
 form/Gary API submission, customer email, paid provider call, migration or deployment was made.
 Preview database/email/webhook isolation is unverified and must precede any live submission.
 The owner must provide project-scoped Supabase/Vercel access through secure settings, not chat.
-Inbox direction is unresolved; existing behavior is preserved. Provider configuration, production
+The required inbox direction remains info@; existing routing is preserved. Provider configuration, production
 backup/restore proof, authorized test recipient, canonical task updates and release remain gated.
