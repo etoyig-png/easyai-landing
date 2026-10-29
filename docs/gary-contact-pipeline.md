@@ -135,3 +135,27 @@ Preview database/email/webhook isolation is unverified and must precede any live
 The owner must provide project-scoped Supabase/Vercel access through secure settings, not chat.
 The required inbox direction remains info@; existing routing is preserved. Provider configuration, production
 backup/restore proof, authorized test recipient, canonical task updates and release remain gated.
+
+
+### Remembered visitor context (October 29 candidate)
+
+Visitor-supplied names/business details remain unverified data. Gary's reply pipeline now
+places at most eight500-character remembered notes in a JSON-encoded USER message marked
+UNTRUSTED VISITOR NOTES, never in the system prompt. The same bounded message is reused in
+the one permitted correction attempt. Fixed system instructions deny embedded commands and
+authority claims. Conversation history and contact/assessment permissions are unchanged.
+The reproduction proves the old system-role interpolation and the correction proves role
+separation with a fake adapter; it does not prove universal prompt-injection resistance or
+real model quality. This adds no Company IQ source, connector or invented business knowledge.
+
+
+Verification for this prompt-boundary candidate: first reproduction1failed/5passed; corrected
+focused29passed; full local unit/PostgreSQL597passed in51files; lint/types/build passed.
+Relevant desktop/mobile browser runs48passed(contact/status) plus12passed(normal conversation/
+assessment offer), using existing mocked endpoints. Semgrep changed files0findings/0errors;
+combined source-diff secret scan0leaks. Remembered-context request character growth is4.13%
+for the two-note fixture and3.64%with no notes; model/database call counts are unchanged.
+These character counts are not a tokenizer/latency or real-model-quality measurement.
+The original eight website layout failures and Next15performance acceptance remain open;
+no redesign or layout was changed to obtain these passes. Final independent/operational
+acceptance is pending.
