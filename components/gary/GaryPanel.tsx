@@ -144,34 +144,41 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
-    const saved = getStoredConversation<ConversationSnapshot>();
-    setRestored(true);
-    if (saved) {
-      recoveryRef.current = saved;
-      setMessages(saved.messages);
-      setOptions(saved.options);
-      setOfferAssessment(saved.offerAssessment);
-      setInput(saved.input);
-      setContactDraft(saved.contactDraft);
-      setContactPlaceholder(saved.contactPlaceholder);
-      setChoosingChange(saved.choosingChange);
-      setPending(saved.pending);
-      setHasContactFlow(Boolean(saved.hasContactFlow));
-      if (initialIntent === 'contact' && !saved.hasContactFlow && !saved.pending) {
-        void sendToGary({ contactFlow: { action: 'start' } });
+    // Strict Mode replays effects before the first microtask. Cancel that rehearsal setup
+    // before dispatch so development opens once without a duplicate backend request.
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const saved = getStoredConversation<ConversationSnapshot>();
+      setRestored(true);
+      if (saved) {
+        recoveryRef.current = saved;
+        setMessages(saved.messages);
+        setOptions(saved.options);
+        setOfferAssessment(saved.offerAssessment);
+        setInput(saved.input);
+        setContactDraft(saved.contactDraft);
+        setContactPlaceholder(saved.contactPlaceholder);
+        setChoosingChange(saved.choosingChange);
+        setPending(saved.pending);
+        setHasContactFlow(Boolean(saved.hasContactFlow));
+        if (initialIntent === 'contact' && !saved.hasContactFlow && !saved.pending) {
+          void sendToGary({ contactFlow: { action: 'start' } });
+        }
+        if (saved.pending) setError('Your previous request may still have been processed. Delivery is not confirmed. Your request is kept here.');
+        return;
       }
-      if (saved.pending) setError('Your previous request may still have been processed. Delivery is not confirmed. Your request is kept here.');
-      return;
-    }
-    if (initialIntent === 'contact') {
-      void sendToGary({ contactFlow: { action: 'start' } });
-      return;
-    }
-    if (getStoredSessionId()) {
-      setError('Your earlier conversation is not available in this tab. Start over to begin a new chat.');
-      return;
-    }
-    void sendToGary({});
+      if (initialIntent === 'contact') {
+        void sendToGary({ contactFlow: { action: 'start' } });
+        return;
+      }
+      if (getStoredSessionId()) {
+        setError('Your earlier conversation is not available in this tab. Start over to begin a new chat.');
+        return;
+      }
+      void sendToGary({});
+    });
+    return () => { cancelled = true; initializedRef.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
