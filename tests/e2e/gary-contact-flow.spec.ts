@@ -216,16 +216,16 @@ test.describe('Gary contact flow from the Contact page', () => {
     expect(state.calls.filter((c) => c.action === 'confirm')).toHaveLength(2);
   });
 
-  test('already-processed and in-progress end the flow without a second send button', async ({ page }) => {
-    for (const [outcome, text] of [['already-processed', TEXTS.alreadySent], ['in-progress', TEXTS.inProgress]] as const) {
+  for (const [outcome, text] of [['already-processed', TEXTS.alreadySent], ['in-progress', TEXTS.inProgress]] as const) {
+    test(`${outcome} ends the flow without a second send button`, async ({ page }) => {
       const { dialog } = await completeToConfirmation(page, [outcome]);
       await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
       await expect(dialog.getByText(text)).toBeVisible();
       await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_YES })).toHaveCount(0);
       await expect(dialog.getByRole('textbox')).toHaveAttribute('placeholder', 'Type a message...');
       await page.unroute('**/api/gary/message');
-    }
-  });
+    });
+  }
 
   test('Start Over confirms, then returns to a normal conversation that opens with the AI disclosure', async ({ page }) => {
     const { dialog, state } = await completeToConfirmation(page);
@@ -251,4 +251,95 @@ test.describe('Gary contact flow from the Contact page', () => {
     const atConfirmation = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
     expect(atConfirmation.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
   });
+});
+
+// These exercise real browser lifecycle and transport failures. Provider/DB delivery remains mocked.
+test('refresh and reopening retain contact edits, consent and the exact failed confirmation', async ({ page }) => {
+  const { dialog, state } = await completeToConfirmation(page, ['http-error', 'sent']);
+  await expect(dialog.getByText('By choosing', { exact: false })).toBeVisible();
+  await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES, exact: true }).click();
+  await expect(dialog.getByRole('alert')).toBeVisible();
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  const resumed = page.getByRole('dialog', { name: DIALOG_NAME });
+  await expect(resumed.getByText(CONTACT_FLOW_PROMPTS.confirm)).toBeVisible();
+  await expect(resumed.getByRole('button', { name: 'Retry request' })).toBeVisible();
+  expect(state.calls.filter(c => c.action === 'start')).toHaveLength(1);
+  await resumed.getByRole('button', { name: 'Retry request' }).click();
+  await expect(resumed.getByText(TEXTS.sent)).toBeVisible();
+  expect(state.calls.filter(c => c.action === 'confirm')).toHaveLength(2);
+  await resumed.getByRole('button', { name: 'Close chat' }).click();
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText(TEXTS.sent)).toBeVisible();
+  expect(state.calls.filter(c => c.action === 'start')).toHaveLength(1);
+});
+
+test('refresh retains an unfinished name answer and does not send without consent', async ({ page }) => {
+  const { dialog, state, input } = await openFromContactPage(page);
+  await input.fill('A retained draft');
+  await dialog.getByRole('button', { name: 'Close chat' }).click();
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveValue('A retained draft');
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveValue('A retained draft');
+  expect(state.calls).toEqual([{ action: 'start', text: undefined, field: undefined }]);
+});
+
+test('an ordinary conversation can enter contact without losing its history', async ({ page }) => {
+  const state = await mockContactServer(page);
+  await gotoGaryReady(page, '/contact');
+  await page.getByRole('button', { name: 'Chat with Gary from Accounting', exact: true }).waitFor({ state: 'visible' });
+  await page.getByRole('button', { name: 'Chat with Gary from Accounting', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: DIALOG_NAME });
+  await expect(dialog.getByText(garyOpeningMessage(DISCLOSURE))).toBeVisible();
+  await dialog.getByRole('button', { name: 'Close chat' }).click();
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText(`${DISCLOSURE} ${CONTACT_FLOW_PROMPTS.name}`)).toBeVisible();
+  await expect(page.getByRole('dialog').getByText(garyOpeningMessage(DISCLOSURE))).toBeVisible();
+  expect(state.calls.map(c => c.action)).toEqual(['opening', 'start']);
+});
+
+test('a response from a closed panel cannot overwrite a new session', async ({ page }) => {
+  let release!: () => void;
+  const deferred = new Promise<void>(resolve => { release = resolve; });
+  let started = false;
+  await page.route('**/api/gary/message', async route => {
+    const body = route.request().postDataJSON();
+    if (body.contactFlow) {
+      started = true;
+      await deferred;
+      await route.fulfill({ json: { sessionId: 'stale-session', sessionCapability: 'stale-cap', reply: { text: 'Late response' } } }).catch(() => {});
+    } else {
+      await route.fulfill({ json: { sessionId: 'new-session', sessionCapability: 'new-cap', reply: { text: 'New opening' } } });
+    }
+  });
+  await gotoGaryReady(page, '/contact');
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect.poll(() => started).toBe(true);
+  await page.getByRole('button', { name: 'Close chat' }).click();
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await page.getByRole('button', { name: 'Start Over', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText('New opening')).toBeVisible();
+  release();
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('gary-session-id'))).toBe('new-session');
+  await expect(page.getByText('Late response', { exact: true })).toHaveCount(0);
+});
+
+test('timeout retains the request and never claims delivery or resends automatically', async ({ page }) => {
+  await page.clock.install();
+  let calls = 0;
+  await page.route('**/api/gary/message', async route => { calls++; await new Promise<void>(resolve => page.once('close', () => resolve())); await route.abort().catch(() => {}); });
+  await gotoGaryReady(page, '/contact');
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect.poll(() => calls).toBe(1);
+  await page.clock.fastForward(65_001);
+  const dialog = page.getByRole('dialog', { name: DIALOG_NAME });
+  await expect(dialog.getByRole('alert')).toContainText('delivery is not confirmed');
+  await expect(dialog.getByRole('button', { name: 'Retry request' })).toBeVisible();
+  await page.clock.fastForward(65_001);
+  expect(calls).toBe(1);
+  await expect(dialog.getByText(TEXTS.sent)).toHaveCount(0);
 });
