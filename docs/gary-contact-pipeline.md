@@ -596,3 +596,64 @@ prior denied-storage physical-erasure limitations remain. No push/CI/retry, spen
 access/security change, production operation, real send/model, merge or approval assumed.
 Billing/remaining prior budget stay unverified. Preserve a safe checkpoint and stop by
 31October01:00UTC (30October21:00Eastern); no overnight implementation scheduled.
+
+## Focused frontend performance reduction — 30 October 2026
+
+Distinct local performance branch local/gary-performance-20261030 preserves exact composition
+7c242ddb8ea8e8fa159622666be01ed2b4226f46 and original26e4bf59. Rebuilt7c to retain an
+actual production chunk after the earlier development rehearsal replaced .next. Same installed
+dependencies/Node default gzip:4628bytes reproduced. No package/config/backend/CC change.
+
+Attribution is bounded rather than pretending gzip is additive. Exact production token
+ablations (never shipped or run as application candidates) remove five new status-copy
+literals for a marginal222gzipbytes, or the envelope-construction expression for127bytes.
+The latter includes metadata that existed before replay and is not a net incremental total.
+Pinned7c TS+Terser diagnostic ablations additionally indicate202bytes for new response status
+handling (including copy) and108bytes for contact-pending state/restore/coalescing. Those use
+a different isolated compilation model; do not add them to the actual chunk figures or call
+any deletion safe. Actual output also retains unused contactOutcomeTexts('Easy AI') execution
+and six outcome strings. Diagnostic removal saves295bytes at7c, but this initialization was
+ALREADY present at26e4bf59 (300byte marginal there): it is an existing tree-shaking opportunity,
+not an explanation for the new653byte growth. Actual PURE-hint build proof is still required.
+Raw chunks, scripts and attribution JSON remain under `/workspace/work/gary-*attribution*`.
+
+Small safe frontend reduction: destructure the same allowlisted request fields and let JSON
+omit undefined values rather than emitting three conditional spreads; preserve an existing
+frozen envelope untouched. Reuse identical warning constants; consolidate duplicated JSON
+parsing code while retaining one read per response and both unmount guards. Remove obsolete
+catch message dispatch (the function no longer throws those session-error strings). Shorten
+status wording while retaining uncertainty, explicit same-request retry, legacy duplicate
+risk, and the fact that Start Over does not cancel the earlier operation. Share the honest
+unknown-outcome warning for restoration/failure. No identity/status/consent check removed,
+no automatic retry, and no visual/style/animation change. Intermediate actual builds4612and
+4587bytes are preserved; the final candidate is4500gzip/12503raw vs4628gzip/13320raw:
+-128gzip(-2.77%) and-817raw. Same-inventory initialJS161372→161371(-1), CSS13991unchanged;
+activatedJS166000→165871(-129). No runtime/field latency improvement is claimed.
+
+Focused final production acceptance30/30 desktop+390px covers the affected envelope, legacy,
+terminal/recoverable status and contact controls, plus new malformedJSON200/409/503 and late
+error-body completion after unmount. An additional upgrade-only case2/2 proves a7c-frozen
+envelope retains its original field order/credentials/metadata byte-for-byte despite newer
+current state. Copy-specific assertion was strengthened to require unknown outcome AND
+unconfirmed delivery; payload/no-auto-dispatch assertions remain. Types and production build
+with lint pass. No full suite, prior5PostgreSQLcases or unchanged StrictMode check rerun.
+Existing independent reviewer checked source/actual4628→4500artifacts; final exact review
+is recorded through the existing PR once committed. Prior formal/security coverage remains
+prior-candidate coverage; this is not operational or final security acceptance.
+
+Performance gate remains OPEN:3975→4500(+525,+13.21%) vs26e4bf59; initial/activated aggregate
+context does not waive the standalone or older cumulative gate. Shared-file owner request
+[6533387040](https://github.com/etoyig-png/mr-life-command-center/pull/58#issuecomment-6533387040)
+asks for a reviewed one-line PURE annotation on the literal pure initialization. No shared
+file was edited without its owner; acknowledgment/artifact and actual build measurement remain
+pending. Do not replace it with duplicated constants, a module split or bundle rewriting.
+
+Founder consumer artifact6532977340 was extracted/verified11939bytes SHA256
+f69590fd03d8054d4a47318a910b2317596b74bd708f286bdaf96aad5dc660ab; no CC edit. Its described
+interface aligns. [Paired questions6533293136](https://github.com/etoyig-png/mr-life-command-center/pull/58#issuecomment-6533293136)
+ask about server transcript vs visible confirmation/coalesced status representation, durable
+consent association, and post-contact ordinary turns visible after explicit founder reload.
+Backend owns that paired fullchain. No duplicated PG proof, CI-triggering push/retry, spend,
+settings/access/security configuration, production/provider/send/model/merge/approval action.
+Billing/remaining prior budget remain unverified. Safe checkpoint and stop by01:00UTC31October;
+no overnight implementation scheduled.

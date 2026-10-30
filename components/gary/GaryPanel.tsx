@@ -49,6 +49,12 @@ interface ConversationSnapshot {
   pending: PendingRequest | null; hasContactFlow: boolean; contactPending?: boolean;
 }
 
+const BLOCKED_REQUEST = 'This request cannot be retried safely here. It is kept in this tab. Start Over opens another chat; it does not cancel this request.';
+
+const LEGACY_REQUEST = 'This older request has no replay protection. Its outcome is unknown; retrying may repeat it.';
+
+const UNCONFIRMED_REQUEST = 'The outcome is unknown. Your request is kept here; delivery is not confirmed. Retry the same request when ready.';
+
 export type GaryIntent = 'contact' | null;
 
 export default function GaryPanel({ onClose, initialIntent = null }: { onClose: () => void; initialIntent?: GaryIntent }) {
@@ -92,7 +98,8 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
   useFocusTrap(panelRef, true, onClose);
 
   async function sendToGary(payload: PendingRequest, retry = false) {
-    if (busyRef.current || payload.retryBlocked) return;
+    const { requestEnvelope, retryBlocked, message, optionSelected, contactFlow } = payload;
+    if (busyRef.current || retryBlocked) return;
     busyRef.current = true;
     setSending(true);
     const controller = new AbortController();
@@ -103,14 +110,12 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
       const sessionId = getStoredSessionId();
       // Persist the original envelope once. Retry must not acquire new credentials or
       // page metadata; legacy dispatched snapshots must not gain a new request identity.
-      const envelope: RequestEnvelope = payload.requestEnvelope ?? {
+      const envelope: RequestEnvelope = requestEnvelope ?? {
+        message, optionSelected, contactFlow,
         ...(sessionId ? { sessionId, sessionCapability: getStoredSessionCapability() ?? undefined } : {}),
         anonymousId: getOrCreateAnonymousId(), currentPage: pathname,
         referrer: document.referrer || undefined,
-        ...(payload.message !== undefined ? { message: payload.message } : {}),
-        ...(payload.optionSelected !== undefined ? { optionSelected: payload.optionSelected } : {}),
-        ...(payload.contactFlow ? { contactFlow: payload.contactFlow } : {}),
-        ...(!retry && !payload.contactFlow ? { requestId: crypto.randomUUID() } : {}),
+        ...(!retry && !contactFlow ? { requestId: crypto.randomUUID() } : {}),
       };
       const saved = { ...payload, requestEnvelope: envelope };
       setPending(saved);
@@ -121,32 +126,31 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(envelope),
       });
       if (!mountedRef.current) return;
+      const data = await response.json().catch(() => null) as (MessageApiResponse & { outcome?: string }) | null;
+      if (!mountedRef.current) return;
       if (!response.ok) {
-        const failure = await response.json().catch(() => ({})) as { outcome?: string };
-        if (!mountedRef.current) return;
+        const outcome = data?.outcome;
         const blocked = response.status === 403 || response.status === 410 ||
-          (response.status === 409 && failure.outcome !== 'pending') ||
-          ['conflict', 'indeterminate', 'expired'].includes(failure.outcome ?? '');
+          (response.status === 409 && outcome !== 'pending') ||
+          ['conflict', 'indeterminate', 'expired'].includes(outcome ?? '');
         if (blocked) {
           const stopped = { ...saved, retryBlocked: true };
-          if (mountedRef.current) setPending(stopped);
+          setPending(stopped);
           storeConversation({ ...recoveryRef.current, pending: stopped });
         }
-        const text = failure.outcome === 'pending'
-          ? 'Your original request is still pending or its outcome is uncertain. Wait a moment, then retry the same request to check. Nothing has been resent automatically.'
-          : failure.outcome === 'unavailable'
-            ? 'Gary could not access the saved request. Your original request is kept here; retry it when you are ready.'
+        const text = outcome === 'pending'
+          ? 'Your original request is still pending or uncertain. Wait a moment, then retry the same request to check.'
+          : outcome === 'unavailable'
+            ? 'Gary could not access the saved request. Retry it when ready.'
             : blocked
-              ? 'This request cannot be retried safely here. Its reference is kept in this tab. Start Over begins a separate conversation; it does not cancel the earlier request.'
+              ? BLOCKED_REQUEST
               : retry && !envelope.requestId && !envelope.contactFlow
-                ? 'This older request has no replay protection. Its earlier outcome is unknown; retrying may repeat it.'
-                : 'Something went wrong. Your request is kept here. Retry it when you are ready; delivery is not confirmed.';
-        if (mountedRef.current) setError(text);
+                ? LEGACY_REQUEST
+                : UNCONFIRMED_REQUEST;
+        setError(text);
         return;
       }
-      const data: MessageApiResponse = await response.json();
-      if (!mountedRef.current) return;
-      if (!data.sessionId || typeof data.reply?.text !== 'string') throw new Error('Invalid Gary response');
+      if (!data?.sessionId || typeof data.reply?.text !== 'string') throw new Error('Invalid Gary response');
       storeSessionId(data.sessionId);
       if (data.sessionCapability) storeSessionCapability(data.sessionCapability);
       setMessages((prev) => {
@@ -167,9 +171,8 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
         setContactDraft(null);
         setContactPlaceholder(null);
       }
-    } catch (failure) {
-      if (!mountedRef.current) return;
-      setError(failure instanceof Error && failure.message.startsWith('This session') ? failure.message : 'Something went wrong. Your request is kept here. Retry it when you are ready; delivery is not confirmed.');
+    } catch {
+      if (mountedRef.current) setError(UNCONFIRMED_REQUEST);
     } finally {
       window.clearTimeout(timeout);
       busyRef.current = false;
@@ -203,10 +206,10 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
           void sendToGary({ contactFlow: { action: 'start' } });
         }
         if (saved.pending) setError(saved.pending.retryBlocked
-          ? 'This request cannot be retried safely here. Its reference is kept in this tab. Start Over begins a separate conversation; it does not cancel the earlier request.'
+          ? BLOCKED_REQUEST
           : !saved.pending.requestEnvelope?.requestId && !saved.pending.contactFlow
-            ? 'This older request has no replay protection. Its earlier outcome is unknown; retrying may repeat it.'
-            : 'Your previous request may still have been processed. Delivery is not confirmed. Your original request is kept here.');
+            ? LEGACY_REQUEST
+            : UNCONFIRMED_REQUEST);
         return;
       }
       if (initialIntent === 'contact') {

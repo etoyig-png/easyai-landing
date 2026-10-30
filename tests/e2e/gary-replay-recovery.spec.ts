@@ -107,3 +107,99 @@ test('legacy dispatched snapshot stays explicitly unprotected and never gains a 
   expect(requests).toHaveLength(1);
   expect(requests[0]).not.toHaveProperty('requestId');
 });
+
+for (const status of [200, 409, 503]) {
+  test(`invalid JSON ${status} preserves unknown outcome and the intended request`, async ({ page }) => {
+    const requests: string[] = [];
+    await page.route('**/api/gary/message', async route => {
+      requests.push(route.request().postData()!);
+      await route.fulfill({ status: requests.length === 1 ? status : 200, contentType: 'application/json',
+        body: requests.length === 1 ? '{invalid' : JSON.stringify(opening) });
+    });
+    await gotoGaryReady(page);
+    await page.getByRole('button', { name: DIALOG, exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('alert')).toContainText(status === 409 ? 'cannot be retried safely' : 'outcome is unknown');
+    expect(await page.evaluate(() => sessionStorage.getItem('gary-session-id'))).toBeNull();
+    expect(requests).toHaveLength(1);
+    if (status === 409) {
+      await expect(dialog.getByRole('button', { name: 'Retry request' })).toHaveCount(0);
+    } else {
+      await expect(dialog.getByRole('alert')).toContainText('delivery is not confirmed');
+      await dialog.getByRole('button', { name: 'Retry request' }).click();
+      await expect(dialog.getByText('Fixture opening.')).toBeVisible();
+      expect(requests).toHaveLength(2);
+      expect(requests[1]).toBe(requests[0]);
+    }
+  });
+}
+
+test('unmounted error-body completion cannot overwrite replacement request recovery', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = window.fetch.bind(window);
+    let first = true;
+    window.fetch = async (input, init) => {
+      const response = await original(input, init);
+      if (!String(input).endsWith('/api/gary/message') || !first) return response;
+      first = false;
+      const read = response.json.bind(response);
+      response.json = async () => {
+        const body = await read();
+        await new Promise<void>(resolve => Object.assign(window, { releaseErrorBody: resolve, errorBodyWaiting: true }));
+        return body;
+      };
+      return response;
+    };
+  });
+  let calls = 0;
+  await page.route('**/api/gary/message', async route => {
+    calls++;
+    await route.fulfill({ status: calls === 1 ? 409 : 200, contentType: 'application/json',
+      body: JSON.stringify(calls === 1 ? { outcome: 'conflict' } : { ...opening, sessionId: 'replacement-session' }) });
+  });
+  await gotoGaryReady(page);
+  await page.getByRole('button', { name: DIALOG, exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { errorBodyWaiting: boolean }).errorBodyWaiting)).toBe(true);
+  await page.getByRole('button', { name: 'Close chat' }).click();
+  await page.getByRole('button', { name: DIALOG, exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Start Over', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText('Fixture opening.')).toBeVisible();
+  const saved = await page.evaluate(() => sessionStorage.getItem('gary-conversation-v1'));
+  await page.evaluate(() => (window as unknown as { releaseErrorBody: () => void }).releaseErrorBody());
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  expect(await page.evaluate(() => sessionStorage.getItem('gary-session-id'))).toBe('replacement-session');
+  expect(await page.evaluate(() => sessionStorage.getItem('gary-conversation-v1'))).toBe(saved);
+  await expect(page.getByRole('dialog').getByRole('alert')).toHaveCount(0);
+  expect(calls).toBe(2);
+});
+
+test('a protected envelope saved before the optimization is replayed byte-for-byte on upgrade', async ({ page }) => {
+  // Preserve 7c242dd's property order, rather than constructing an envelope with the new code.
+  const original = { sessionId: 'old-session', sessionCapability: 'old-capability', anonymousId: 'old-anonymous',
+    currentPage: '/', referrer: 'https://example.test/original', message: 'Original question',
+    optionSelected: 'Original question', requestId: '66666666-6666-4666-8666-666666666666' };
+  await page.addInitScript(({ original }) => {
+    sessionStorage.setItem('gary-session-id', 'old-session');
+    sessionStorage.setItem('gary-session-capability', 'unrelated-new-capability');
+    localStorage.setItem('gary-anonymous-id', 'unrelated-new-anonymous');
+    sessionStorage.setItem('gary-conversation-v1', JSON.stringify({ savedAt: Date.now(), sessionId: 'old-session',
+      snapshot: { messages: [{ id: 'old-visitor', role: 'visitor', text: 'Original question' }], options: [], input: '',
+        offerAssessment: false, choosingChange: false, contactPlaceholder: null, contactDraft: null, hasContactFlow: false,
+        pending: { message: original.message, optionSelected: original.optionSelected, requestEnvelope: original } } }));
+  }, { original });
+  const requests: string[] = [];
+  await page.route('**/api/gary/message', async route => {
+    requests.push(route.request().postData()!);
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...opening,
+      sessionId: 'old-session', reply: { text: 'Upgraded replay recovered.' } }) });
+  });
+  await gotoGaryReady(page, '/about');
+  await page.getByRole('button', { name: DIALOG, exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('button', { name: 'Retry request' })).toBeVisible();
+  expect(requests).toHaveLength(0);
+  await dialog.getByRole('button', { name: 'Retry request' }).click();
+  await expect(dialog.getByText('Upgraded replay recovered.')).toBeVisible();
+  expect(requests).toEqual([JSON.stringify(original)]);
+  await expect(dialog.getByText('Original question', { exact: true })).toHaveCount(1);
+});

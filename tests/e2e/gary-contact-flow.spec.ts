@@ -199,7 +199,8 @@ test.describe('Gary contact flow from the Contact page', () => {
   test('a failed confirmation preserves disabled controls and explicitly retries the same draft', async ({ page }) => {
     const { dialog, state } = await completeToConfirmation(page, ['http-error', 'sent']);
     await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
-    await expect(dialog.getByText('Something went wrong.', { exact: false })).toBeVisible();
+    await expect(dialog.getByRole('alert')).toContainText('outcome is unknown');
+    await expect(dialog.getByRole('alert')).toContainText('delivery is not confirmed');
     await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_YES })).toBeDisabled();
     await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_CHANGE })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Retry request' }).click();
