@@ -361,3 +361,102 @@ not field LCP/CLS/INP, real model/API latency or proof of a universal<=5%runtime
 The broad browser run's expected unauthorized local-DB logs came from layout tests that
 open the panel without a reply fixture; those logs are not real successful Gary journeys.
 The pending-contact concurrency failure remains separate from every passing inventory.
+
+## Controlled founder launch continuation — 30 October 2026
+
+Toy's latest instruction replaces Claude with an existing separate Codex Cloud backend/email
+assignment on CC PR58. Do not wait for Claude or create a replacement Cloud task. Frontend
+source remains exactly61f135e/runtime2b096cc; no unchanged lint/type/unit/browser/build suite
+was rerun in this continuation. Current remote CC candidate remains04cbd80. Its latest
+CI41065340114/job124094993563 had zero steps: GitHub's annotation says payments/spending
+limit prevented startup. This is neither a test failure nor proof the Cloud assignment began.
+No new Cloud start/session acknowledgment is visible in the PR discussion. This session has
+no Codex task-session tool, Command Center MCP or runtime bearer binding. The only team agent
+visible here is the existing independent frontend reviewer; it is not the backend assignment.
+
+Dependency delivery is verified on the existing [CC PR58 packet](https://github.com/etoyig-png/mr-life-command-center/pull/58#issuecomment-6528805273),
+with its [portable real-PostgreSQL failing reproduction](https://github.com/etoyig-png/mr-life-command-center/pull/58#issuecomment-6528973801).
+Acknowledgment is pending. The packet carries CompanyIQ, request replay, founder history,
+pending-contact recovery and email→incoming reply→approved follow-up requirements. The single
+routing action is to have the already-created backend Cloud assignment read that packet and
+acknowledge its task/session ID and boundary ownership. Toy need not rewrite the requests.
+Frontend owns components, browser recovery and frontend tests; backend owner must exclusively
+coordinate website API/server types, DB/auth/security and email changes before shared edits.
+No overlapping backend edit or paid workflow dispatch was made.
+
+Supported static-analysis alternative completed: Semgrep OSS1.183.0, community rules pinned
+at16b9e6d45f10649f6a531ec4838ed9924372c3bc, local configs/OSS mode/metrics off.426rules ran
+on9tracked frontend files with zero reported parse errors. Independent per-result triage
+classified11internationalization recommendations and18false positives in valid interpolated
+JSON diagnostic messages as not actionable for security/correctness. All29were INFO; the
+scanner's generic “blocking” label is not vulnerability validation. CSS received only generic
+rules; this is scoped OSS coverage, not a formal Codex scan, full backend audit or security-clean
+release claim. No app dependency changed. Raw output/log: `/workspace/work/gary-semgrep.*`.
+
+Performance follow-up reused the existing baseline18cac7e and final2b096cc production builds,
+with no rebuild.390px,150msRTT,200000B/s download,75000B/s upload,4×CPU; fresh contexts,
+interleaved pairs and captured API only. The first10pair automation-wait measure was noisy
+(~±500ms), so retained it but changed diagnosis: timestamp the reply's visible DOM insertion
+inside a MutationObserver before Playwright's wait returns.20new pairs, conventional medians:
+click→replyDOM392.70→397.25ms(+1.16%), nearest-rankp95426.9→428.4ms; navigation
+1281.90→1285.90ms(+0.31%). All40openings made one fixture API request. Pair differences
+range−44.8..+40.1ms, so this cannot prove a universal5%bound. The zero encoded-resource timing
+values were unusable and excluded. Actual gzip artifacts remain the byte comparison.
+
+Actual long-transcript recovery measured event capture→React/effect→JSON serialization→
+sessionStorage completion on the final runtime, with79synthetic messages/39500text characters,
+~43.5KBsnapshot,4×CPU,20keystrokes at390px and20at1440px. No API calls during typing.
+390pxmedian4.65ms,p9510.1ms,max14.3ms;1440pxmedian3.8ms,p957.4ms,max7.4ms.
+This measures recovery completion, not paint/INP, field performance or a percentage comparison
+to a baseline that lacks recovery. The standalone panel+29.24% remains surfaced; initial
+JS+0.44% and activated aggregate+1.08% are relevant total-load context, not permission to erase
+that increase or waive the existing rule. Performance/release acceptance remains open.
+Raw samples/scripts remain `/workspace/work/gary-mobile-event-*` and `gary-long-recovery-*`.
+
+### One controlled founder launch candidate and order (not release authorization)
+
+Current provisional source pair: website61f135e and CC04cbd80. The pair is NOT release-ready:
+backend corrections, acknowledgment and exact independent review must replace/freeze the
+backend candidate first. Freeze both full SHAs and one writer per shared boundary before
+integration; retain approved frontend/record identities. Use only Toy's controlled journey,
+not public traffic, customer onboarding or unrelated platform completion as a prerequisite.
+
+1. Backend owner verifies actual project/tenant identities, applied migration history, backups
+   and restore rehearsal. Website candidate has7migrations through20261028000000_server_only_tables;
+   compare actual history, never blindly execute the list. CC04cbd80's additive intake/mailbox/
+   classification/funnel SQL is owner-reviewed separately; unrelated website-builder/quick-capture
+   migrations are not automatic launch prerequisites. Preserve original records and pending outboxes.
+2. Reuse existing controlled storage/provider configuration. Shared variable target scope is a
+   risk to investigate, not proof of equal values or isolation. Preview's current provider guards
+   stay closed; do not relabel its environment or remove guards to make a rehearsal run. Backend
+   owner must prepare an exact permitted test path, existing Toy-controlled recipient/label,
+   nonsecret model ID/call bound/cost ceiling and applicable authorization evidence. No secrets
+   in Git/chat. Preserve configured sender; existing code expects mail.easyaiconsult.com. Customer-facing
+   result/follow-up Reply-To uses info@easyaiconsult.com; internal Gary/contact notification
+   Reply-To is the visitor email when supplied. Verify both directions and actual provider/domain
+   readiness; these role-specific expectations are not interchangeable.
+3. After exact reviews/checks and applicable migration/config/merge/deploy authorization,
+   release a compatible backend that accepts the old and new website contracts before the
+   website candidate. Keep delivery disabled or in its existing authorized allowlist mode until
+   verification. Do not enable unrestricted live mail or public onboarding for this proof.
+4. Verify exact deployed SHAs, then exercise actual desktop/mobile Gary: business questions,
+   approved knowledge provenance, follow-ups/memory, disclosure, honest unknowns, assessment
+   decline with ordinary chat, four contact steps with editing/consent, refresh/reopen/timeout/
+   delayed response/retry. Verify one logical request/contact and stable correlation IDs.
+5. Through real founder Command Center navigation, open the correct person/contact and full
+   conversation. Prove the intended outgoing email was received; reply from the authorized test
+   mailbox and match person/thread/Message-ID references. Review history and obtain explicit
+   founder approval for the exact follow-up before its one send; verify receipt and saved history.
+   A webhook201, provider acceptance, simulated reply or READY preview cannot substitute.
+6. Run independent-browser/session denial and failure-recovery checks without exposing another
+   visitor's data or duplicating messages. Monitor existing notification/outbox status, exhausted
+   retries, inbound signature rejection, unmatched thread/person, delivery failures and owned
+   alerts. Capture synthetic IDs/status/time only; redact personal content and capability tokens.
+
+Rollback proposal: stop authorized delivery/activation first, restore the prior compatible app
+pair through the existing release path, retain contact/history/receipt/outbox data and reconcile
+unknown sends before any retry. No automatic destructive migration rollback, credential rotation
+or DB replacement. Backend owner supplies exact rollback SQL only if necessary and approved.
+The existing authenticated laptop receiver is not exposed here. Local synchronization stays
+pending until an authorized release and verified receiver/clean designated checkout are available;
+never reset divergent/unpublished work or claim cloud/local SHA equality without verification.
