@@ -657,3 +657,58 @@ Backend owns that paired fullchain. No duplicated PG proof, CI-triggering push/r
 settings/access/security configuration, production/provider/send/model/merge/approval action.
 Billing/remaining prior budget remain unverified. Safe checkpoint and stop by01:00UTC31October;
 no overnight implementation scheduled.
+
+## Owner annotation and actual producer history capture — 30 October 2026
+
+The earlier PURE dependency is resolved: owner acknowledgment6533548947 authorizes ONLY the
+one-line literal-call annotation, website197819766c185c1c92b8661bc4dc905cc0fbc345.
+Extracted555byte patch SHA25688ab49e9bebf73b34fb4a53773e438161cbd667ff62f398da04483f4d9882530
+matches; original source blob19afd43bee18bf203fbd65ac54782dbcce0d0c15 verified before apply.
+Composed as runtime da8b7364ee74a50585ca9eb3e4a976d21dd8d676 over preservedbf461a9, with
+no other shared-file change. Actual Next build succeeds but retains initialization and four
+unused property reads. Panel is byte-identical tobf461a9:12503raw/4500gzip, SHA256
+a0a91762cda30ac2a3a2606bea6a13508afe6d39eb944101b3fd4492d9a55a97.
+Diagnostic295byte deletion did NOT occur; no saving/waiver credited. Standalone+13.21% versus
+3975baseline remains OPEN. Two targeted text cases and four desktop/390px UI cases pass;
+no unchanged full/32-case suite or prior five PostgreSQL cases rerun.
+
+Per backend capture contract6533549279/CC7567720, one NEW producer test ran with actual
+POST/outbox serialization/Prisma/GET handlers in the existing PostgreSQL16 loopback fixture.
+Fresh database in the same preserved container; cached Prisma5.22.0 and engine605197351a3c8bdd595af2d2a9bc3025bca48ea2.
+Seven existing SQL migrations applied withON_ERROR_STOP=1; raw log and hashes retained.
+Initial fixture selection mistakenly used session.createdAt rather than schema.startedAt:
+failed log/database preserved. Corrected fixture type-checks; fresh r2 database capture
+passes1/1 with five unrelated old cases filtered/skipped. No backend code/schema correction.
+
+Exact requested anonymousId/requestId derive session
+`gary-first-9e56b0aea8c0613677393b3ff90b23d609da31d247a2f9d8c0fe044e7548a4f2`.
+Actual serialized contact outbox envelope retained as website-sales.generated.json.contact
+{url,body}; consentGivenAt2026-10-30T21:26:55.293Z equals wire occurredAt, consentText is present,
+and session.identifiedContactId matches the sole Paired History Fixture contact/email.
+Fresh signed native GET returns200/no-store with nine ordered persisted visitor/Gary rows;
+post-contact ordinary turn plus captured reply gives eleven rows on a second fresh signed
+read. Each response matches every selected persisted row; unsignedGET401. This is route-level
+local evidence, not a deployed HTTP/hosted isolation proof. The server transcript intentionally
+need not reproduce UI-only confirmation or coalesced status bubbles; consent is a row fact.
+
+[Portable producer packet6533857218](https://github.com/etoyig-png/mr-life-command-center/pull/58#issuecomment-6533857218)
+contains54831bytes SHA256f60775cc5d99949bd229b3701edd411b527274e65709c7829313c27622738677.
+Nine files include exact wire, raw before/after responses+row facts, executed fixture source,
+terminal/failure output, source/runtime/schema/generated-client/engine/platform hashes and
+seven-migration log. Schemaf84f1ce77472f44fa9a3c647c35fcf4103e0d82f5388409f4dcb68471f188e31
+matches the backend contract; generated schema hash is separately recorded (whitespace-only
+source difference, no model mismatch). Each base64 file has its own byte count/SHA256.
+Actual HTTP text remains exact in response.body; standalone raw files add one artifact LF.
+No session capabilities/raw signatures/real credentials exported; fixture source contains
+explicitly synthetic test-only secrets. Prior timestamps must not be replayed as authorization.
+
+Existing independent reviewer verified owner patch, all packet file hashes, source, raw row
+comparisons and1capture/2text/4UI passing outputs. Adapter/reply pipeline/emailSDK and fetch201
+remain captured, not real services. Outbox deliveredAt is a simulated transport acknowledgment,
+NOT receiver settlement or inbox receipt. CC actual settlement/resultClientId and existing
+founder consumer before/after explicit load remain backend-owned and UNRUN here. Do not infer
+paired fullchain success from this producer proof. Native5-case proof was not duplicated.
+Fixture stopped with both failed/successful synthetic databases retained. No push/CI retry,
+spend, deployment/settings/access/security configuration, real provider/send/model/merge or
+approval authority assumed. Budget remains unverified. Preserve checkpoint; stop by01:00UTC
+31October/21:00Eastern30October, no overnight implementation scheduled.
