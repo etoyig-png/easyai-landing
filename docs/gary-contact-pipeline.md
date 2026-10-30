@@ -200,3 +200,21 @@ both sets. These small unthrottled samples are not field INP, launch acceptance 
 of a statistically meaningful latency delta. Real page-load/interaction verification remains
 a final-launch gate under Toy's provisional acceptance of the previously measured shared-JS,
 middleware and email-durability costs. Security and durability remain intact.
+
+
+### Cross-repository wire evidence
+
+The existing `lib/isolatedJourney.postgres.test.ts` fixture additionally exercises a
+correlated Gary contact and completed assessment, capturing the actual serialized
+outbox HTTP bodies. Set `ISOLATED_JOURNEY_WIRE_EXPORT` to a local output path alongside
+the existing isolated database configuration to export synthetic contract evidence.
+Only fixed loopback destinations are accepted by the capture stub; notifications and
+model responses stay mocked. The export contains no authorization headers.
+
+Command Center's existing native PostgreSQL/browser fixture consumes this capture in
+`tests/public-site/sales-follow-up.spec.ts`: saved assessment package, durable Gary Lead,
+explicit founder selection of that Lead for Sales and one follow-up task. Replays retain
+identity and do not demote the Prospect. This is producer capture plus receiver replay,
+not continuous hosted delivery or real email proof. The final producer check passed
+four cases; its optional browser case was not rerun because website UI/runtime did not
+change. Prior browser evidence remains separately credited. Types and lint passed.

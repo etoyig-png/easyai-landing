@@ -15,7 +15,11 @@ const fixture = vi.hoisted(() => {
   process.env.GARY_SESSION_CAPABILITY_SECRET = 'isolated-journey-fixture-only';
   for (const key of ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'RESEND_API_KEY', 'COMMAND_CENTER_WEBHOOK_URL',
     'COMMAND_CENTER_ASSESSMENT_SYNC_URL', 'EASY_AI_PUBLIC_FUNNEL_WEBHOOK_URL', 'PUBLIC_FUNNEL_WEBHOOK_URL', 'GARY_FUNNEL_WEBHOOK_URL', 'ASSESSMENT_NOTIFICATION_EMAIL', 'RESULT_EMAIL_REPLY_TO']) delete process.env[key];
-  return { pending: [] as Promise<unknown>[], inbox: [] as Record<string, unknown>[],
+  process.env.COMMAND_CENTER_ASSESSMENT_SYNC_URL = 'http://127.0.0.1:3199/assessments';
+  process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN = 'synthetic-capture';
+  process.env.GARY_FUNNEL_WEBHOOK_URL = 'http://127.0.0.1:3199/funnel';
+  process.env.GARY_FUNNEL_WEBHOOK_SECRET = 'synthetic-capture';
+  return { wire: [] as { url: string; body: string }[], pending: [] as Promise<unknown>[], inbox: [] as Record<string, unknown>[],
     send: vi.fn(), generate: vi.fn().mockResolvedValue('<p>Isolated saved opportunity plan.</p>') };
 });
 vi.mock('@vercel/functions', () => ({ waitUntil: (task: Promise<unknown>) => fixture.pending.push(task) }));
@@ -31,13 +35,25 @@ import * as options from './quizQuestions';
 import { internalRecipient } from './emailRouting';
 
 function request(path: string, body: unknown) {
-  return new NextRequest(`http://localhost${path}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': (body as { anonymousId?: string }).anonymousId === 'isolated-retry' ? '192.0.2.19' : '192.0.2.18' }, body: JSON.stringify(body) });
+  return new NextRequest(`http://localhost${path}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': (body as { anonymousId?: string }).anonymousId === 'isolated-retry' ? '192.0.2.19' : (body as { anonymousId?: string }).anonymousId === 'cross-repository-fixture' ? '192.0.2.20' : '192.0.2.18' }, body: JSON.stringify(body) });
 }
 async function settle() { while (fixture.pending.length) await Promise.all(fixture.pending.splice(0)); }
 
+function assessmentData() {
+  return { workSituation: options.WORK_SITUATION_OPTIONS[0], searchVisibility: options.SEARCH_VISIBILITY_OPTIONS[0],
+      aiChallenge: options.AI_CHALLENGE_OPTIONS[0], desiredOutcome: options.DESIRED_OUTCOME_OPTIONS[0], timeDrain: options.TIME_DRAIN_OPTIONS[0],
+      privacyConcern: options.PRIVACY_CONCERN_OPTIONS[0], industry: options.INDUSTRY_OPTIONS[0], leadResponse: options.LEAD_RESPONSE_OPTIONS[0],
+      websiteConversion: options.WEBSITE_CONVERSION_OPTIONS[0], firstName: 'Isolated', lastName: 'Fixture', businessName: 'Non-customer fixture',
+      email: 'assessment@example.test', noWebsite: true, consent: true, formLoadedAt: Date.now() - 5000 };
+}
+
 describe.skipIf(!process.env.ISOLATED_JOURNEY_DATABASE_URL)('isolated real routes/PostgreSQL with captured test inbox (not external delivery)', () => {
   beforeAll(() => {
-    vi.stubGlobal('fetch', vi.fn(() => { throw new Error('Unexpected outbound request in isolated journey'); }));
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit) => {
+      if (!['http://127.0.0.1:3199/assessments', 'http://127.0.0.1:3199/funnel'].includes(String(url))) throw new Error('Unexpected outbound request in isolated journey');
+      fixture.wire.push({ url: String(url), body: String(init.body) });
+      return new Response('{}', { status: 201 });
+    }));
     fixture.send.mockImplementation(async (message: Record<string, unknown>) => {
       expect(message.to).toBe('isolated-inbox@example.test');
       fixture.inbox.push(structuredClone(message));
@@ -47,11 +63,7 @@ describe.skipIf(!process.env.ISOLATED_JOURNEY_DATABASE_URL)('isolated real route
   afterAll(async () => { await settle(); await prisma.$disconnect(); vi.unstubAllGlobals(); });
 
   it('saves assessment result and two redirected notifications, protects status and deduplicates replay', async () => {
-    const data = { workSituation: options.WORK_SITUATION_OPTIONS[0], searchVisibility: options.SEARCH_VISIBILITY_OPTIONS[0],
-      aiChallenge: options.AI_CHALLENGE_OPTIONS[0], desiredOutcome: options.DESIRED_OUTCOME_OPTIONS[0], timeDrain: options.TIME_DRAIN_OPTIONS[0],
-      privacyConcern: options.PRIVACY_CONCERN_OPTIONS[0], industry: options.INDUSTRY_OPTIONS[0], leadResponse: options.LEAD_RESPONSE_OPTIONS[0],
-      websiteConversion: options.WEBSITE_CONVERSION_OPTIONS[0], firstName: 'Isolated', lastName: 'Fixture', businessName: 'Non-customer fixture',
-      email: 'assessment@example.test', noWebsite: true, consent: true, formLoadedAt: Date.now() - 5000 };
+    const data = assessmentData();
     const response = await assess(request('/api/assessment', data));
     expect(response.status).toBe(200);
     const accepted = await response.json();
@@ -209,5 +221,34 @@ describe.skipIf(!process.env.ISOLATED_JOURNEY_DATABASE_URL)('isolated real route
       expect(fixture.inbox).toHaveLength(before + 3);
     } finally { await browser.close(); }
   }, 30_000);
+
+  it('exports correlated website-generated assessment and Gary wire bodies for CC contract verification', async () => {
+    const notificationsBefore = fixture.inbox.length;
+    const modelCallsBefore = fixture.generate.mock.calls.length;
+    const anonymousId = 'cross-repository-fixture';
+    const opening = await gary(request('/api/gary/message', { anonymousId, contactFlow: { action: 'start' } }));
+    let body = await opening.json();
+    const identity = { anonymousId, sessionId: body.sessionId, sessionCapability: body.sessionCapability };
+    for (const text of ['Cross Repository Owner', 'cross-repository@example.test', 'Please arrange a human follow-up.']) {
+      body = await (await gary(request('/api/gary/message', { ...identity, contactFlow: { action: 'answer', draft: body.contactFlow.draft, text } }))).json();
+    }
+    const sent = await gary(request('/api/gary/message', { ...identity, contactFlow: { action: 'confirm', draft: body.contactFlow.draft } }));
+    expect((await sent.json()).contactFlow.done).toBe(true);
+    const input = { ...assessmentData(), businessName: 'Cross Repository Fixture', email: 'cross-repository@example.test', funnelCorrelationId: identity.sessionId };
+    const accepted = await (await assess(request('/api/assessment', input))).json();
+    expect(accepted.id).toBeTruthy();
+    await settle();
+    const assessment = fixture.wire.find(item => item.url.endsWith('/assessments') && JSON.parse(item.body).submissionId === accepted.id);
+    const contact = fixture.wire.find(item => item.url.endsWith('/funnel') && JSON.parse(item.body).eventType === 'contact.captured' && JSON.parse(item.body).sessionId === identity.sessionId);
+    expect(assessment).toBeTruthy(); expect(contact).toBeTruthy();
+    expect(JSON.parse(assessment!.body)).toMatchObject({ funnelCorrelationId: identity.sessionId, processingStatus: 'completed', emailDeliveryStatus: 'sent' });
+    expect(fixture.inbox).toHaveLength(notificationsBefore + 3);
+    expect(fixture.generate.mock.calls.length).toBe(modelCallsBefore + 1);
+    const exportPath = process.env.ISOLATED_JOURNEY_WIRE_EXPORT;
+    if (exportPath) {
+      const { writeFileSync } = await import('node:fs');
+      writeFileSync(exportPath, JSON.stringify({ provenance: 'Actual website route/Prisma/outbox serialization; synthetic visitor, captured notifications and deterministic model; HTTP acceptance captured, not external delivery', websiteRuntimeBase: 'f7d3a951a7f3e5dbf72907edb4ed956b5bd34ba1', assessment, contact }, null, 2));
+    }
+  });
 
 });
