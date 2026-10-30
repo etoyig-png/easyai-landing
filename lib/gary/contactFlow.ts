@@ -81,14 +81,14 @@ export const CONTACT_SENT_MARKER = 'contact-request:sent';
  */
 export function contactOutcomeTexts(brandName: string) {
   return {
-    sent: `Sent. Your message is with the ${brandName} team, and someone will reach out using the contact info you gave.`,
-    alreadySent: `That message already reached the ${brandName} team. If you want to add something, press Start Over and send a new one.`,
+    sent: `Your details are saved for the ${brandName} team, and the email provider accepted the notification.`,
+    alreadySent: `Your details are already saved for the ${brandName} team, and the email provider accepted the notification. If you want to add something, press Start Over and send a new one.`,
     limited: "I can't send another message from here right now. Please try again in a little while, or take the free assessment and we'll follow up.",
     failed: "I couldn't send that just now. Please try again in a moment.",
     // The contact and its handoff are saved; only the email to the team failed. Say exactly that.
     savedNotSent: `I've saved your details for the ${brandName} team, but the message itself didn't go through just now. Please press Yes, send it again in a moment.`,
     // A second confirmation arrived while the first is still being sent. Nothing is duplicated.
-    inProgress: "I'm sending that now. Give me a moment.",
+    inProgress: "Your details are saved and the notification is still pending. Please wait a moment, then press Yes, send it again to check or retry the same request.",
   } as const;
 }
 

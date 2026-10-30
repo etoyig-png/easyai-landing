@@ -1,3 +1,4 @@
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { waitUntil } from '@vercel/functions';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -28,6 +29,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const requestSchema = z.object({
+  requestId: z.string().uuid().optional(),
   sessionId: z.string().nullish(),
   sessionCapability: z.string().max(2048).nullish(),
   anonymousId: z.string().min(1),
@@ -57,7 +59,7 @@ const requestSchema = z.object({
 const NEUTRAL_INPUT = { options: undefined, freeText: true, placeholder: 'Type a message...' } as const;
 
 /** Records Gary's scripted turn in the transcript and shapes the response the panel expects. */
-async function respondWithContactFlow(sessionId: string, sessionCapability: string, reply: ContactFlowReply, done = false) {
+async function respondWithContactFlow(sessionId: string, sessionCapability: string, reply: ContactFlowReply, done = false, outcome?: string) {
   await prisma.publicChatMessage.create({
     data: { sessionId, role: 'gary', content: reply.text, model: 'contact-flow', optionPayload: reply.options ? (reply.options as never) : undefined },
   });
@@ -66,7 +68,7 @@ async function respondWithContactFlow(sessionId: string, sessionCapability: stri
     sessionCapability,
     reply: { text: reply.text, options: reply.options },
     offerAssessment: false,
-    contactFlow: { draft: reply.draft, freeText: reply.freeText, placeholder: reply.placeholder, done },
+    contactFlow: { draft: reply.draft, freeText: reply.freeText, placeholder: reply.placeholder, done, ...(outcome ? { outcome, retryable: !done } : {}) },
   });
 }
 
@@ -79,7 +81,7 @@ function toFlowRequest(input: NonNullable<z.infer<typeof requestSchema>['contact
   return { action: 'confirm', draft };
 }
 
-export async function POST(req: NextRequest) {
+async function executeMessage(req: NextRequest, opening = false, admitted = false) {
   let body: unknown;
   try {
     body = await readLimitedJson(req);
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
   const data = parsed.data;
 
   const ipAddress = getClientIp(req.headers);
-  if (await isGaryRateLimited(ipAddress)) {
+  if (!admitted && await isGaryRateLimited(ipAddress)) {
     return NextResponse.json({ error: 'Too many messages. Please try again later.' }, { status: 429 });
   }
 
@@ -104,10 +106,10 @@ export async function POST(req: NextRequest) {
   }
   // Load or create the session.
   let session = data.sessionId
-    ? await prisma.publicChatSession.findUnique({ where: { id: data.sessionId }, include: { messages: { orderBy: { createdAt: 'asc' } } } })
+    ? await prisma.publicChatSession.findUnique({ where: { id: data.sessionId }, include: { messages: { where: { role: { not: 'system' } }, orderBy: { createdAt: 'asc' } } } })
     : null;
 
-  const isNewSession = !data.sessionId;
+  const isNewSession = opening || !data.sessionId;
   if (data.sessionId && !session) return NextResponse.json({ error: 'Invalid session authorization' }, { status: 403 });
   if (!session) {
     session = await prisma.publicChatSession.create({
@@ -165,7 +167,7 @@ export async function POST(req: NextRequest) {
       case 'already-processed':
         return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.alreadySent }, true);
       case 'in-progress':
-        return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.inProgress }, true);
+        return respondWithContactFlow(session.id, capability, { ...reply, text: texts.inProgress }, false, 'pending');
       case 'limited':
         return respondWithContactFlow(session.id, capability, { ...reply, ...NEUTRAL_INPUT, text: texts.limited }, true);
       case 'changed-after-submit':
@@ -257,4 +259,73 @@ export async function POST(req: NextRequest) {
     reply: { text: reply.text },
     offerAssessment,
   });
+}
+
+
+/** Optional additive replay contract. The existing message primary key is the durable claim. */
+export async function POST(req: NextRequest) {
+  let raw: unknown;
+  try { raw = await readLimitedJson(req); } catch { return NextResponse.json({error:'Invalid or oversized request'}, {status:400}); }
+  const parsed = requestSchema.safeParse(raw);
+  if (!parsed.success) return NextResponse.json({error:'Invalid request'}, {status:400});
+  const data = parsed.data;
+  if (!data.sessionId && data.sessionCapability) return NextResponse.json({error:'Invalid session identity'},{status:400});
+  const request = (body: unknown) => new NextRequest(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(body)});
+  if (!data.requestId || data.contactFlow) return executeMessage(request(data));
+  if (data.sessionId && !verifySessionCapability(data.sessionCapability ?? '',data.sessionId)) return NextResponse.json({error:'Invalid session authorization'},{status:403});
+  const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  // A first-request UUID is a private replay capability, like the existing random session capability.
+  const sessionId = data.sessionId ?? `gary-first-${digest([getSiteConfig().siteKey,data.anonymousId,data.requestId])}`;
+  const receiptId = `gary-request-${digest([sessionId,data.requestId])}`;
+  const fingerprint = digest({...data,sessionCapability:undefined});
+  try {
+    const prior=await prisma.publicChatMessage.findUnique({where:{id:receiptId}});
+    if (!prior && await isGaryRateLimited(getClientIp(req.headers))) return NextResponse.json({error:'Too many messages. Please try again later.'},{status:429});
+    await prisma.$transaction(async tx => {
+      // Session and receipt commit together. A losing receipt insert rolls back all its writes.
+      if (!data.sessionId) await tx.publicChatSession.upsert({where:{id:sessionId},create:{id:sessionId,anonymousId:data.anonymousId,ipAddress:getClientIp(req.headers),currentPage:data.currentPage,referrer:data.referrer,utm:data.utm as never},update:{}});
+      await tx.publicChatMessage.create({data:{id:receiptId,sessionId,role:'system',content:'',responseValidationResult:{fingerprint,status:'pending',claimedAt:Date.now()}}});
+    });
+  } catch(error) {
+    if ((error as {code?:string}).code !== 'P2002') return NextResponse.json({error:'Request storage unavailable. Retry the same request identity.',outcome:'unavailable'},{status:503});
+    const existing = await prisma.publicChatMessage.findUnique({where:{id:receiptId}}).catch(()=>null);
+    if(!existing)return NextResponse.json({error:'Request storage unavailable. Retry the same identity.',outcome:'unavailable'},{status:503});
+    const receipt = existing?.responseValidationResult as {fingerprint?:string;status?:string;body?:unknown;httpStatus?:number;claimedAt?:number} | null;
+    if (receipt?.fingerprint !== fingerprint) return NextResponse.json({error:'Request identity conflicts with its saved contents',outcome:'conflict',requestId:data.requestId},{status:409});
+    if (receipt.status === 'complete' && !data.sessionId && !verifySessionCapability(String((receipt.body as {sessionCapability?:string})?.sessionCapability ?? ''),sessionId)) return NextResponse.json({error:'Saved session has expired. Start a new conversation.',outcome:'expired'},{status:410});
+    if (receipt.status === 'complete') return NextResponse.json(receipt.body,{status:receipt.httpStatus,headers:{'Cache-Control':'no-store'}});
+    if (receipt.claimedAt && Date.now()-receipt.claimedAt>60000) return NextResponse.json({error:'The original outcome is uncertain. Preserve this request reference for support; do not automatically resubmit.',outcome:'indeterminate',requestId:data.requestId},{status:409});
+    return NextResponse.json({error:'The original request is pending or its outcome needs recovery.',outcome:'pending',requestId:data.requestId},{status:409,headers:{'Retry-After':'3'}});
+  }
+  try {
+    if (!data.sessionId) waitUntil(enqueueFunnelEvent({eventType:'chat.session.started',idempotencyKey:`chat.session.started:${sessionId}`,payload:{sessionId,anonymousId:data.anonymousId,occurredAt:new Date().toISOString(),page:data.currentPage}}));
+    const response = await executeMessage(request({...data,sessionId,sessionCapability:data.sessionCapability ?? createSessionCapability(sessionId)}),!data.sessionId,true);
+    const body = await response.json();
+    await prisma.publicChatMessage.update({where:{id:receiptId},data:{responseValidationResult:{fingerprint,status:'complete',body,httpStatus:response.status}}});
+    return NextResponse.json(body,{status:response.status});
+  } catch {
+    // Never re-drive an uncertain provider call. The durable pending claim survives process loss.
+    return NextResponse.json({error:'The original request could not be completed safely.',outcome:'pending',requestId:data.requestId},{status:503});
+  }
+}
+
+
+/** Read-only server integration. Never accepts a visitor session capability as founder authority. */
+export async function GET(req: NextRequest) {
+  const secret=process.env.GARY_FUNNEL_WEBHOOK_SECRET;
+  if (!secret) return NextResponse.json({error:'History integration is not configured'},{status:503});
+  const sessionId=req.nextUrl.searchParams.get('sessionId') ?? '';
+  const email=req.nextUrl.searchParams.get('email') ?? '';
+  const stamp=req.headers.get('x-gary-history-timestamp') ?? '';
+  const signature=req.headers.get('x-gary-history-signature') ?? '';
+  if (!/^[A-Za-z0-9_-]{1,200}$/.test(sessionId) || !/^\d{13}$/.test(stamp) || Math.abs(Date.now()-Number(stamp))>60000 || !/^[a-f0-9]{64}$/.test(signature)) return NextResponse.json({error:'Unauthorized'},{status:401});
+  const expected=createHmac('sha256',secret).update(JSON.stringify(['gary-founder-history-v1',sessionId,email,stamp])).digest();
+  if (!timingSafeEqual(expected,Buffer.from(signature,'hex'))) return NextResponse.json({error:'Unauthorized'},{status:401});
+  const contact=await prisma.publicContact.findUnique({where:{sourceSessionId:sessionId}});
+  if (!contact || contact.siteKey!==getSiteConfig().siteKey || !contact.consentGivenAt || (email ? contact.emailNormalized?.toLowerCase()!==email.toLowerCase() : Boolean(contact.emailNormalized))) return NextResponse.json({error:'History not found'},{status:404});
+  const session=await prisma.publicChatSession.findUnique({where:{id:sessionId},select:{identifiedContactId:true}});
+  if (session?.identifiedContactId!==contact.id) return NextResponse.json({error:'History not found'},{status:404});
+  const messages=await prisma.publicChatMessage.findMany({where:{sessionId,role:{in:['visitor','gary']}},orderBy:[{createdAt:'asc'},{id:'asc'}],take:GARY_MAX_MESSAGES+1,select:{role:true,content:true,createdAt:true}});
+  if(messages.length>GARY_MAX_MESSAGES || messages.reduce((n,m)=>n+m.content.length,0)>GARY_MAX_TRANSCRIPT_CHARS) return NextResponse.json({error:'History exceeds the supported window'},{status:409});
+  return NextResponse.json({sessionId,messages},{headers:{'Cache-Control':'no-store'}});
 }
