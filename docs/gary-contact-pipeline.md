@@ -218,3 +218,29 @@ identity and do not demote the Prospect. This is producer capture plus receiver 
 not continuous hosted delivery or real email proof. The final producer check passed
 four cases; its optional browser case was not rerun because website UI/runtime did not
 change. Prior browser evidence remains separately credited. Types and lint passed.
+
+
+### Read-only assessment status recovery — 30 October 2026
+
+The completion page now offers “Check status again” after a failed status read,
+a failed delivery status, or exhaustion of its existing bounded pending poll. It
+revalidates the saved browser receipt/capability and only calls the existing status
+GET endpoint. It cannot resubmit, regenerate a result, resend email or invoke a model.
+Missing/expired receipts do not offer a recheck; provider acceptance still does not
+claim actual inbox receipt. Existing content, routing and layout remain intact apart
+from the small recovery control.
+
+Initial browser invocation used an invalid project name and did not run the app;
+the corrected desktop reproduction failed because the recovery control was absent.
+After implementation: five focused status-route tests, lint, types and build pass;
+all20completion-status browser cases pass across desktop and360/390/412px widths,
+including503→recheck→completed with twoGETs and zeroAPIwrites. No complete-suite rerun.
+Local203-rule scan:twointernationalization recommendations, zero parsererrors.
+Page-specificJS1.33→1.43kB(+100bytes,~7.5%); totalfirstload107→108kB(~0.93%)atprinted
+precision. This is measured bundle cost, not field-performance acceptance. Actual
+prelaunch load/interaction measurements remain open.
+
+Owner authorized up to$23additional Actions spend for the assignment. Billing/API
+visibility and enforcement remain unverified; no chargeable run or publication was
+triggered merely by recording that authorization. Existing report holds exact local
+and remote heads, recovery evidence and the remaining publication gate.

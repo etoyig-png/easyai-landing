@@ -10,7 +10,11 @@ const headings: Record<Status, string> = {
 };
 export default function AssessmentDeliveryStatus({ contactEmail }: { contactEmail: string }) {
   const [status, setStatus] = useState<Status>('checking');
+  const [checkAttempt, setCheckAttempt] = useState(0);
+  const [canRecheck, setCanRecheck] = useState(false);
   useEffect(() => {
+    setStatus('checking');
+    setCanRecheck(false);
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
     let controller: AbortController | undefined;
     let receipt: AssessmentReceipt;
@@ -32,14 +36,15 @@ export default function AssessmentDeliveryStatus({ contactEmail }: { contactEmai
         if (!['pending', 'completed', 'failed'].includes(body.status)) throw new Error('unknown status');
         if (!stopped) {
           setStatus(body.status);
+          setCanRecheck(body.status === 'failed' || (body.status === 'pending' && remaining === 1));
           if (body.status === 'pending' && remaining > 1) timer = setTimeout(() => void poll(remaining - 1), 5000);
         }
-      } catch { if (!stopped) setStatus('unknown'); }
+      } catch { if (!stopped) { setStatus('unknown'); setCanRecheck(true); } }
       finally { clearTimeout(timeout); }
     }
     void poll(24); // <=24 read-only calls; no re-generation, resend or paid call
     return () => { stopped = true; clearTimeout(timer); controller?.abort(); };
-  }, []);
+  }, [checkAttempt]);
   return <div aria-live="polite">
     <p className="section-label text-teal-300 mb-3">Assessment status</p>
     <h1 className="text-4xl md:text-5xl font-bold mb-4">{headings[status]}</h1>
@@ -50,6 +55,7 @@ export default function AssessmentDeliveryStatus({ contactEmail }: { contactEmai
             : status === 'checking' ? 'We are checking the saved submission, not assuming delivery.'
               : 'Delivery cannot be confirmed in this browser. If you submitted an assessment and need help, contact us.'}
     </p>
+    {canRecheck && <button type="button" className="block text-teal-200 underline my-4" onClick={() => setCheckAttempt(attempt => attempt + 1)}>Check status again</button>}
     {(status === 'failed' || status === 'unknown') && <Link className="text-teal-200 underline" href={`mailto:${contactEmail}`}>{contactEmail}</Link>}
   </div>;
 }
