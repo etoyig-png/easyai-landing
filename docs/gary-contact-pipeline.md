@@ -575,8 +575,8 @@ held established turn with five competitors produces pending then identical repl
 visitor write/provider attempt; held first-session reply behaves likewise; captured provider
 rejection stays pending then indeterminate with no regeneration; held contact lease stays
 recoverable after rejection and retries the same single durable contact. Real rate limits,
-capability checks, claim/settle and transactions run; only LLM/email/provider boundaries and
-waitUntil capture are replaced. External fetch throws. Fixture stopped afterward; synthetic
+capability checks, claim/settle and transactions run. LLM adapter construction and the reply
+pipeline are mocked, email SDK send is captured and waitUntil promises are collected. External fetch throws. Fixture stopped afterward; synthetic
 rows preserved. This is local concurrency evidence, not hosted RLS, independent-instance crash
 recovery, real provider quality/delivery, Company IQ or the founder-visible journey.
 Source/log: `/workspace/work/gary-composition-real-postgres.test.ts` and `.log`.
