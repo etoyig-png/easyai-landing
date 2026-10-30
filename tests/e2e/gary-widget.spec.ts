@@ -1236,3 +1236,33 @@ test.describe('Homepage responsive images', () => {
     expect((await canvas.boundingBox())!.width).toBeGreaterThan(150);
   });
 });
+
+test('ordinary chat survives refresh without sharing recovery with another visitor tab', async ({ page, context }) => {
+  let requests = 0;
+  page.on('request', request => { if (request.url().endsWith('/api/gary/message')) requests++; });
+  const reply = 'Start with the handoff where the enquiry gets lost.';
+  const dialog = await openGary(page, { text: reply });
+  await dialog.getByRole('textbox').fill('My bakery keeps missing enquiries.');
+  await dialog.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(dialog.getByText(reply)).toBeVisible();
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
+  await page.clock.fastForward(6000);
+  await page.getByRole('button', { name: 'Chat with Gary from Accounting', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText(reply)).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('My bakery keeps missing enquiries.')).toBeVisible();
+  expect(requests).toBe(2);
+  const other = await context.newPage();
+  try {
+    let identity: unknown = 'not-requested';
+    await other.route('**/api/gary/message', async route => {
+      identity = route.request().postDataJSON().sessionId;
+      await route.fulfill({ json: { sessionId: 'other-session', sessionCapability: 'other-cap', reply: { text: 'A separate visitor opening' } } });
+    });
+    await gotoGaryReady(other, '/contact');
+    await other.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+    await expect(other.getByText('A separate visitor opening')).toBeVisible();
+    expect(identity).toBeNull();
+    await expect(other.getByText('My bakery keeps missing enquiries.')).toHaveCount(0);
+  } finally { await other.close(); }
+});
