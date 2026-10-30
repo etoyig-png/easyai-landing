@@ -59,6 +59,11 @@ export function internalRecipient(): string {
   return process.env.ASSESSMENT_NOTIFICATION_EMAIL ?? EASY_AI_CONTACT_EMAIL;
 }
 
+/** Contact requests retain the existing business inbox and configured notification target. */
+export function contactRecipient(): string {
+  return internalRecipient();
+}
+
 export type DeliveryDecision =
   | { allowed: true; to: string; redirected: boolean }
   | { allowed: false; reason: string };

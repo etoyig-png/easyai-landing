@@ -120,6 +120,11 @@ Independent source/runtime review verifies gradual phone entrance, native wheel-
 
 Verdict: PASS WITH WARNING for this review increment: SmartSite's approved standalone logo remains unavailable (existing text treatment retained), founder visual acceptance and inherited release/security/cumulative performance gates remain open. Production is not changed. Canonical task synchronization and user-computer mirror verification are not claimed. Production remains unchanged, draft PR17 stays stacked on feat/frontend-scroll-story. Inherited security/dependency/performance approval gates remain open; canonical Supabase reconciliation remains final-closure UNSYNCED.
 
+### Backend-reconciliation browser contract inventory, 2026-10-26
+
+The approved opening CTA is “Discover what’s possible” and navigates to `#introduction`; it is covered by the existing hero-clearance and keyboard/navigation tests. The assessment and “Start Your Consultation ↗” links now live in `#free-assessment`. Legacy Gary geometry tests must target those actual controls, scroll them into view, and retain zero-overlap, center-point hit testing, real-click navigation and the consultation-intent URL assertion. The retired “Book a Consultation” label and old `section.bg-navy-900.overflow-hidden` wrapper are not current homepage subjects.
+
+Two design contracts remain distinct from stale selectors. The old full-frame hero-video checks require `object-fit:contain`, an uncropped16:9 source and a bottom gap under60px. The current later-page human-conversation footage deliberately uses `object-fit:cover` and feathered edges with meaningful content after it. Its presence does not reinstate the old hero-video contract; those assertions remain retained and blocking rather than being silently mapped to the decorative subject. The old exact-green invariant also remains pinned to `rgb(22,163,74)` while the current homepage primary Gary CTA has the existing `#14783c` override. No palette expectation, geometry threshold, timeout or assertion has been relaxed to hide either contract conflict.
 
 ### Current founder correction: supplied SmartSite artwork and fictional report
 
@@ -135,6 +140,15 @@ Performance: previous delivered route/layout gzipJS107240+CSS13180=120420bytes; 
 
 Validation: production build/TypeScript, lint and417unit tests pass. Desktop24/24 passes, including new late-engine/no-replay/noJS and on-screen fictional-report checks. Mobile targeted30/30passes at360/390/412; combined54browser checks pass. Independent source/visual review covers startup order, noJS/missing-image/delayed-script fallbacks, Pause/Resume latch, logo glyph integrity, product marks/context graphics, and report screen fit at360/1440. Final exact-tree signoff is recorded in PR17; Chromium only, no Safari/field proof claimed. No assertions, timeouts or budgets relaxed. Canonical closure synchronization and production acceptance remain pending.
 
+### Current-subject browser contract reconciliation
+
+The backend-repair continuation explicitly authorizes resolving the retired-subject contracts while preserving Toy's latest design. This supersedes the earlier retained/blocking contract inventory; it does not restore retired artwork or alter runtime styles.
+
+The conversation footage is positively selected by `data-conversation-video`. Its required viewport matrix, useful-width floors, 16:9 wrapper/source tolerances, zero launcher/navigation overlap and horizontal-overflow budget remain. Tests scroll the footage into view before overlap checks. The approved `cover` presentation must retain matching source/wrapper geometry (aspect delta below .02), fill at least98% of the frame and retain the radial feather mask. The old hero-section gap subject becomes the actual video frame (absolute bottom gap below1px) and following people-copy spacing (nonnegative, below60px); meaningful people copy is not counted as empty space.
+
+Gary's chat button remains pinned to green600 `rgb(22,163,74)`. The distinct primary text CTA is pinned to the approved darker `rgb(20,120,60)` with white text and contrast at least4.5:1. No runtime palette change is made to force equality between different roles.
+
+The nine original responsive-image cases now positively require the current discovery/engagement laptop canvases and response phone, rather than conditionally skipping retired HVAC/electrician/chiropractic photographs. The seven original viewports,199px minimum width, viewport overflow budget,375px mobile width floor and landscape/portrait aspect checks remain; current logical ratios and decoded-source distortion checks describe the approved assets. The separate current-device suite remains additional coverage. Browser verification and any failures are recorded in the existing backend-repair evidence/report, not inferred from this contract migration.
 
 ### Current globe and brand-radiance refinement
 

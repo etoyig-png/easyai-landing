@@ -1,3 +1,4 @@
+import { gotoGaryReady, installGaryClock } from './garyReady';
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
@@ -42,7 +43,7 @@ async function mockGaryConversation(
 async function openGary(page: Page, followUp?: { text: string; options?: string[] }, offerAssessment?: boolean) {
   await mockGaryConversation(page, followUp, offerAssessment);
   await page.clock.install();
-  await page.goto('/');
+  await gotoGaryReady(page);
   await page.clock.fastForward(6000);
   const launcher = page.getByRole('button', { name: 'Chat with Gary from Accounting' });
   await expect(launcher).toBeVisible();
@@ -55,7 +56,7 @@ async function openGary(page: Page, followUp?: { text: string; options?: string[
 test.describe('Gary widget', () => {
   test('does not appear immediately on load, then appears after the launch delay', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await expect(page.getByRole('button', { name: 'Chat with Gary from Accounting' })).toBeHidden();
     await page.clock.fastForward(6000);
     await expect(page.getByRole('button', { name: 'Chat with Gary from Accounting' })).toBeVisible();
@@ -232,7 +233,7 @@ function firstIndexOf(sequence: string[], pose: string): number {
 test.describe('Gary character — appearance', () => {
   test('renders as a human illustrated character, not a robot/emoji/orb', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
     const svg = page.locator('.gary-character');
     await expect(svg).toBeVisible();
@@ -248,7 +249,7 @@ test.describe('Gary character — appearance', () => {
 
   test('"Hi! I\'m Gary from Accounting" is visibly displayed in the resting launcher, as real text', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.clock.fastForward(ROUTINE_TOTAL_MS + 200);
     await page.waitForTimeout(20);
     await expect(page.getByText("Hi! I'm Gary from Accounting", { exact: true })).toBeVisible();
@@ -256,7 +257,7 @@ test.describe('Gary character — appearance', () => {
 
   test('Gary appears beneath the chat button in the DOM/visual stack', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
     const button = page.getByRole('button', { name: 'Chat with Gary from Accounting' });
     const character = page.locator('.gary-character-wrap');
@@ -271,7 +272,7 @@ test.describe('Gary character — appearance', () => {
 test.describe('Gary character — locked animation routine', () => {
   test('plays jump -> wave -> point -> frustrated -> idea -> sign -> seated in that order, once per session', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     const sequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
 
     for (const pose of ['jump', 'wave', 'point', 'frustrated', 'idea', 'sign']) {
@@ -288,7 +289,7 @@ test.describe('Gary character — locked animation routine', () => {
 
   test('the sign reads exactly "The button. Up there." while held', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     let sawSign = false;
     let remaining = ROUTINE_START.sign + 500;
     while (remaining > 0 && !sawSign) {
@@ -308,13 +309,13 @@ test.describe('Gary character — locked animation routine', () => {
 
   test('the full routine runs only once per session — a later page load goes straight to seated', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     const firstLoadSequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
     expect(firstLoadSequence).toContain('jump'); // confirms it actually played the first time
 
     // A second page load within the same session (sessionStorage persists across page.goto in
     // the same tab/context) must never replay jump/wave/frustrated/sign — straight to seated.
-    await page.goto('/how-it-works');
+    await gotoGaryReady(page, '/how-it-works');
     const secondLoadSequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
     expect(secondLoadSequence, `sequence: ${secondLoadSequence.join(' -> ')}`).toEqual(['seated']);
   });
@@ -322,7 +323,7 @@ test.describe('Gary character — locked animation routine', () => {
   test('opening the chat mid-routine interrupts it and settles on seated', async ({ page }) => {
     await mockGaryConversation(page);
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     // Advance partway into the routine (well before it would naturally reach seated on its own).
     await page.clock.fastForward(LAUNCH_DELAY_MS + 1500);
     await page.waitForTimeout(20);
@@ -355,7 +356,7 @@ test.describe('Gary character — locked animation routine', () => {
   test('reduced motion shows a stable seated Gary with no jump/frustration/sign', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     const sequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
     // Reduced motion must never enter jump/wave/frustrated/idea/sign at all — seated the whole way.
     expect(sequence, `sequence: ${sequence.join(' -> ')}`).toEqual(['seated']);
@@ -366,7 +367,7 @@ test.describe('Gary character — locked animation routine', () => {
   test('idle glance loop is disabled while reduced motion is on', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.clock.fastForward(LAUNCH_DELAY_MS + 100);
     await page.waitForTimeout(20);
     await expect(page.locator('.gary-character')).toHaveAttribute('data-gary-idle', 'false');
@@ -385,7 +386,7 @@ test.describe('Gary character — mobile viewport usability', () => {
       await page.setViewportSize(viewport);
       await page.clock.install();
       await mockGaryConversation(page);
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
       const launcherRoot = page.locator('.fixed').last();
@@ -405,7 +406,7 @@ test.describe('Gary character — mobile viewport usability', () => {
   test('the sign text stays legible (not shrunk illegibly small) at the narrowest required viewport', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     let sawSign = false;
     let remaining = ROUTINE_START.sign + 500;
     while (remaining > 0 && !sawSign) {
@@ -427,9 +428,9 @@ test.describe('Gary character — mobile viewport usability', () => {
   });
 });
 
-// The hero's own "Book a Consultation" ghost button — the CTA the launcher was measured
-// overlapping on the shortest required viewport before the compact-mode fix.
-const HOMEPAGE_CTA_TEXT = 'Book a Consultation';
+// The approved consultation link now lives in the closing section. Keep testing its
+// actual accessible name and assessment intent rather than the retired hero copy.
+const HOMEPAGE_CTA_TEXT = 'Start Your Consultation ↗';
 
 test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
   const REQUIRED_MOBILE_VIEWPORTS = [
@@ -442,11 +443,11 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
     test(`the homepage CTA is not covered by the Gary launcher at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const cta = page.locator('main section').first().getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      const cta = page.locator('#free-assessment').getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
       await cta.scrollIntoViewIfNeeded();
       const ctaBox = await cta.boundingBox();
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
@@ -468,20 +469,19 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
     test(`the homepage CTA is fully clickable (not just visually clear) at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const cta = page.locator('main section').first().getByRole('link', { name: HOMEPAGE_CTA_TEXT });
+      const cta = page.locator('#free-assessment').getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
       await cta.scrollIntoViewIfNeeded();
       // elementFromPoint at the CTA's own center must resolve to the CTA itself, not the
       // launcher (or anything else) sitting on top of it — the strict version of "clickable".
       const ctaBox = await cta.boundingBox();
-      const resolvesToCta = await page.evaluate(
-        ([x, y]) => {
+      const resolvesToCta = await cta.evaluate(
+        (link, [x, y]) => {
           const el = document.elementFromPoint(x, y);
-          const link = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Book a Consultation'));
-          return el === link || (link ? link.contains(el) : false);
+          return el === link || (el ? link.contains(el) : false);
         },
         [ctaBox!.x + ctaBox!.width / 2, ctaBox!.y + ctaBox!.height / 2]
       );
@@ -495,7 +495,7 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
     test(`decorative Gary elements do not intercept pointer events at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
@@ -532,7 +532,7 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
     await mockGaryConversation(page);
     await page.setViewportSize({ width: 360, height: 800 });
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
     await page.waitForTimeout(20);
 
@@ -556,7 +556,7 @@ test.describe('Gary launcher — mobile CTA overlap and pointer-events', () => {
     await mockGaryConversation(page);
     await page.setViewportSize({ width: 360, height: 800 });
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
     await page.getByRole('button', { name: 'Chat with Gary from Accounting' }).click();
     const dialog = page.getByRole('dialog', { name: 'Chat with Gary from Accounting' });
@@ -575,7 +575,12 @@ function boxOverlapArea(a: { x: number; y: number; width: number; height: number
   return xOverlap * yOverlap;
 }
 
-test.describe('Gary launcher — hero video overlap', () => {
+test.describe('Gary launcher — current conversation video layout', () => {
+  test.beforeEach(async ({ page }) => {
+    await gotoGaryReady(page);
+    await expect(page.locator('[data-conversation-video]')).toHaveCount(1);
+  });
+
   // Required test matrix: narrowest phone through desktop. minUsefulWidth encodes "large enough
   // to be useful, not merely technically visible" — 180px at 360 and 200px at 390 are the
   // explicit floors; wider breakpoints get a floor comfortably below their actual rendered size
@@ -592,18 +597,20 @@ test.describe('Gary launcher — hero video overlap', () => {
   ];
 
   for (const viewport of REQUIRED_WIDTHS) {
-    test(`the hero video is not covered by the Gary launcher or nav at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    test(`the conversation video is not covered by the Gary launcher or nav at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
-      const video = page.locator('video').first();
+      const video = page.locator('[data-conversation-video]');
+      await video.scrollIntoViewIfNeeded();
+      await expect(video).toBeInViewport();
       const videoBox = await video.boundingBox();
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
       const navBox = await page.locator('header').first().boundingBox();
-      expect(videoBox, 'hero video not found').not.toBeNull();
+      expect(videoBox, 'conversation video not found').not.toBeNull();
       expect(launcherBox, 'launcher not found').not.toBeNull();
 
       expect(
@@ -616,12 +623,14 @@ test.describe('Gary launcher — hero video overlap', () => {
       ).toBe(0);
     });
 
-    test(`the hero video stays large enough to be useful (not a thumbnail) and keeps a true 16:9 frame at ${viewport.width}x${viewport.height}`, async ({
+    test(`the conversation video stays large enough to be useful (not a thumbnail) and keeps a true 16:9 frame at ${viewport.width}x${viewport.height}`, async ({
       page
     }) => {
       await page.setViewportSize(viewport);
-      await page.goto('/');
-      const video = page.locator('video').first();
+      await gotoGaryReady(page);
+      const video = page.locator('[data-conversation-video]');
+      await video.scrollIntoViewIfNeeded();
+      await expect(video).toBeInViewport();
       await expect(video).toBeVisible();
       const box = await video.boundingBox();
       expect(box!.width, `video was only ${box!.width}px wide`).toBeGreaterThanOrEqual(viewport.minUsefulWidth);
@@ -631,18 +640,20 @@ test.describe('Gary launcher — hero video overlap', () => {
 
     test(`no horizontal overflow at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
-      await page.goto('/');
+      await gotoGaryReady(page);
       const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       expect(scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
     });
   }
 
-  test('the hero video is not cropped: object-fit never crops a matching-aspect frame, and the rendered video fills its 16:9 wrapper with no letterboxing', async ({
+  test('the conversation video preserves its full 16:9 geometry inside the approved feathered frame', async ({
     page
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto('/');
-    const video = page.locator('video').first();
+    await gotoGaryReady(page);
+    const video = page.locator('[data-conversation-video]');
+    await video.scrollIntoViewIfNeeded();
+    await expect(video).toBeInViewport();
     await expect(video).toBeVisible();
     await video.evaluate(
       (el: HTMLVideoElement) =>
@@ -652,7 +663,7 @@ test.describe('Gary launcher — hero video overlap', () => {
         })
     );
 
-    // The source file itself is a genuine 1920x1080 (16:9) recording — confirms the "full frame
+    // The current source file itself is a genuine 960x540 (16:9) recording — confirms the "full frame
     // visible" requirement isn't just about the wrapper's shape matching the source by luck.
     const sourceDims = await video.evaluate((el: HTMLVideoElement) => ({
       videoWidth: el.videoWidth,
@@ -667,18 +678,22 @@ test.describe('Gary launcher — hero video overlap', () => {
       return {
         objectFit: getComputedStyle(el).objectFit,
         wrapperAspect: wrapperBox.width / wrapperBox.height,
-        // With matching aspect ratios and object-fit:contain, the rendered video box should fill
+        maskImage: getComputedStyle(wrapper).maskImage,
+        sourceAspect: (el as HTMLVideoElement).videoWidth / (el as HTMLVideoElement).videoHeight,
+        // With matching source/frame aspect ratios, the rendered video box should fill
         // its wrapper almost exactly — any meaningfully smaller box here would mean letterboxing,
         // which signals an aspect-ratio mismatch (i.e. the wrapper silently drifted off 16:9).
         renderedFillsWrapper: videoBox.width >= wrapperBox.width * 0.98 && videoBox.height >= wrapperBox.height * 0.98
       };
     });
 
-    // object-contain never crops, regardless of aspect match — this is the structural guarantee
-    // that the source frame is always fully visible, unlike the old object-cover.
-    expect(info.objectFit).toBe('contain');
+    // Cover does not geometrically crop a matching-aspect source. The approved radial
+    // mask feathers the edges deliberately; that is a separate presentation contract.
+    expect(info.objectFit).toBe('cover');
+    expect(info.maskImage).toContain('radial-gradient');
     expect(Math.abs(info.wrapperAspect - 16 / 9)).toBeLessThan(0.05);
-    expect(info.renderedFillsWrapper, `wrapper/video mismatch would show as letterboxing: ${JSON.stringify(info)}`).toBe(true);
+    expect(Math.abs(info.wrapperAspect - info.sourceAspect)).toBeLessThan(0.02);
+    expect(info.renderedFillsWrapper, `wrapper/video mismatch: ${JSON.stringify(info)}`).toBe(true);
   });
 
   // The two viewports the previous 58px-wide-thumbnail fix specifically failed on — checked
@@ -692,15 +707,17 @@ test.describe('Gary launcher — hero video overlap', () => {
     test(`Gary does not overlap either CTA button at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
+      const closingSection = page.locator('#free-assessment');
+      const greenCta = closingSection.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true });
+      const ghostCta = closingSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
+      await ghostCta.scrollIntoViewIfNeeded();
+      await expect(greenCta).toBeInViewport();
+      await expect(ghostCta).toBeInViewport();
       const launcherBox = await page.locator('.gary-launcher').boundingBox();
-      const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCta = heroSection.getByRole('link', { name: 'Start Your Free Assessment' });
-      const ghostCta = heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT });
-      await greenCta.scrollIntoViewIfNeeded();
       const greenBox = await greenCta.boundingBox();
       const ghostBox = await ghostCta.boundingBox();
 
@@ -708,21 +725,23 @@ test.describe('Gary launcher — hero video overlap', () => {
       expect(boxOverlapArea(ghostBox, launcherBox), `ghost CTA vs launcher: ${JSON.stringify({ ghostBox, launcherBox })}`).toBe(0);
     });
 
-    test(`the hero does not leave a large unexplained empty gap below the video at ${viewport.width}x${viewport.height}`, async ({
-      page
-    }) => {
+    test(`the conversation frame leaves no unexplained video gap at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
-      await page.goto('/');
-      const gap = await page.evaluate(() => {
-        const video = document.querySelector('video');
-        const heroSection = document.querySelector('section.bg-navy-900.overflow-hidden');
-        if (!video || !heroSection) return null;
-        return heroSection.getBoundingClientRect().bottom - video.getBoundingClientRect().bottom;
+      await gotoGaryReady(page);
+      const video = page.locator('[data-conversation-video]');
+      await video.scrollIntoViewIfNeeded();
+      await expect(video).toBeInViewport();
+      const gaps = await video.evaluate(el => {
+        const wrapper = el.parentElement!;
+        const copy = wrapper.nextElementSibling!;
+        return {
+          frameGap: Math.abs(wrapper.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom),
+          copyGap: copy.getBoundingClientRect().top - wrapper.getBoundingClientRect().bottom,
+        };
       });
-      expect(gap, 'hero section or video not found').not.toBeNull();
-      // The only mobile-only adjustment that can leave dead space is the small upward transform
-      // at the narrowest breakpoint — bounded well below anything that would read as unintentional.
-      expect(gap!).toBeLessThan(60);
+      expect(gaps.frameGap, 'video must fill its actual frame').toBeLessThan(1);
+      expect(gaps.copyGap, 'people copy must follow the frame').toBeGreaterThanOrEqual(0);
+      expect(gaps.copyGap, 'unexplained space before people copy').toBeLessThan(60);
     });
   }
 });
@@ -743,26 +762,31 @@ async function advanceToPose(page: Page, pose: string, budgetMs: number, stepMs 
 }
 
 test.describe('Gary launcher — chat button color/ring and universal sign/bubble composition', () => {
-  test('chat button uses the exact same green as the "Start Your Free Assessment" CTA', async ({ page }) => {
+  test('chat button and primary CTA retain their approved colors and readable CTA contrast', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
+    const cta = page.locator('#free-assessment').getByRole('link', { name: 'Start speaking with Gary', exact: true });
+    await cta.scrollIntoViewIfNeeded();
     const buttonBg = await page.evaluate(() => getComputedStyle(document.querySelector('.gary-chat-button')!).backgroundColor);
-    const ctaBg = await page.evaluate(() => {
-      const cta = Array.from(document.querySelectorAll('a')).find((a) => a.textContent?.includes('Start Your Free Assessment'));
-      return cta ? getComputedStyle(cta).backgroundColor : null;
-    });
-    expect(ctaBg, 'assessment CTA not found').not.toBeNull();
-    expect(buttonBg, `button: ${buttonBg}, CTA: ${ctaBg}`).toBe(ctaBg);
-    // Pin to the actual Tailwind green-600 value so a future change to either side that keeps
-    // them merely equal-to-each-other (but drifts off-brand) still fails loudly.
+    const ctaBg = await cta.evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(ctaBg, 'primary Gary CTA not found').not.toBeNull();
     expect(buttonBg).toBe('rgb(22, 163, 74)');
+    expect(ctaBg).toBe('rgb(20, 120, 60)');
+    const foreground = await cta.evaluate(el => getComputedStyle(el).color);
+    expect(foreground).toBe('rgb(255, 255, 255)');
+    const channels = [20, 120, 60].map(value => {
+      const channel = value / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    expect(1.05 / (luminance + 0.05), 'normal-size CTA text contrast').toBeGreaterThanOrEqual(4.5);
   });
 
   test('chat button remains clickable', async ({ page }) => {
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
     const button = page.getByRole('button', { name: 'Chat with Gary from Accounting' });
@@ -784,7 +808,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
   test('prefers-reduced-motion stops the silver ring rotating, without removing it', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
     const before = await page.evaluate(() => {
@@ -807,7 +831,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     test(`chat button stays above Gary using the desktop composition at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
       const buttonBox = await page.locator('.gary-chat-button').boundingBox();
@@ -828,7 +852,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
       const bubble = page.locator('.gary-speech-bubble');
@@ -851,7 +875,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
 
       const bubbleBox = await page.locator('.gary-speech-bubble').boundingBox();
@@ -876,20 +900,28 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
+      const closingSection = page.locator('#free-assessment');
+      const greenCta = closingSection.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true });
+      const ghostCta = closingSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
+      // Establish the scroll position before entering the short-lived sign pose.
+      await ghostCta.scrollIntoViewIfNeeded();
+      await expect(greenCta).toBeInViewport();
+      await expect(ghostCta).toBeInViewport();
       await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
-
       const signBox = await page.locator('.gary-sign-board').boundingBox();
-      const videoBox = await page.locator('video').first().boundingBox();
-      const heroSection = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCtaBox = await heroSection.getByRole('link', { name: 'Start Your Free Assessment' }).boundingBox();
-      const ghostCtaBox = await heroSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
+      // The retained legacy video assertion is not evidence that the new decorative
+      // conversation video meets the retired full-frame hero-video contract.
+      const hasVideo = (await page.locator('video').count()) > 0;
+      const videoBox = hasVideo ? await page.locator('[data-conversation-video]').boundingBox() : null;
+      const greenCtaBox = await greenCta.boundingBox();
+      const ghostCtaBox = await ghostCta.boundingBox();
       const buttonBox = await page.locator('.gary-chat-button').boundingBox();
       const faceBox = await page.locator('.gary-glasses').boundingBox();
 
       expect(signBox!.x).toBeGreaterThanOrEqual(-1);
       expect(signBox!.x + signBox!.width).toBeLessThanOrEqual(viewport.width + 1);
-      expect(boxOverlapArea(signBox, videoBox), `sign vs video: ${JSON.stringify({ signBox, videoBox })}`).toBe(0);
+      if (hasVideo) expect(boxOverlapArea(signBox, videoBox), `sign vs video: ${JSON.stringify({ signBox, videoBox })}`).toBe(0);
       expect(boxOverlapArea(signBox, greenCtaBox), `sign vs green CTA`).toBe(0);
       expect(boxOverlapArea(signBox, ghostCtaBox), `sign vs ghost CTA`).toBe(0);
       expect(boxOverlapArea(signBox, buttonBox), `sign vs button: ${JSON.stringify({ signBox, buttonBox })}`).toBe(0);
@@ -909,7 +941,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     test(`the sign still reads exactly "The button. Up there." at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
 
       const text = await page.locator('.gary-sign-copy').textContent();
@@ -921,7 +953,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await advanceToPose(page, 'signPoint', ROUTINE_START_SIGN_POINT + 500);
       // The arm rotates via a real CSS transition (transform 0.3s ease) — advanceToPose stops the
       // instant data-gary-pose flips to signPoint, which can be mid-transition from signPoint's
@@ -954,8 +986,8 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
       page
     }) => {
       await page.setViewportSize(viewport);
-      await page.clock.install();
-      await page.goto('/');
+      await installGaryClock(page);
+      await gotoGaryReady(page);
 
       // The exact >=5000ms hold duration is asserted directly against the routine's real source
       // values in lib/gary/routineSteps.test.ts (a unit test, not e2e) — a fake-clock e2e test
@@ -1015,7 +1047,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     test(`intro speech bubble is visible in the normal resting state at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       // Snapshot read, not a Locator assertion — see currentGaryPose's comment: under an
       // installed fake clock, auto-waiting assertions can stall on a rAF that never comes.
@@ -1027,7 +1059,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     }) => {
       await page.setViewportSize(viewport);
       await page.clock.install();
-      await page.goto('/');
+      await gotoGaryReady(page);
 
       // Each call resumes the clock from wherever the previous one left off, so the budget per
       // step is just that step's own hold duration (plus slack) — not the cumulative time from
@@ -1048,8 +1080,8 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
       page
     }) => {
       await page.setViewportSize(viewport);
-      await page.clock.install();
-      await page.goto('/');
+      await installGaryClock(page);
+      await gotoGaryReady(page);
       // Walk to the routine's LAST pose first. Going straight for 'seated' would be ambiguous:
       // advanceToPose stops at the first match, and 'seated' is also the pre-routine state and a
       // brief mid-routine beat — so it could "succeed" without the sign routine ever running,
@@ -1068,7 +1100,7 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
   test('reduced motion never enters signWave — no forced long wave for reduced-motion users', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     const sequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
     expect(sequence, `sequence: ${sequence.join(' -> ')}`).toEqual(['seated']);
   });
@@ -1089,8 +1121,8 @@ test.describe('Gary launcher — pose-driven message exclusivity and responsive 
   for (const viewport of REQUIRED_VIEWPORTS) {
     test(`bubble and sign remain exclusive through every relevant pose at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
-      await page.clock.install();
-      await page.goto('/');
+      await installGaryClock(page);
+      await gotoGaryReady(page);
       await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
       await page.waitForTimeout(20);
 
@@ -1098,13 +1130,18 @@ test.describe('Gary launcher — pose-driven message exclusivity and responsive 
       const button = page.locator('.gary-chat-button');
       const face = page.locator('.gary-glasses');
       const bubble = page.locator('.gary-speech-bubble');
+      const closingSection = page.locator('#free-assessment');
+      const greenCta = closingSection.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true });
+      const ghostCta = closingSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
+      await ghostCta.scrollIntoViewIfNeeded();
+      await expect(greenCta).toBeInViewport();
+      await expect(ghostCta).toBeInViewport();
       const launcherBox = await launcher.boundingBox();
       const buttonBox = await button.boundingBox();
       const faceBox = await face.boundingBox();
       const bubbleBox = await bubble.boundingBox();
-      const hero = page.locator('section.bg-navy-900.overflow-hidden').first();
-      const greenCtaBox = await hero.getByRole('link', { name: 'Start Your Free Assessment' }).boundingBox();
-      const ghostCtaBox = await hero.getByRole('link', { name: HOMEPAGE_CTA_TEXT }).boundingBox();
+      const greenCtaBox = await greenCta.boundingBox();
+      const ghostCtaBox = await ghostCta.boundingBox();
 
       expect(await currentGaryPose(page)).not.toBeNull();
       expect(await isIntroBubbleShown(page)).toBe(true);
@@ -1145,68 +1182,87 @@ test.describe('Gary launcher — pose-driven message exclusivity and responsive 
 });
 
 test.describe('Homepage responsive images', () => {
-  const REQUIRED_VIEWPORTS = [
-    { width: 360, height: 800, label: '360x800' },
-    { width: 390, height: 844, label: '390x844' },
-    { width: 412, height: 915, label: '412x915' },
-    { width: 768, height: 1024, label: '768x1024 (tablet portrait)' },
-    { width: 1024, height: 768, label: '1024x768 (tablet landscape)' },
-    { width: 1280, height: 720, label: '1280x720 (desktop)' },
-    { width: 1440, height: 900, label: '1440x900 (wide desktop)' }
+  const subjects = [
+    { selector: '#discovery .photograph-canvas', ratio: 1950 / 1350 },
+    { selector: '#engagement .photograph-canvas', ratio: 1950 / 1350 },
+    { selector: '#response .photograph-canvas', ratio: 400 / 680 },
   ];
-
-  const IMAGE_ALT_TEXTS = [
-    'Home-service professional receiving a new customer opportunity while working at a residential HVAC property.',
-    'Homeowner completing a service request as a professional home-service technician arrives.',
-    'Chiropractic practice using organized digital workflows while staff assist patients.'
-  ];
-
-  for (const viewport of REQUIRED_VIEWPORTS) {
-    test(`no horizontal overflow and every image renders above its floor size at ${viewport.label}`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.goto('/');
-
-      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-      expect(scrollWidth, `horizontal overflow at ${viewport.label}`).toBeLessThanOrEqual(viewport.width + 1);
-
-      for (const alt of IMAGE_ALT_TEXTS) {
-        const image = page.getByAltText(alt);
-        await image.scrollIntoViewIfNeeded();
-        const box = await image.boundingBox();
-        expect(box, `${alt} has no box at ${viewport.label}`).not.toBeNull();
-        // Every image (landscape or portrait) must clear the smallest configured floor —
-        // proves it never collapses to a "tiny thumbnail," the original reported bug.
-        expect(box!.width, `${alt} width at ${viewport.label}`).toBeGreaterThanOrEqual(199);
-        expect(box!.x + box!.width, `${alt} right edge at ${viewport.label}`).toBeLessThanOrEqual(viewport.width + 1);
+  const viewports = [[360,800], [390,844], [412,915], [768,1024], [1024,768], [1280,720], [1440,900]];
+  for (const [width, height] of viewports) {
+    test(`no horizontal overflow and every current photograph renders above its floor size at ${width}x${height}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await gotoGaryReady(page);
+      for (const subject of subjects) {
+        const canvas = page.locator(subject.selector);
+        await expect(canvas).toHaveCount(1);
+        await canvas.scrollIntoViewIfNeeded();
+        await expect(canvas).toBeInViewport();
+        const box = await canvas.boundingBox();
+        expect(box, `${subject.selector} has no box`).not.toBeNull();
+        expect(box!.width).toBeGreaterThanOrEqual(199);
+        expect(box!.x).toBeGreaterThanOrEqual(-1);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
       }
     });
   }
-
-  test('the landscape and portrait images preserve their true aspect ratio (no stretching)', async ({ page }) => {
+  test('current landscape and portrait photographs preserve their true canvas and source aspect ratios', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto('/');
-
-    const hvac = page.getByAltText(IMAGE_ALT_TEXTS[0]);
-    await hvac.scrollIntoViewIfNeeded();
-    const hvacBox = await hvac.boundingBox();
-    // Intrinsic 2752x1536 ≈ 1.792:1.
-    expect(hvacBox!.width / hvacBox!.height).toBeCloseTo(2752 / 1536, 1);
-
-    const electrician = page.getByAltText(IMAGE_ALT_TEXTS[1]);
-    await electrician.scrollIntoViewIfNeeded();
-    const electricianBox = await electrician.boundingBox();
-    // Intrinsic 1536x2752 ≈ 0.563:1.
-    expect(electricianBox!.width / electricianBox!.height).toBeCloseTo(1536 / 2752, 1);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await gotoGaryReady(page);
+    for (const subject of subjects) {
+      const canvas = page.locator(subject.selector);
+      await canvas.scrollIntoViewIfNeeded();
+      const box = await canvas.boundingBox();
+      expect(box!.width / box!.height).toBeCloseTo(subject.ratio, 1);
+      const distortion = await canvas.locator('image[data-device-photograph]').evaluate(async element => {
+        const photo = element as SVGImageElement;
+        const resource = new Image();
+        resource.src = photo.href.baseVal;
+        await resource.decode();
+        return Math.abs(photo.width.baseVal.value / photo.height.baseVal.value - resource.naturalWidth / resource.naturalHeight);
+      });
+      expect(distortion).toBeLessThan(0.001);
+    }
   });
-
-  test('landscape images use a meaningfully larger width than the old fixed 25% sizing (not a tiny thumbnail) on mobile', async ({ page }) => {
+  test('current landscape photograph remains meaningfully larger than old fixed 25% sizing on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/');
-    const hvac = page.getByAltText(IMAGE_ALT_TEXTS[0]);
-    await hvac.scrollIntoViewIfNeeded();
-    const box = await hvac.boundingBox();
-    // The old `w-1/4` sizing rendered this around ~90px at this viewport; the fix must clear
-    // that by a wide margin.
-    expect(box!.width).toBeGreaterThan(150);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await gotoGaryReady(page);
+    const canvas = page.locator(subjects[0].selector);
+    await canvas.scrollIntoViewIfNeeded();
+    await expect(canvas).toBeInViewport();
+    expect((await canvas.boundingBox())!.width).toBeGreaterThan(150);
   });
+});
+
+test('ordinary chat survives refresh without sharing recovery with another visitor tab', async ({ page, context }) => {
+  let requests = 0;
+  page.on('request', request => { if (request.url().endsWith('/api/gary/message')) requests++; });
+  const reply = 'Start with the handoff where the enquiry gets lost.';
+  const dialog = await openGary(page, { text: reply });
+  await dialog.getByRole('textbox').fill('My bakery keeps missing enquiries.');
+  await dialog.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(dialog.getByText(reply)).toBeVisible();
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
+  await page.clock.fastForward(6000);
+  await page.getByRole('button', { name: 'Chat with Gary from Accounting', exact: true }).click();
+  await expect(page.getByRole('dialog').getByText(reply)).toBeVisible();
+  await expect(page.getByRole('dialog').getByText('My bakery keeps missing enquiries.')).toBeVisible();
+  expect(requests).toBe(2);
+  const other = await context.newPage();
+  try {
+    let identity: unknown = 'not-requested';
+    await other.route('**/api/gary/message', async route => {
+      identity = route.request().postDataJSON().sessionId;
+      await route.fulfill({ json: { sessionId: 'other-session', sessionCapability: 'other-cap', reply: { text: 'A separate visitor opening' } } });
+    });
+    await gotoGaryReady(other, '/contact');
+    await other.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+    await expect(other.getByText('A separate visitor opening')).toBeVisible();
+    expect(identity).toBeNull();
+    await expect(other.getByText('My bakery keeps missing enquiries.')).toHaveCount(0);
+  } finally { await other.close(); }
 });

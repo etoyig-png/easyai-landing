@@ -1,17 +1,24 @@
+import { createSessionCapability } from '@/lib/sessionCapability';
 import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
-import { prisma } from '@/lib/prisma';
 import { assessmentSubmissionSchema } from '@/lib/validation';
 import { getClientIp, looksLikeSpam } from '@/lib/rateLimit';
 import { sendInternalNotification, sendResultEmail } from '@/lib/resend';
 import { generateAssessmentResult, buildFallbackResultHtml } from '@/lib/anthropic';
 import { notifyCommandCenter } from '@/lib/commandCenter';
-import { syncCompleteAssessmentToCommandCenter } from '@/lib/assessmentSync';
+import { completeAssessmentSync } from '@/lib/assessmentSync';
 import { PROVIDER_TIMEOUT_MS, readLimitedJson, withTimeout } from '@/lib/requestSafety';
 import { admitAssessment } from '@/lib/assessmentAdmission';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
+
+function acceptedSubmission(id: string, duplicate = false) {
+  let statusCapability: string | undefined;
+  try { statusCapability = createSessionCapability(`assessment-status:${id}`); }
+  catch { /* Existing assessments can still process when tracking is not provisioned. */ }
+  return NextResponse.json({ success: true, id, ...(duplicate ? { duplicate: true } : {}), statusCapability });
+}
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -44,7 +51,7 @@ export async function POST(req: NextRequest) {
   if (admission.kind === 'limited') {
     return NextResponse.json({ error: 'Too many submissions. Please try again later.' }, { status: 429 });
   }
-  if (admission.kind === 'duplicate') return NextResponse.json({ success: true, id: admission.submission.id, duplicate: true });
+  if (admission.kind === 'duplicate') return acceptedSubmission(admission.submission.id, true);
   const submission = admission.submission;
 
   try {
@@ -79,40 +86,16 @@ export async function POST(req: NextRequest) {
       console.error('Failed to send result email', err);
     }
 
-    if (emailSent) {
-      try {
-      await prisma.submission.update({
-        where: { id: submission.id },
-        data: { status: 'completed', resultHtml },
-      });
-      } catch (err) {
-        // The customer delivery succeeded. A persistence failure must never rewrite
-        // that completed delivery as an email failure.
-        console.error('Result email sent but completion state update failed', err);
-      }
-      await notifyCommandCenter({ status: 'assessment_completed', submissionId: submission.id });
-      await syncCompleteAssessmentToCommandCenter({
-        submissionId: submission.id,
-        submission: data,
-        resultHtml,
-        status: 'completed',
-        emailDeliveryStatus: 'sent',
-      });
-    } else {
-      try { await prisma.submission.update({
-        where: { id: submission.id },
-        data: { status: 'failed', errorMessage: 'Result email delivery failed' },
-      }); } catch (err) { console.error('Failed to persist email failure state', err); }
-      await notifyCommandCenter({ status: 'assessment_failed', submissionId: submission.id });
-      await syncCompleteAssessmentToCommandCenter({
-        submissionId: submission.id,
-        submission: data,
-        resultHtml,
-        status: 'failed',
-        emailDeliveryStatus: 'failed',
-      });
-    }
+    // Final status and the Command Center sync body commit together; see completeAssessmentSync.
+    await completeAssessmentSync({
+      submissionId: submission.id,
+      submission: data,
+      resultHtml,
+      status: emailSent ? 'completed' : 'failed',
+      emailDeliveryStatus: emailSent ? 'sent' : 'failed',
+    });
+    await notifyCommandCenter({ status: emailSent ? 'assessment_completed' : 'assessment_failed', submissionId: submission.id });
   })());
 
-  return NextResponse.json({ success: true, id: submission.id });
+  return acceptedSubmission(submission.id);
 }

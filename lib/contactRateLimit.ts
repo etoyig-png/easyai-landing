@@ -56,3 +56,13 @@ export async function admitContactMessage(identity: string): Promise<ContactAdmi
     return { kind: 'accepted' } as const;
   }, { isolationLevel: 'Serializable' });
 }
+
+/** Bounded seven-day abuse-event retention, reused by the existing authenticated drain. */
+export async function cleanupExpiredContactAttempts(limit = 500, now = new Date()): Promise<number> {
+  const bounded = Number.isFinite(limit) ? Math.max(1, Math.min(1000, Math.floor(limit))) : 500;
+  const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return prisma.$executeRaw`WITH expired AS (
+    SELECT id FROM "ContactRateLimitEvent" WHERE "createdAt" < ${cutoff}
+    ORDER BY "createdAt", id LIMIT ${bounded} FOR UPDATE SKIP LOCKED
+  ) DELETE FROM "ContactRateLimitEvent" event USING expired WHERE event.id = expired.id`;
+}

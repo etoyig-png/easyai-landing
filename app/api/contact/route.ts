@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { contactSubmissionSchema } from '@/lib/contactValidation';
 import { getClientIp, looksLikeSpam } from '@/lib/rateLimit';
 import { admitContactMessage } from '@/lib/contactRateLimit';
-import { sendContactMessage } from '@/lib/resend';
-import { PROVIDER_TIMEOUT_MS, readLimitedJson, withTimeout } from '@/lib/requestSafety';
+import { saveContactSubmission, notifyContactSubmission } from '@/lib/contactSubmission';
+import { readLimitedJson } from '@/lib/requestSafety';
 
 export const runtime = 'nodejs';
 
@@ -55,8 +55,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many messages from this connection. Please try again later.' }, { status: 429 });
   }
 
+  let stored;
   try {
-    await withTimeout(sendContactMessage(data), PROVIDER_TIMEOUT_MS, 'email provider');
+    stored = await saveContactSubmission(data);
+  } catch {
+    return NextResponse.json({ error: 'Unable to save the message right now. Please try again shortly.' }, { status: 503 });
+  }
+
+  if (stored.state === 'sent') return NextResponse.json({ success: true });
+  if (stored.state === 'in-progress') {
+    return NextResponse.json({ error: 'Your message is already being processed. Please wait before trying again.' }, { status: 409 });
+  }
+  try {
+    await notifyContactSubmission(data, stored);
   } catch (error) {
     // Never report success for a message that was not delivered.
     console.error('Contact message delivery failed', error);

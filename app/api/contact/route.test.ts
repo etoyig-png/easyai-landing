@@ -8,11 +8,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 const sendContactMessage = vi.fn();
 const admitContactMessage = vi.fn();
+const saveContactSubmission = vi.fn();
 
 vi.mock('@/lib/resend', () => ({ sendContactMessage: (...args: unknown[]) => sendContactMessage(...args) }));
 // The contact-specific limiter, NOT the assessment one. lib/contactRateLimit.test.ts proves
 // the limiter itself counts contact attempts rather than Submission rows.
 vi.mock('@/lib/contactRateLimit', () => ({ admitContactMessage: (...args: unknown[]) => admitContactMessage(...args) }));
+vi.mock('@/lib/contactSubmission', () => ({
+  saveContactSubmission: (...args: unknown[]) => saveContactSubmission(...args),
+  notifyContactSubmission: (...args: unknown[]) => sendContactMessage(...args),
+}));
 
 import { POST } from './route';
 
@@ -38,6 +43,7 @@ function request(body: unknown): NextRequest {
 beforeEach(() => {
   sendContactMessage.mockReset().mockResolvedValue(undefined);
   admitContactMessage.mockReset().mockResolvedValue({ kind: 'accepted' });
+  saveContactSubmission.mockReset().mockResolvedValue({ contactId: 'contact-1', eventKey: 'event-1' });
 });
 
 describe('POST /api/contact', () => {
@@ -49,6 +55,7 @@ describe('POST /api/contact', () => {
     const sent = sendContactMessage.mock.calls[0][0];
     expect(sent.email).toBe('visitor@example.com');
     expect(sent.message).toBe('Please call me about the assessment.');
+    expect(saveContactSubmission.mock.invocationCallOrder[0]).toBeLessThan(sendContactMessage.mock.invocationCallOrder[0]);
   });
 
   it('rejects an invalid submission before sending anything', async () => {
@@ -60,6 +67,13 @@ describe('POST /api/contact', () => {
   it('requires a message', async () => {
     const res = await POST(request({ ...validBody, message: '' }));
     expect(res.status).toBe(400);
+    expect(sendContactMessage).not.toHaveBeenCalled();
+  });
+
+  it('never notifies or reports success when durable storage fails', async () => {
+    saveContactSubmission.mockRejectedValue(new Error('storage unavailable'));
+    const res = await POST(request(validBody));
+    expect(res.status).toBe(503);
     expect(sendContactMessage).not.toHaveBeenCalled();
   });
 
@@ -77,6 +91,7 @@ describe('POST /api/contact', () => {
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ success: true });
     expect(sendContactMessage).not.toHaveBeenCalled();
+    expect(saveContactSubmission).not.toHaveBeenCalled();
   });
 
   it('treats an instant submission as a bot', async () => {

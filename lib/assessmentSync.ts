@@ -1,11 +1,18 @@
+import type { Prisma } from '@prisma/client';
 import type { AssessmentSubmission } from './validation';
+import { prisma } from './prisma';
+import { ASSESSMENT_SYNC_EVENT, assessmentSyncKey, deliverFunnelEvent, recordFunnelEvent, type FunnelEventWriter } from './gary/funnelEvents';
 
 // Assessment synchronization is independent from Gary. It packages the completed
 // public assessment for the Command Center without sharing chat prompts or state.
 const ASSESSMENT_VERSION = '2026-09-dual-gap-v2';
 
-const SYNC_URL = process.env.COMMAND_CENTER_ASSESSMENT_SYNC_URL;
-const SYNC_TOKEN = process.env.COMMAND_CENTER_ASSESSMENT_SYNC_TOKEN;
+/**
+ * How long an admitted assessment's sync row waits for its own completion before the drain
+ * delivers it as-is. Well beyond the assessment route's 300-second maxDuration, so it only
+ * fires when completion never committed (a crash, a timeout or a storage failure).
+ */
+export const ASSESSMENT_RECOVERY_DELAY_MS = 15 * 60 * 1000;
 
 interface SyncParams {
   submissionId: string;
@@ -62,38 +69,111 @@ export function buildAssessmentPackage(submission: AssessmentSubmission, resultH
   };
 }
 
-export async function syncCompleteAssessmentToCommandCenter(params: SyncParams): Promise<void> {
-  if (!SYNC_URL || !SYNC_TOKEN) return;
-
+/**
+ * The exact body the Command Center's /api/easy-ai/assessments intake accepts. Without a status
+ * it is the recovery body: the intake records unknown processing and email status as blank.
+ */
+export function buildAssessmentSyncBody(params: Omit<SyncParams, 'status' | 'emailDeliveryStatus'> & Partial<Pick<SyncParams, 'status' | 'emailDeliveryStatus'>>) {
   const { submission, submissionId, resultHtml, status, emailDeliveryStatus } = params;
+  return {
+    companyName: submission.businessName,
+    contactName: `${submission.firstName} ${submission.lastName}`.trim(),
+    contactEmail: submission.email,
+    contactPhone: (submission as unknown as { phone?: string }).phone,
+    profileResult: submission.desiredOutcome,
+    resultSummary: resultHtml,
+    idempotencyKey: `easy-ai-assessment-${submissionId}`,
+    industry: submission.industry,
+    source: 'easyai-landing',
+    assessmentPackage: buildAssessmentPackage(submission, resultHtml),
+    submissionId,
+    funnelCorrelationId: submission.funnelCorrelationId,
+    ...(status ? { syncStage: 'final' } : {}),
+    processingStatus: status,
+    emailDeliveryStatus,
+  };
+}
 
+/**
+ * Records the assessment's sync row inside the admission transaction, so a stored submission
+ * always has recoverable sync work. It is held back by ASSESSMENT_RECOVERY_DELAY_MS and carries
+ * no result or status; completion replaces its body and makes it due at once.
+ */
+export async function recordAssessmentSyncIntent(db: FunnelEventWriter, submissionId: string, submission: AssessmentSubmission, now = new Date()) {
+  await recordFunnelEvent(db, {
+    eventType: ASSESSMENT_SYNC_EVENT,
+    idempotencyKey: assessmentSyncKey(submissionId),
+    payload: buildAssessmentSyncBody({ submissionId, submission, resultHtml: '' }),
+    nextAttemptAt: new Date(now.getTime() + ASSESSMENT_RECOVERY_DELAY_MS),
+  });
+}
+
+type CompletionClient = Pick<typeof prisma, '$transaction'>;
+
+/**
+ * Commits the submission's final status and its full sync body in ONE transaction, then makes
+ * one delivery attempt. If that transaction fails, neither lands: the status update is retried
+ * alone (a sent result email must never read as pending or failed), and the row recorded at
+ * admission stays in the outbox, so the drain still delivers the assessment after the recovery
+ * delay, rebuilding final content from Submission. Pending placeholders are never delivered.
+ * Old delivered provisional rows reopen for the final receiver stage. Never throws: it runs
+ * after the visitor's response.
+ */
+export async function completeAssessmentSync(params: SyncParams, db: CompletionClient = prisma): Promise<void> {
+  const key = assessmentSyncKey(params.submissionId);
+  const status: Prisma.SubmissionUpdateInput = params.status === 'completed'
+    ? { status: 'completed', resultHtml: params.resultHtml }
+    : { status: 'failed', resultHtml: params.resultHtml, errorMessage: 'Result email delivery failed' };
+  const payload = buildAssessmentSyncBody(params);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8_000);
-    const response = await fetch(SYNC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SYNC_TOKEN}` },
-      body: JSON.stringify({
-        firstName: submission.firstName,
-        lastName: submission.lastName,
-        businessName: submission.businessName,
-        email: submission.email,
-        phone: (submission as unknown as { phone?: string }).phone,
-        industry: submission.industry,
-        source: 'easyai-landing',
-        assessmentPackage: buildAssessmentPackage(submission, resultHtml),
-        submissionId,
-        funnelCorrelationId: submission.funnelCorrelationId,
-        processingStatus: status,
-        emailDeliveryStatus,
-      }),
-      signal: controller.signal,
+    await db.$transaction(async (tx) => {
+      await tx.submission.update({ where: { id: params.submissionId }, data: status });
+      const updated = await tx.funnelEventOutbox.updateMany({
+        where: {
+          idempotencyKey: key,
+          AND: [
+            { OR: [{ deliveredAt: null }, { payload: { path: ['resultSummary'], equals: '' } }] },
+            { OR: [
+              { payload: { path: ['resultSummary'], equals: '' } },
+              { AND: [
+                { payload: { path: ['resultSummary'], equals: params.resultHtml } },
+                { payload: { path: ['processingStatus'], equals: params.status } },
+                { payload: { path: ['emailDeliveryStatus'], equals: params.emailDeliveryStatus } },
+              ] },
+            ] },
+          ],
+        },
+        data: { payload: payload as never, nextAttemptAt: new Date(), deliveredAt: null },
+      });
+      if (!updated.count) {
+        // Only retries/conflicts/old shapes need a read; the normal path has two writes.
+        const existing = await tx.funnelEventOutbox.findUnique({ where: { idempotencyKey: key } });
+        const stored = existing?.payload as Record<string, unknown> | undefined;
+        if (stored?.processingStatus && (stored.resultSummary !== params.resultHtml || stored.processingStatus !== params.status || stored.emailDeliveryStatus !== params.emailDeliveryStatus)) throw new Error('FINAL_ASSESSMENT_CONFLICT');
+        if (existing?.deliveredAt && stored?.processingStatus) return;
+        if (existing) {
+          const recovered = await tx.funnelEventOutbox.updateMany({
+            where: { idempotencyKey: key, payload: { equals: existing.payload as never } },
+            data: { payload: payload as never, nextAttemptAt: new Date(), deliveredAt: null },
+          });
+          if (!recovered.count) throw new Error('Assessment sync changed during completion; recover from Submission');
+        } else await recordFunnelEvent(tx, { eventType: ASSESSMENT_SYNC_EVENT, idempotencyKey: key, payload });
+      }
     });
-    clearTimeout(timeout);
-    if (!response.ok) {
-      console.error('Complete-assessment sync to Command Center failed', response.status, await response.text().catch(() => ''));
-    }
   } catch (err) {
-    console.error('Complete-assessment sync to Command Center threw', err);
+    console.error(`[assessment-sync] stage=store key=${key} recovery=admission-row`, err);
+    if (err instanceof Error && err.message === 'FINAL_ASSESSMENT_CONFLICT') return;
+    try {
+      await prisma.submission.update({ where: { id: params.submissionId }, data: status });
+    } catch (statusErr) {
+      console.error(`[assessment-sync] stage=status key=${key}`, statusErr);
+    }
+    return;
+  }
+  try {
+    const result = await deliverFunnelEvent(key);
+    if (result !== 'delivered' && result !== 'delivered-earlier') console.error(`[assessment-sync] stage=deliver key=${key} result=${result}`);
+  } catch (err) {
+    console.error(`[assessment-sync] stage=deliver key=${key}`, err);
   }
 }

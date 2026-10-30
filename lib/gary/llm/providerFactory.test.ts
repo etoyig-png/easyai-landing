@@ -53,3 +53,9 @@ describe('createGaryFallbackLlmAdapter', () => {
     expect(adapter?.provider).toBe('anthropic');
   });
 });
+
+it('rejects an unrecognized provider instead of silently selecting OpenAI', () => {
+  process.env.GARY_LLM_PROVIDER = 'unapproved-vendor';
+  process.env.GARY_LLM_MODEL = 'fixture';
+  expect(() => createGaryLlmAdapter()).toThrow('Unsupported Gary LLM provider');
+});

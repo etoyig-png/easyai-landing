@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { GaryLlmNotConfiguredError } from './types';
+import { GaryLlmNotConfiguredError, GaryLlmIncompleteResponseError, providerRequestBudget } from './types';
 import type { GenerateChatCompletionInput, GenerateChatCompletionResult, LlmProviderAdapter } from './types';
 
 /**
@@ -14,13 +14,14 @@ export function createGaryOpenAiAdapter(params: { apiKey: string | undefined; mo
 
   function requireClient(): OpenAI {
     if (!apiKey) throw new GaryLlmNotConfiguredError('openai');
-    if (!client) client = new OpenAI({ apiKey, baseURL });
+    if (!client) client = new OpenAI({ apiKey, baseURL, timeout: 45_000, maxRetries: 0 });
     return client;
   }
 
   return {
     provider: 'openai',
     async generateChatCompletion(input: GenerateChatCompletionInput): Promise<GenerateChatCompletionResult> {
+      const budget = providerRequestBudget(input);
       const openai = requireClient();
       const response = await openai.chat.completions.create({
         model,
@@ -30,8 +31,9 @@ export function createGaryOpenAiAdapter(params: { apiKey: string | undefined; mo
           { role: 'system', content: input.systemPrompt },
           ...input.messages.map((m) => ({ role: m.role, content: m.content })),
         ],
-      });
+      }, budget);
       const choice = response.choices[0];
+      if (choice?.finish_reason !== 'stop' || choice.message.refusal || !choice.message.content?.trim()) throw new GaryLlmIncompleteResponseError();
       return {
         text: choice?.message?.content ?? '',
         model: response.model ?? model,
