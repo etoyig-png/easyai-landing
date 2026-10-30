@@ -92,7 +92,7 @@ export function contactOutcomeTexts(brandName: string) {
   } as const;
 }
 
-const EASY_AI_TEXTS = contactOutcomeTexts('Easy AI');
+const EASY_AI_TEXTS = /*#__PURE__*/ contactOutcomeTexts('Easy AI');
 export const CONTACT_SENT_TEXT = EASY_AI_TEXTS.sent;
 export const CONTACT_ALREADY_SENT_TEXT = EASY_AI_TEXTS.alreadySent;
 export const CONTACT_LIMITED_TEXT = EASY_AI_TEXTS.limited;
