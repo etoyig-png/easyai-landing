@@ -255,3 +255,109 @@ the earlier run-specificcost-control blocker for that batch; actual accountusage
 plan and billingcap remainunverified. No accountsettings or workflows changed.
 Remainingbudget is reserved, not a claim of actual billedcost. Existingprivate report
 contains source snapshots, calculations, exacthead and recovery receipts.
+
+## Gary visitor continuation — 30 October 2026
+
+Latest owner scope assigns visitor frontend, responsive behavior, conversation acceptance and
+frontend performance to Codex; backend/email/database/security/shared APIs belong to Claude.
+This supersedes the historical whole-backlog ownership note. PR18 stays DRAFT.
+
+Preservation: resumed the existing `/workspace/easyai-landing` environment at61595d6. It was
+clean, with no stash or unpublished branch commit; two unreachable source blobs were retained.
+Before editing, saved all refs/reflogs and the complete Git recovery directory under
+`/workspace/work/gary-preservation/`. Explicitly refreshed the narrowly configured fetch ref
+and fast-forwarded to actual PR18 head18cac7eb97bb2388d8ad6eb1f138c019a72dfa54. Approved
+redesign eaed840 and the moving Gary character remain ancestors/preserved; no old snapshot
+was substituted. Original Module A/anti-bloat source documents remain unavailable here;
+the existing preservation record's actor/tenant scope, original retention and no-overwrite
+rules were applied. No replacement task, assistant, infrastructure or dependency was created.
+
+Frontend implementation:29739c9,985f010,d22862c,2b096cc; final runtime is
+2b096cca91a9f888369673fcf33fe128d306b4b4. Test-only a9862d4 adds ordinary refresh/tab isolation.
+Tab recovery retains transcript, input, contact draft/options and the pending message/contact payload;
+network dispatch persists pending state first. Recovery is bounded and expires24hours after its latest save, checked on read; it is neither backend history nor delivery authority. Explicit retries do not run
+on timers.65second timeout, unmount cancellation and stale-response guards retain unknown
+outcomes honestly. Start Over clears personal input/recovery, and quota-denied writes retain
+the current in-memory identity. Contact intent after ordinary chat remains usable. Consent
+appears beside Confirm & Send; ordinary conversation is still available. Long bubbles wrap,
+short desktop panels fit the viewport, and desktop film width reserves existing Gary clearance.
+The character, routine, speech bubble and sign artwork/layout were not replaced. Browser
+inspection at360/390/412/1440 found normal sign/intro letter spacing and readable complete text.
+
+Independent reviewer `/root/gary_review` found stale response/session writes, ignored contact
+intent, quota fallback and retained input defects; all were corrected. The reviewer passed
+exact2b096cc source and a9862d4 test delta, independently running6/6 recovery unit cases.
+No Claude correction candidate has yet been supplied for this assignment's dependencies.
+
+Verification evidence is retained under `/workspace/work/gary-*`:
+- Lint, standalone TypeScript and production build pass. Exact-runtime development browser
+  contact/recovery suite15/15; production desktop/360/390/412 contact/widget suite104/104;
+  ordinary refresh/separate-tab extension4/4. APIs in these browser tests are fixtures.
+  Broader earlier-runtime suite768/768passed; it predates synchronous pending writes, quota
+  fallback correction, Start Over input clearing and StrictMode initialization. Final affected
+  flows are covered by the108production checks and15development checks above; no claim
+  that the full768was rerun on the final runtime.
+- Disposable Docker PostgreSQL16, bound to loopback, real migrations/routes/storage with
+  captured email/webhook providers:607pass/1optional cross-repository fixture skip. No paid
+  models or external email. A reused-database rerun failed4journey assertions because the
+  fixture expects empty storage; preserved separately, then rerun on a new dedicated DB.
+- Negative browser controls on unchanged18cac7e failed3/3new acceptance scenarios;
+  the first stopped at missing consent, the other two at recovery/history assertions.
+  First broader candidate run:91pass/3fail/1interrupted/445notrun. Two failures were actual
+ 1024/1440video/Gary collisions, now corrected without relaxing geometry; the third reused
+  one browser session for two independent contact scenarios, now separately parameterized.
+  The interrupted pose check is not counted as a product failure or a pass.
+- Scoped independent security source review passed; npm audit reports10affected packages
+ (3high/3moderate/4low,0critical), with lock/dependencies unchanged. The [Security Diff Scan skill](skill://Plugin_1e648473be9c8191a91ac3947151af55/security-diff-scan/SKILL.md)
+  could not load its required config-preflight resource, so no formal security-scan
+  PASS is claimed. The skill requires: “Run the security_diff_scan preflight ... before
+  reviewing files or creating a goal.” No scan goal or invented scan report was created.
+
+Same-toolchain baseline18cac7e→final runtime: homepage/layout JS gzip134705→135300bytes
+(+0.44%); CSS13844→13920(+0.55%); deferred Gary panel3071→3969(+898bytes,+29.24%).
+Combined homepage/layout plus panel JS137776→139269(+1.08%). The deferred-panel percentage
+exceeds5% and remains explicitly surfaced for release acceptance. No asset/package/API/DB
+query/model-call addition. Contact flow uses zero model calls; ordinary conversation retains
+one primary and at most one correction; first assessment handoff may add one summary call.
+Existing cumulative design/performance release gates are not erased by this comparison.
+
+Backend dependency requests are on this PR's existing conversation, not a paid dispatch:
+- Company IQ is absent from message→replyPipeline→adapter context at18cac7e; no real quality
+  acceptance can establish approved knowledge that never reaches the model.
+- Ordinary turns have no request-ID/replay contract. Lost responses may repeat transcript
+  writes/model calls; loss of the first session response also loses its identity. Preserve
+  server controls and introduce the smallest idempotent existing-route correction.
+- Confirm while a notification is held returns `done:true`/“sending”; later notification
+  failure leaves no recoverable confirmation. A real disposable-PostgreSQL reproduction
+  failed1/1desired assertion (expected done:false, actual true; durable status=failed).
+  Source/log retained as `/workspace/work/gary-pending-repro.test.ts` and matching `.log`.
+  This is an unresolved backend acceptance failure, not included in the607passing tests.
+- Contact sends reason plus transcriptReference; CC PR58 exact04cbd80 scopes/processes that
+  into a founder-visible client, but full authorized history retrieval is not demonstrated.
+  Provider acceptance also does not prove the message “reached the team.” Claude must align
+  pending/status/history and outcome wording, then publish exact commits for independent review.
+
+Read-only connected Vercel inspection succeeded with decrypt=false. DATABASE_URL/DIRECT_URL,
+Resend/Anthropic credentials and CC webhook entries target both preview and production.
+Gary model/provider and signing entries target production only; no isolated Preview DB ref
+or isolated recipient setting is listed. This proves target metadata, not secret values,
+actual DB identity, schema/history or provider readiness. Preview database/provider safeguards
+remain unchanged; no real Preview submission, external email, paid model, production config,
+migration, merge or production deployment was performed.
+
+Remaining release gates: Claude's minimal backend corrections and exact independent review;
+a verified isolated provider/database/recipient configuration and applicable paid-model/send
+authorization; real conversational usefulness/accuracy/tone/memory/one-question acceptance;
+correct founder-visible history and cross-visitor denial; one shared visitor→email→reply
+journey with Claude; final integrated security/performance acceptance and founder release.
+Mocks, captured notifications, source inspection, builds and CI cannot close these gates.
+
+Quiet local performance check,12interleaved390px samples per baseline/final runtime with
+captured API replies: click→first reply median796.9→797.9ms(+0.13%),p95807.9→802.9ms;
+navigation duration median94.7→97.0ms(+2.43%). Every opening made exactly1message request.
+Synthetic40KBsessionStorage write benchmark averaged0.077→0.087ms; it times storage only,
+not application JSON serialization. These are unthrottled local automation observations,
+not field LCP/CLS/INP, real model/API latency or proof of a universal<=5%runtime bound.
+The broad browser run's expected unauthorized local-DB logs came from layout tests that
+open the panel without a reply fixture; those logs are not real successful Gary journeys.
+The pending-contact concurrency failure remains separate from every passing inventory.
