@@ -29,7 +29,7 @@ type Outcome = 'http-error' | 'sent' | 'saved-not-notified' | 'already-processed
 
 interface MockState {
   outcomes: Outcome[];
-  calls: { action?: string; text?: string; field?: string }[];
+  calls: { action?: string; text?: string; field?: string; draft?: ContactDraft }[];
 }
 
 /** Stateless per request, exactly like the route: the draft is echoed by the client each turn. */
@@ -44,24 +44,25 @@ async function mockContactServer(page: Page, outcomes: Outcome[] = ['sent']): Pr
       return;
     }
     const cf = body.contactFlow;
-    state.calls.push({ action: cf.action, text: cf.text, field: cf.field });
+    state.calls.push({ action: cf.action, text: cf.text, field: cf.field, draft: cf.draft });
     const request = (cf.action === 'start' ? { action: 'start' } : cf.action === 'answer' ? { action: 'answer', draft: cf.draft!, text: cf.text ?? '' } : cf.action === 'change' ? { action: 'change', draft: cf.draft!, field: cf.field! } : { action: 'confirm', draft: cf.draft! }) as ContactFlowRequest;
     let reply = advanceContactFlow(request);
     if (request.action === 'start') reply = withOpeningDisclosure(reply, DISCLOSURE);
     let done = false;
+    let pending = false;
     if (reply.send) {
       const outcome = state.outcomes.shift() ?? 'sent';
       if (outcome === 'http-error') { await route.fulfill({ status: 503, body: '{}' }); return; }
       const neutral = { options: undefined, freeText: true, placeholder: 'Type a message...' };
       if (outcome === 'sent') { reply = { ...reply, ...neutral, text: TEXTS.sent }; done = true; }
       else if (outcome === 'already-processed') { reply = { ...reply, ...neutral, text: TEXTS.alreadySent }; done = true; }
-      else if (outcome === 'in-progress') { reply = { ...reply, ...neutral, text: TEXTS.inProgress }; done = true; }
+      else if (outcome === 'in-progress') { reply = { ...reply, text: TEXTS.inProgress }; pending = true; }
       else { reply = { ...reply, text: TEXTS.savedNotSent }; }
     }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ ...envelope, reply: { text: reply.text, options: reply.options }, contactFlow: { draft: reply.draft, freeText: reply.freeText, placeholder: reply.placeholder, done } }),
+      body: JSON.stringify({ ...envelope, reply: { text: reply.text, options: reply.options }, contactFlow: { draft: reply.draft, freeText: reply.freeText, placeholder: reply.placeholder, done, ...(pending ? { outcome: 'pending', retryable: true } : {}) } }),
     });
   });
   return state;
@@ -195,15 +196,17 @@ test.describe('Gary contact flow from the Contact page', () => {
     await expect(dialog.getByText('What you need: Help me answer missed calls.')).toBeVisible();
   });
 
-  test('a failed confirmation preserves Yes and Change controls and retries the same draft', async ({ page }) => {
+  test('a failed confirmation preserves disabled controls and explicitly retries the same draft', async ({ page }) => {
     const { dialog, state } = await completeToConfirmation(page, ['http-error', 'sent']);
     await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
     await expect(dialog.getByText('Something went wrong.', { exact: false })).toBeVisible();
-    await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_YES })).toBeEnabled();
-    await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_CHANGE })).toBeEnabled();
-    await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
+    await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_YES })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_CHANGE })).toBeDisabled();
+    await dialog.getByRole('button', { name: 'Retry request' }).click();
     await expect(dialog.getByText(TEXTS.sent)).toBeVisible();
-    expect(state.calls.filter((call) => call.action === 'confirm')).toHaveLength(2);
+    const confirmations = state.calls.filter(call => call.action === 'confirm');
+    expect(confirmations).toHaveLength(2);
+    expect(confirmations[1].draft).toEqual(confirmations[0].draft);
   });
 
   test('saved-but-not-notified keeps the confirmation on screen and a retry succeeds', async ({ page }) => {
@@ -216,7 +219,7 @@ test.describe('Gary contact flow from the Contact page', () => {
     expect(state.calls.filter((c) => c.action === 'confirm')).toHaveLength(2);
   });
 
-  for (const [outcome, text] of [['already-processed', TEXTS.alreadySent], ['in-progress', TEXTS.inProgress]] as const) {
+  for (const [outcome, text] of [['already-processed', TEXTS.alreadySent]] as const) {
     test(`${outcome} ends the flow without a second send button`, async ({ page }) => {
       const { dialog } = await completeToConfirmation(page, [outcome]);
       await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
@@ -384,8 +387,8 @@ test('Start Over survives denied removal, failed opening, reopen and refresh wit
   await dialog.getByRole('button', { name: 'Confirm?', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Retry request' })).toBeVisible();
   expect(requests).toHaveLength(1);
-  expect(requests[0].sessionId).toBeNull();
-  expect(requests[0].sessionCapability).toBeNull();
+  expect(requests[0]).not.toHaveProperty('sessionId');
+  expect(requests[0]).not.toHaveProperty('sessionCapability');
   await dialog.getByRole('button', { name: 'Close chat' }).click();
   await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
   await expect(dialog.getByRole('button', { name: 'Retry request' })).toBeVisible();
@@ -400,11 +403,60 @@ test('Start Over survives denied removal, failed opening, reopen and refresh wit
   await dialog.getByRole('button', { name: 'Retry request' }).click();
   await expect(dialog.getByText('A fresh conversation.')).toBeVisible();
   expect(requests).toHaveLength(2);
-  expect(requests[1].sessionId).toBeNull();
-  expect(requests[1].sessionCapability).toBeNull();
+  expect(requests[1]).not.toHaveProperty('sessionId');
+  expect(requests[1]).not.toHaveProperty('sessionCapability');
   await page.reload();
   await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
   await page.getByRole('button', { name: DIALOG_NAME, exact: true }).click();
   await expect(dialog.getByText('A fresh conversation.')).toBeVisible();
   expect(requests).toHaveLength(2);
+});
+
+
+test('pending contact keeps the identical confirmation across refresh and provider rejection', async ({ page }) => {
+  const { dialog, state } = await completeToConfirmation(page, ['in-progress', 'saved-not-notified', 'sent']);
+  await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
+  await expect(dialog.getByText(TEXTS.inProgress)).toBeVisible();
+  await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_CHANGE })).toBeDisabled();
+  await expect(dialog.getByRole('textbox')).toBeDisabled();
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect(dialog.getByText(TEXTS.inProgress)).toBeVisible();
+  expect(state.calls.filter(c => c.action === 'confirm')).toHaveLength(1);
+  await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
+  await expect(dialog.getByText(TEXTS.savedNotSent)).toBeVisible();
+  await expect(dialog.getByText(TEXTS.inProgress)).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_CHANGE })).toBeEnabled();
+  await expect(dialog.getByText(CONTACT_CONFIRM_YES, { exact: true })).toHaveCount(2); // One logical visitor confirmation and the control.
+  await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
+  await expect(dialog.getByText(TEXTS.sent)).toBeVisible();
+  const confirmations = state.calls.filter(c => c.action === 'confirm');
+  expect(confirmations).toHaveLength(3);
+  expect(confirmations.map(c => c.draft)).toEqual(Array(3).fill(confirmations[0].draft));
+});
+
+
+test('denied contact confirmation preserves the draft but cannot bypass the blocked request', async ({ page }) => {
+  const { dialog } = await completeToConfirmation(page);
+  await page.unroute('**/api/gary/message');
+  let calls = 0;
+  await page.route('**/api/gary/message', async route => {
+    calls++;
+    await route.fulfill({ status: 403, contentType: 'application/json', body: '{}' });
+  });
+  await dialog.getByRole('button', { name: CONTACT_CONFIRM_YES }).click();
+  await expect(dialog.getByRole('alert')).toContainText('cannot be retried safely');
+  await expect(dialog.getByRole('button', { name: 'Retry request' })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_YES })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_CHANGE })).toBeDisabled();
+  await expect(dialog.getByRole('textbox')).toBeDisabled();
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('cannot be retried safely');
+  await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_YES })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: CONTACT_CONFIRM_CHANGE })).toBeDisabled();
+  await expect(dialog.getByRole('textbox')).toBeDisabled();
+  expect(calls).toBe(1);
 });

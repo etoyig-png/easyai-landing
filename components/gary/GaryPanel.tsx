@@ -34,14 +34,19 @@ interface MessageApiResponse {
   sessionCapability?: string;
   reply: { text: string; options?: string[] };
   offerAssessment?: boolean;
-  contactFlow?: { draft: ContactDraft; freeText: boolean; placeholder?: string; done?: boolean };
+  contactFlow?: { draft: ContactDraft; freeText: boolean; placeholder?: string; done?: boolean; outcome?: string; retryable?: boolean };
 }
 
 type GaryRequest = { message?: string; optionSelected?: string; contactFlow?: ContactFlowRequest };
+type RequestEnvelope = GaryRequest & {
+  requestId?: string; sessionId?: string; sessionCapability?: string; anonymousId: string;
+  currentPage: string; referrer?: string;
+};
+type PendingRequest = GaryRequest & { requestEnvelope?: RequestEnvelope; retryBlocked?: boolean };
 interface ConversationSnapshot {
   messages: ChatBubble[]; options: string[]; offerAssessment: boolean; input: string;
   contactDraft: ContactDraft | null; contactPlaceholder: string | null; choosingChange: boolean;
-  pending: GaryRequest | null; hasContactFlow: boolean;
+  pending: PendingRequest | null; hasContactFlow: boolean; contactPending?: boolean;
 }
 
 export type GaryIntent = 'contact' | null;
@@ -72,53 +77,84 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
     return () => { mountedRef.current = false; requestController.current?.abort(); };
   }, []);
   const [restored, setRestored] = useState(false);
-  const [pending, setPending] = useState<GaryRequest | null>(null);
+  const [pending, setPending] = useState<PendingRequest | null>(null);
+
+  const [contactPending, setContactPending] = useState(false);
 
   const recoveryRef = useRef<ConversationSnapshot>();
-  recoveryRef.current = { messages, options, offerAssessment, input, contactDraft, contactPlaceholder, choosingChange, pending, hasContactFlow };
+  recoveryRef.current = { messages, options, offerAssessment, input, contactDraft, contactPlaceholder, choosingChange, pending, hasContactFlow, contactPending };
 
   useEffect(() => {
     if (!restored) return;
-    storeConversation({ messages, options, offerAssessment, input, contactDraft, contactPlaceholder, choosingChange, pending, hasContactFlow });
-  }, [restored, messages, options, offerAssessment, input, contactDraft, contactPlaceholder, choosingChange, pending, hasContactFlow]);
+    storeConversation({ messages, options, offerAssessment, input, contactDraft, contactPlaceholder, choosingChange, pending, hasContactFlow, contactPending });
+  }, [restored, messages, options, offerAssessment, input, contactDraft, contactPlaceholder, choosingChange, pending, hasContactFlow, contactPending]);
 
   useFocusTrap(panelRef, true, onClose);
 
-  async function sendToGary(payload: GaryRequest) {
-    if (busyRef.current) return;
+  async function sendToGary(payload: PendingRequest, retry = false) {
+    if (busyRef.current || payload.retryBlocked) return;
     busyRef.current = true;
-    setPending(payload);
-    // Persist before dispatch, including when the visitor refreshes before React's next effect.
-    storeConversation({ ...recoveryRef.current, pending: payload });
     setSending(true);
     const controller = new AbortController();
     requestController.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 65_000);
     setError(null);
     try {
+      const sessionId = getStoredSessionId();
+      // Persist the original envelope once. Retry must not acquire new credentials or
+      // page metadata; legacy dispatched snapshots must not gain a new request identity.
+      const envelope: RequestEnvelope = payload.requestEnvelope ?? {
+        ...(sessionId ? { sessionId, sessionCapability: getStoredSessionCapability() ?? undefined } : {}),
+        anonymousId: getOrCreateAnonymousId(), currentPage: pathname,
+        referrer: document.referrer || undefined,
+        ...(payload.message !== undefined ? { message: payload.message } : {}),
+        ...(payload.optionSelected !== undefined ? { optionSelected: payload.optionSelected } : {}),
+        ...(payload.contactFlow ? { contactFlow: payload.contactFlow } : {}),
+        ...(!retry && !payload.contactFlow ? { requestId: crypto.randomUUID() } : {}),
+      };
+      const saved = { ...payload, requestEnvelope: envelope };
+      setPending(saved);
+      // Save before dispatch, including refresh before React's next effect.
+      storeConversation({ ...recoveryRef.current, pending: saved });
       const response = await fetch('/api/gary/message', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: getStoredSessionId(),
-          sessionCapability: getStoredSessionCapability(),
-          anonymousId: getOrCreateAnonymousId(),
-          currentPage: pathname,
-          referrer: typeof document !== 'undefined' ? document.referrer : undefined,
-          ...payload,
-        }),
+        method: 'POST', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(envelope),
       });
+      if (!mountedRef.current) return;
       if (!response.ok) {
-        if (response.status === 403 || response.status === 409) throw new Error('This session cannot continue. Your request is kept here; use Start Over to begin a new chat.');
-        throw new Error('Something went wrong. Your request is kept here. Retry it when you are ready; delivery is not confirmed.');
+        const failure = await response.json().catch(() => ({})) as { outcome?: string };
+        if (!mountedRef.current) return;
+        const blocked = response.status === 403 || response.status === 410 ||
+          (response.status === 409 && failure.outcome !== 'pending') ||
+          ['conflict', 'indeterminate', 'expired'].includes(failure.outcome ?? '');
+        if (blocked) {
+          const stopped = { ...saved, retryBlocked: true };
+          if (mountedRef.current) setPending(stopped);
+          storeConversation({ ...recoveryRef.current, pending: stopped });
+        }
+        const text = failure.outcome === 'pending'
+          ? 'Your original request is still pending or its outcome is uncertain. Wait a moment, then retry the same request to check. Nothing has been resent automatically.'
+          : failure.outcome === 'unavailable'
+            ? 'Gary could not access the saved request. Your original request is kept here; retry it when you are ready.'
+            : blocked
+              ? 'This request cannot be retried safely here. Its reference is kept in this tab. Start Over begins a separate conversation; it does not cancel the earlier request.'
+              : retry && !envelope.requestId && !envelope.contactFlow
+                ? 'This older request has no replay protection. Its earlier outcome is unknown; retrying may repeat it.'
+                : 'Something went wrong. Your request is kept here. Retry it when you are ready; delivery is not confirmed.';
+        if (mountedRef.current) setError(text);
+        return;
       }
       const data: MessageApiResponse = await response.json();
       if (!mountedRef.current) return;
       if (!data.sessionId || typeof data.reply?.text !== 'string') throw new Error('Invalid Gary response');
       storeSessionId(data.sessionId);
       if (data.sessionCapability) storeSessionCapability(data.sessionCapability);
-      setMessages((prev) => [...prev, { id: `gary-${Date.now()}`, role: 'gary', text: data.reply.text }]);
+      setMessages((prev) => {
+        const bubble: ChatBubble = { id: `gary-${Date.now()}`, role: 'gary', text: data.reply.text };
+        return contactPending && payload.contactFlow?.action === 'confirm' && prev.at(-1)?.role === 'gary'
+          ? [...prev.slice(0, -1), bubble] : [...prev, bubble];
+      });
+      setContactPending(data.contactFlow?.outcome === 'pending');
       setOptions(data.reply.options ?? []);
       setOfferAssessment(Boolean(data.offerAssessment));
       setChoosingChange(false);
@@ -162,10 +198,15 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
         setChoosingChange(saved.choosingChange);
         setPending(saved.pending);
         setHasContactFlow(Boolean(saved.hasContactFlow));
+        setContactPending(Boolean(saved.contactPending));
         if (initialIntent === 'contact' && !saved.hasContactFlow && !saved.pending) {
           void sendToGary({ contactFlow: { action: 'start' } });
         }
-        if (saved.pending) setError('Your previous request may still have been processed. Delivery is not confirmed. Your request is kept here.');
+        if (saved.pending) setError(saved.pending.retryBlocked
+          ? 'This request cannot be retried safely here. Its reference is kept in this tab. Start Over begins a separate conversation; it does not cancel the earlier request.'
+          : !saved.pending.requestEnvelope?.requestId && !saved.pending.contactFlow
+            ? 'This older request has no replay protection. Its earlier outcome is unknown; retrying may repeat it.'
+            : 'Your previous request may still have been processed. Delivery is not confirmed. Your original request is kept here.');
         return;
       }
       if (initialIntent === 'contact') {
@@ -197,17 +238,18 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
   }
 
   function handleContactOption(option: string) {
-    if (!contactDraft || busyRef.current) return;
+    if (!contactDraft || busyRef.current || pending) return;
     if (option === CONTACT_SOMETHING_ELSE) {
       // Free typing in the same step. Focus the field; nothing is sent and no step is added.
       inputRef.current?.focus();
       return;
     }
+    if (contactPending && option !== CONTACT_CONFIRM_YES) return;
     if (option === CONTACT_CONFIRM_CHANGE) {
       setChoosingChange(true);
       return;
     }
-    setMessages((prev) => [...prev, { id: `visitor-${Date.now()}`, role: 'visitor', text: option }]);
+    if (!contactPending) setMessages((prev) => [...prev, { id: `visitor-${Date.now()}`, role: 'visitor', text: option }]);
     if (option !== CONTACT_CONFIRM_YES) setOptions([]);
     if (option === CONTACT_CONFIRM_YES) {
       void sendToGary({ contactFlow: { action: 'confirm', draft: contactDraft } });
@@ -217,7 +259,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
   }
 
   function handleChangeField(field: ContactField) {
-    if (!contactDraft || busyRef.current) return;
+    if (!contactDraft || busyRef.current || pending) return;
     setChoosingChange(false);
     setOptions([]);
     void sendToGary({ contactFlow: { action: 'change', draft: contactDraft, field } });
@@ -247,9 +289,10 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
     }
     if (busyRef.current) return;
     clearStoredSessionId();
-    recoveryRef.current = { messages: [], options: [], offerAssessment: false, input: '', contactDraft: null, contactPlaceholder: null, choosingChange: false, pending: null, hasContactFlow: false };
+    recoveryRef.current = { messages: [], options: [], offerAssessment: false, input: '', contactDraft: null, contactPlaceholder: null, choosingChange: false, pending: null, hasContactFlow: false, contactPending: false };
     setPending(null);
     setHasContactFlow(false);
+    setContactPending(false);
     setMessages([]);
     setInput('');
     setOptions([]);
@@ -310,8 +353,8 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
         ))}
         {sending && <p className="text-xs text-slate-400">Gary is typing...</p>}
         {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
-        {pending && !sending && (
-          <button type="button" className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-sm text-slate-700" onClick={() => void sendToGary(pending)}>
+        {pending && !pending.retryBlocked && !sending && (
+          <button type="button" className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-sm text-slate-700" onClick={() => void sendToGary(pending, true)}>
             Retry request
           </button>
         )}
@@ -322,7 +365,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
             {options.map((option) => (
               <button
                 key={option}
-                disabled={sending}
+                disabled={sending || Boolean(pending) || (contactPending && option !== CONTACT_CONFIRM_YES)}
                 type="button"
                 onClick={() => (contactDraft ? handleContactOption(option) : handleSend(option, option))}
                 className={
@@ -356,7 +399,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
             {CONTACT_CHANGE_OPTIONS.map(({ label, field }) => (
               <button
                 key={field}
-                disabled={sending}
+                disabled={sending || Boolean(pending) || contactPending}
                 type="button"
                 onClick={() => handleChangeField(field)}
                 className="min-h-[44px] rounded-lg border border-slate-300 px-3 py-2 text-left text-sm text-slate-700 hover:border-navy-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
@@ -401,7 +444,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder={contactPlaceholder ?? 'Type a message...'}
-          disabled={sending || Boolean(pending)}
+          disabled={sending || Boolean(pending) || contactPending}
           maxLength={contactDraft ? 1000 : 2000}
           aria-label={contactPlaceholder ?? 'Message Gary'}
           // Explicit colours on purpose: the site body is white-on-navy, and this field sits on the
@@ -410,7 +453,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
         />
         <button
           type="submit"
-          disabled={sending || Boolean(pending) || !input.trim()}
+          disabled={sending || Boolean(pending) || contactPending || !input.trim()}
           className="min-h-[44px] min-w-[44px] rounded-lg bg-navy-900 px-4 text-sm font-medium text-white disabled:opacity-50"
         >
           Send

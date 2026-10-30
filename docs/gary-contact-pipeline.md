@@ -530,3 +530,69 @@ by the acknowledged backend assignment; no later additive contract is visible at
 Remote drafts remain website6e66693 and CC04cbd80. No backend/shared file edit, push, CI action,
 billing change or privileged/paid operation. Budget remains unverified. Exact final source
 and independent review are recorded in the existing PR discussion after local preservation.
+
+## Isolated replay/contact composition — 30 October 2026
+
+Original frontend checkout remains clean at26e4bf59e03ffc76970b6afe37b714e4d9e523fc.
+Authorized integration is isolated in local/gary-composition-20261030. Backend artifact from
+[PR58 immutable comment6532442401](https://github.com/etoyig-png/mr-life-command-center/pull/58#issuecomment-6532442401)
+was extracted with exactly one trailing newline:25649bytes, SHA256
+4cd62a07707ced8eb59a6560e5e1ec00e644e5b1b2ae0ead6e8af9c58ebd625a.
+Declared base6e66693da4f0bd6bf5902b0a4a3741f4cd2332af was verified locally; the three
+backend/test files had no frontend overlap and applied cleanly. Imported asd7cad8a, preserving
+26e4bf59; this reproduces the artifact content, not the unavailable upstream commit object
+5ba78c6da73122d0b78588793dab5aab582d322a or its full history. No independent backend edit.
+Contracts6532452143 and scoped review6532455486 are the integration inputs.
+
+Frontend freezes the original envelope before dispatch, with one UUID per new ordinary turn
+or first opening. Retry reuses the same envelope including omitted opening credentials,
+anonymous identity and page/referrer. Legacy already-dispatched snapshots never gain a UUID
+and explicitly warn of absent replay protection. No polling or hidden resend. Recoverable
+409pending/503 statuses preserve explicit retry; conflict/indeterminate/expired/auth failures
+and generic terminal409 preserve the reference and block send/edit controls. Start Over is
+explicitly a separate conversation and does not cancel an uncertain earlier operation.
+Contact pending keeps the identical draft and confirmation, blocks edits until settled and
+updates the pending status bubble on an explicit check. Known provider rejection restores
+existing consent/editing controls. Existing backend wording distinguishes provider acceptance
+from delivery. No visitor history fetch or founder authority added to GaryPanel.
+
+Existing independent review found and corrected two frontend gaps: generic terminal409 could
+retry forever, and contact options could bypass a blocked request. The latter is reproduced
+in a preserved failing production browser test before correction. Focused final production
+browser28/28 desktop+390px and development StrictMode first-opening1/1 pass. Coverage includes
+exact envelope equality across navigation/refresh, distinct logical-turn UUIDs, unknown outcome,
+legacy recovery, terminal state persistence, contact pending/rejection/retry, denied contact,
+Start Over deletion failure and timeout without auto-resend. Tests using the old nullable
+opening envelope and enabled confirmation after unknown HTTP failure were updated to the
+frozen contract, with exact-draft assertions strengthened. Lint, types and production build
+pass. No unchanged full suite was rerun; prior Semgrep coverage predates this component delta.
+
+New real local PostgreSQL proof: reused the existing stopped PostgreSQL16 container bound only
+to127.0.0.1:55432, fresh synthetic databaseeasyai_composition_2033, existing seven migrations,
+and cached generated Prisma engine. No downloads/new service or real provider. Five focused
+actual-route/Prisma tests pass: eight overlapping first openings produce one session/receipt;
+held established turn with five competitors produces pending then identical replay with one
+visitor write/provider attempt; held first-session reply behaves likewise; captured provider
+rejection stays pending then indeterminate with no regeneration; held contact lease stays
+recoverable after rejection and retries the same single durable contact. Real rate limits,
+capability checks, claim/settle and transactions run; only LLM/email/provider boundaries and
+waitUntil capture are replaced. External fetch throws. Fixture stopped afterward; synthetic
+rows preserved. This is local concurrency evidence, not hosted RLS, independent-instance crash
+recovery, real provider quality/delivery, Company IQ or the founder-visible journey.
+Source/log: `/workspace/work/gary-composition-real-postgres.test.ts` and `.log`.
+
+Same-method Node gzip against26e4bf59: deferred panel3975→4628bytes(+653,+16.43%);
+route/layout+polyfillJS161301→161372(+71,+0.044%); CSS13986→13991(+5). Activated JS
+165276→166000(+0.438%). Standalone/cumulative growth remains an open performance gate;
+aggregate context does not waive it. No new dependency/asset/API call or automatic model call.
+Replay adds backend receipt I/O; its latency/model behavior is not a field or real-provider
+benchmark. No new runtime timing claim or final security/release acceptance.
+
+Remaining dependencies: exact CC founder navigation consumer and paired review; approved
+Company IQ context; hosted session/history denial and complete real visitor/email/reply/founder-
+approved follow-up; authorized configuration/migrations/release; final security/performance
+acceptance. Already-lost legacy completed-contact drafts cannot be reconstructed here. All
+prior denied-storage physical-erasure limitations remain. No push/CI/retry, spend, settings,
+access/security change, production operation, real send/model, merge or approval assumed.
+Billing/remaining prior budget stay unverified. Preserve a safe checkpoint and stop by
+31October01:00UTC (30October21:00Eastern); no overnight implementation scheduled.
