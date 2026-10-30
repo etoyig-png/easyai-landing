@@ -343,3 +343,16 @@ test('timeout retains the request and never claims delivery or resends automatic
   expect(calls).toBe(1);
   await expect(dialog.getByText(TEXTS.sent)).toHaveCount(0);
 });
+
+test('Start Over clears unsent personal text before recovery can store it again', async ({ page }) => {
+  const { dialog, input } = await openFromContactPage(page);
+  await input.fill('Private unsent contact detail');
+  await dialog.getByRole('button', { name: 'Start Over', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Confirm?', exact: true }).click();
+  await expect(dialog.getByRole('textbox')).toHaveValue('');
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveValue('');
+  await expect(page.getByRole('dialog')).not.toContainText('Private unsent contact detail');
+});

@@ -244,6 +244,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
     setPending(null);
     setHasContactFlow(false);
     setMessages([]);
+    setInput('');
     setOptions([]);
     setOfferAssessment(false);
     setConfirmingStartOver(false);
