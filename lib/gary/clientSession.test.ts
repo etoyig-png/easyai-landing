@@ -36,6 +36,15 @@ describe('Gary recovery boundaries', () => {
       snapshot: { ...snapshot, messages: [{ id: 'x', role: 'gary', text: { html: 'bad' } }] } }));
     expect(session.getStoredConversation()).toBeNull();
   });
+  it('uses new in-memory identity when quota blocks writes but reads return stale data', () => {
+    session.storeSessionId('old-session');
+    vi.stubGlobal('window', { sessionStorage: { getItem: (key: string) => values.get(key) ?? null,
+      setItem() { throw new Error('quota exceeded'); }, removeItem: (key: string) => values.delete(key) } });
+    session.storeSessionId('new-session'); session.storeConversation(snapshot);
+    expect(session.getStoredSessionId()).toBe('new-session');
+    expect(session.getStoredConversation()).toEqual(snapshot);
+    session.clearStoredSessionId();
+  });
   it('keeps chat usable when the browser denies storage', () => {
     vi.stubGlobal('window', { sessionStorage: { getItem() { throw new Error('denied'); },
       setItem() { throw new Error('denied'); }, removeItem() { throw new Error('denied'); } },

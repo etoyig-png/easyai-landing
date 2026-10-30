@@ -7,15 +7,18 @@ const ANIMATION_PLAYED_KEY = 'gary-launch-animated-v1';
 
 // Some privacy modes deny Web Storage. Keep this tab's in-memory chat usable in that case.
 const memory = new Map<string, string>();
+const failedWrites = new Set<string>();
 function readSession(key: string): string | null {
+  if (failedWrites.has(key)) return memory.get(key) ?? null;
   try { return window.sessionStorage.getItem(key); } catch { return memory.get(key) ?? null; }
 }
 function writeSession(key: string, value: string): void {
   memory.set(key, value);
-  try { window.sessionStorage.setItem(key, value); } catch { /* In-memory fallback. */ }
+  try { window.sessionStorage.setItem(key, value); failedWrites.delete(key); } catch { failedWrites.add(key); }
 }
 function removeSession(key: string): void {
   memory.delete(key);
+  failedWrites.delete(key);
   try { window.sessionStorage.removeItem(key); } catch { /* In-memory fallback. */ }
 }
 
