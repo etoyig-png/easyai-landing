@@ -244,3 +244,14 @@ Owner authorized up to$23additional Actions spend for the assignment. Billing/AP
 visibility and enforcement remain unverified; no chargeable run or publication was
 triggered merely by recording that authorization. Existing report holds exact local
 and remote heads, recovery evidence and the remaining publication gate.
+
+
+Publication budget update,30October2026: owner authorized$23total additionalActions
+spend. Official github/docs source on allowedraw.githubusercontent.com verifies
+standardLinux$0.006/min and storage rates. Existingwebsite20min/CC35minjoblimits,
+standardrunnerselection, onejobperrepo, seven-dayCCartifactretention and no manual
+reruns support one publication batch with a conservative$5taskreserve. This resolves
+the earlier run-specificcost-control blocker for that batch; actual accountusage,
+plan and billingcap remainunverified. No accountsettings or workflows changed.
+Remainingbudget is reserved, not a claim of actual billedcost. Existingprivate report
+contains source snapshots, calculations, exacthead and recovery receipts.
