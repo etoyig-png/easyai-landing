@@ -356,3 +356,55 @@ test('Start Over clears unsent personal text before recovery can store it again'
   await expect(page.getByRole('dialog').getByRole('textbox')).toHaveValue('');
   await expect(page.getByRole('dialog')).not.toContainText('Private unsent contact detail');
 });
+
+test('Start Over survives denied removal, failed opening, reopen and refresh without discarded credentials', async ({ page }) => {
+  const { dialog, input } = await openFromContactPage(page);
+  await input.fill('Discard this private draft');
+  await page.evaluate(() => {
+    const original = Storage.prototype.removeItem;
+    Storage.prototype.removeItem = function (key: string) {
+      if (this === window.sessionStorage && key.startsWith('gary-')) throw new DOMException('Removal denied', 'SecurityError');
+      return original.call(this, key);
+    };
+  });
+  await page.unroute('**/api/gary/message');
+  const requests: { sessionId?: string | null; sessionCapability?: string | null }[] = [];
+  await page.route('**/api/gary/message', async (route) => {
+    requests.push(route.request().postDataJSON());
+    if (requests.length === 1) {
+      await route.fulfill({ status: 503, body: '{}' });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      sessionId: 'replacement-session', sessionCapability: 'replacement-capability',
+      reply: { text: 'A fresh conversation.' },
+    }) });
+  });
+  await dialog.getByRole('button', { name: 'Start Over', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Confirm?', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Retry request' })).toBeVisible();
+  expect(requests).toHaveLength(1);
+  expect(requests[0].sessionId).toBeNull();
+  expect(requests[0].sessionCapability).toBeNull();
+  await dialog.getByRole('button', { name: 'Close chat' }).click();
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Retry request' })).toBeVisible();
+  expect(requests).toHaveLength(1);
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
+  await page.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Retry request' })).toBeVisible();
+  await expect(dialog.getByRole('textbox')).toHaveValue('');
+  await expect(dialog).not.toContainText('Discard this private draft');
+  expect(requests).toHaveLength(1);
+  await dialog.getByRole('button', { name: 'Retry request' }).click();
+  await expect(dialog.getByText('A fresh conversation.')).toBeVisible();
+  expect(requests).toHaveLength(2);
+  expect(requests[1].sessionId).toBeNull();
+  expect(requests[1].sessionCapability).toBeNull();
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-gary-ready'))).toBe('true');
+  await page.getByRole('button', { name: DIALOG_NAME, exact: true }).click();
+  await expect(dialog.getByText('A fresh conversation.')).toBeVisible();
+  expect(requests).toHaveLength(2);
+});

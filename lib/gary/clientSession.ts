@@ -10,7 +10,7 @@ const memory = new Map<string, string>();
 const failedWrites = new Set<string>();
 function readSession(key: string): string | null {
   if (failedWrites.has(key)) return memory.get(key) ?? null;
-  try { return window.sessionStorage.getItem(key); } catch { return memory.get(key) ?? null; }
+  try { return window.sessionStorage.getItem(key) || null; } catch { return memory.get(key) ?? null; }
 }
 function writeSession(key: string, value: string): void {
   memory.set(key, value);
@@ -19,7 +19,12 @@ function writeSession(key: string, value: string): void {
 function removeSession(key: string): void {
   memory.delete(key);
   try { window.sessionStorage.removeItem(key); failedWrites.delete(key); }
-  catch { failedWrites.add(key); } // Mask discarded data if reads still return the old value.
+  catch {
+    // Some storage wrappers reject removal but allow overwriting. Clear the persisted
+    // value too, so a reload cannot resurrect it after the in-memory mask is lost.
+    try { window.sessionStorage.setItem(key, ''); } catch { /* Memory-only until storage works. */ }
+    failedWrites.add(key);
+  }
 }
 
 function randomId(): string {

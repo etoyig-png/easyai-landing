@@ -59,6 +59,60 @@ describe('Gary recovery boundaries', () => {
     session.storeSessionId('replacement-session');
     expect(session.getStoredSessionId()).toBe('replacement-session');
   });
+  it('keeps discarded credentials absent after reload when removal fails but overwriting works', async () => {
+    session.storeSessionId('discarded-reload');
+    session.storeSessionCapability('discarded-secret');
+    session.storeConversation(snapshot);
+    vi.stubGlobal('window', { sessionStorage: { getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem() { throw new Error('removal denied'); } } });
+    session.clearStoredSessionId();
+    vi.resetModules(); // Reload loses module-level masks, while browser storage survives.
+    const reloaded = await import('./clientSession');
+    expect(reloaded.getStoredSessionId()).toBeNull();
+    expect(reloaded.getStoredSessionCapability()).toBeNull();
+    expect(reloaded.getStoredConversation()).toBeNull();
+  });
+  it.each(['gary-session-id', 'gary-session-capability', 'gary-conversation-v1'])(
+    'handles removal denial for only %s without keeping old credentials', async (blockedKey) => {
+      session.storeSessionId('old-partial'); session.storeSessionCapability('old-capability');
+      session.storeConversation(snapshot);
+      vi.stubGlobal('window', { sessionStorage: { getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+        removeItem(key: string) { if (key === blockedKey) throw new Error('denied'); values.delete(key); } } });
+      session.clearStoredSessionId();
+      vi.resetModules();
+      const reloaded = await import('./clientSession');
+      expect(reloaded.getStoredSessionId()).toBeNull();
+      expect(reloaded.getStoredSessionCapability()).toBeNull();
+      expect(reloaded.getStoredConversation()).toBeNull();
+      reloaded.storeSessionId('new-partial'); reloaded.storeSessionCapability('new-capability');
+      reloaded.storeConversation(snapshot);
+      vi.resetModules();
+      const reopened = await import('./clientSession');
+      expect(reopened.getStoredSessionId()).toBe('new-partial');
+      expect(reopened.getStoredSessionCapability()).toBe('new-capability');
+      expect(reopened.getStoredConversation()).toEqual(snapshot);
+    });
+  it('masks discarded data when both removal and overwrite fail, until storage recovers', () => {
+    session.storeSessionId('old-denied'); session.storeSessionCapability('old-secret');
+    session.storeConversation(snapshot);
+    vi.stubGlobal('window', { sessionStorage: { getItem: (key: string) => values.get(key) ?? null,
+      setItem() { throw new Error('denied'); }, removeItem() { throw new Error('denied'); } } });
+    session.clearStoredSessionId();
+    expect(session.getStoredSessionId()).toBeNull();
+    expect(session.getStoredSessionCapability()).toBeNull();
+    expect(session.getStoredConversation()).toBeNull();
+    session.storeSessionId('new-memory'); session.storeSessionCapability('new-memory-secret');
+    expect(session.getStoredSessionId()).toBe('new-memory');
+    expect(session.getStoredSessionCapability()).toBe('new-memory-secret');
+    vi.stubGlobal('window', { sessionStorage: { getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) } });
+    session.clearStoredSessionId();
+    expect(values.has('gary-session-id')).toBe(false);
+    expect(values.has('gary-session-capability')).toBe(false);
+    expect(values.has('gary-conversation-v1')).toBe(false);
+  });
   it('keeps chat usable when the browser denies storage', () => {
     vi.stubGlobal('window', { sessionStorage: { getItem() { throw new Error('denied'); },
       setItem() { throw new Error('denied'); }, removeItem() { throw new Error('denied'); } },

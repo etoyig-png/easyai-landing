@@ -489,3 +489,44 @@ not establish current billing health or remaining prior budget. No push, CI retr
 real email, production configuration, migration, merge or deployment was attempted. The fix
 is saved locally on top of6e66693 until budget/authorized publishing prerequisites are verified.
 The existing standalone deferred-panel growth gate remains open; no new runtime timing claim.
+
+
+## Independent Start Over challenge — 30 October 2026
+
+Existing reviewer gary_review independently challenged exact3f775b5, without replacement
+helpers. The memory-only correction could still resurrect discarded credentials after a
+hard reload if removal failed and the replacement opening had not succeeded. A fresh-module
+unit reproduction fails on3f775b5; a production browser reproduction also fails at the first
+refresh (recoverable Retry request absent). Both logs and negative browser trace are preserved
+under `/workspace/work/gary-removal-*`. These are intentionally failing prior-candidate proofs.
+
+Small frontend-only correction: when deletion throws, attempt an empty overwrite and treat
+empty storage reads as absent. Retain the existing memory mask if either operation fails.
+No new storage key, package, backend contract, visual, animation, API call or model call.
+This supersedes the prior delete-only reload limitation: deletion failure with working
+writes now survives reload. If BOTH removal and overwrite are denied, memory masking keeps
+the current runtime usable, but persistent erasure across hard reload remains impossible to
+guarantee. No passing assertion or release claim covers that boundary.
+
+Focused acceptance:12/12 recovery unit tests, including each of three selectively blocked
+keys, fresh-module reads, replacement credentials/snapshot across another module reset and
+combined remove/write failure followed by storage recovery. The new real-client/captured-API
+production browser scenario passes2/2 on desktop and390px: Start Over with denied deletion,
+failed opening, close/reopen, actual reload, explicit retry with null old credentials, cleared
+private input and successful replacement recovery after a second reload. The first corrected
+browser attempt failed2/2 only at its final step because it used the contact-page CTA, which
+intentionally starts contact intent. Preserved those traces/log; final test uses the ordinary
+launcher there, retaining all recovery/no-resend assertions. No real backend/model/email proof.
+Lint, TypeScript and production build pass. Unchanged full/browser/DB suites were not repeated.
+
+Same-method Node gzip comparison against preserved runtime2b096cc build: deferred panel
+3979→3975bytes; manifest route/layout+polyfill JS161352→161301bytes; CSS13986→13986bytes.
+These incremental artifact measurements use the same compression options on both builds;
+they do not replace earlier differently computed inventories or runtime/field measurements.
+Original standalone deferred-panel growth remains an open gate. No new timing claim.
+
+Backend contracts for replay, pending contact, Company IQ and integrated history remain owned
+by the acknowledged backend assignment; no later additive contract is visible at this check.
+Remote drafts remain website6e66693 and CC04cbd80. No backend/shared file edit, push, CI action,
+billing change or privileged/paid operation. Budget remains unverified. Exact final source
+and independent review are recorded in the existing PR discussion after local preservation.
