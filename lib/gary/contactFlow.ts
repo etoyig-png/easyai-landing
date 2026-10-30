@@ -93,10 +93,10 @@ export function contactOutcomeTexts(brandName: string) {
 }
 
 const EASY_AI_TEXTS = /*#__PURE__*/ contactOutcomeTexts('Easy AI');
-export const CONTACT_SENT_TEXT = EASY_AI_TEXTS.sent;
-export const CONTACT_ALREADY_SENT_TEXT = EASY_AI_TEXTS.alreadySent;
-export const CONTACT_LIMITED_TEXT = EASY_AI_TEXTS.limited;
-export const CONTACT_FAILED_TEXT = EASY_AI_TEXTS.failed;
+export const CONTACT_SENT_TEXT = /*#__PURE__*/ (() => EASY_AI_TEXTS.sent)();
+export const CONTACT_ALREADY_SENT_TEXT = /*#__PURE__*/ (() => EASY_AI_TEXTS.alreadySent)();
+export const CONTACT_LIMITED_TEXT = /*#__PURE__*/ (() => EASY_AI_TEXTS.limited)();
+export const CONTACT_FAILED_TEXT = /*#__PURE__*/ (() => EASY_AI_TEXTS.failed)();
 
 const NAME_MAX = 120;
 const CONTACT_MAX = 200;
