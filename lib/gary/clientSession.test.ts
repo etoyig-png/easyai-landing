@@ -45,6 +45,20 @@ describe('Gary recovery boundaries', () => {
     expect(session.getStoredConversation()).toEqual(snapshot);
     session.clearStoredSessionId();
   });
+  it('does not restore discarded credentials or drafts when storage removal is denied', () => {
+    session.storeSessionId('discarded-session');
+    session.storeSessionCapability('discarded-capability');
+    session.storeConversation(snapshot);
+    vi.stubGlobal('window', { sessionStorage: { getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem() { throw new Error('removal denied'); } } });
+    session.clearStoredSessionId();
+    expect(session.getStoredSessionId()).toBeNull();
+    expect(session.getStoredSessionCapability()).toBeNull();
+    expect(session.getStoredConversation()).toBeNull();
+    session.storeSessionId('replacement-session');
+    expect(session.getStoredSessionId()).toBe('replacement-session');
+  });
   it('keeps chat usable when the browser denies storage', () => {
     vi.stubGlobal('window', { sessionStorage: { getItem() { throw new Error('denied'); },
       setItem() { throw new Error('denied'); }, removeItem() { throw new Error('denied'); } },

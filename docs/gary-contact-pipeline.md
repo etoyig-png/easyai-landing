@@ -460,3 +460,32 @@ or DB replacement. Backend owner supplies exact rollback SQL only if necessary a
 The existing authenticated laptop receiver is not exposed here. Local synchronization stays
 pending until an authorized release and verified receiver/clean designated checkout are available;
 never reset divergent/unpublished work or claim cloud/local SHA equality without verification.
+
+
+## Resumed frontend ownership and removal recovery — 30 October 2026
+
+Backend receipt/start and exclusive API/data/email/security ownership are now verified in
+[PR58 acknowledgment 6530051785](https://github.com/etoyig-png/mr-life-command-center/pull/58#issuecomment-6530051785).
+This supersedes the earlier routing-pending status above; no Toy relay or replacement task is
+needed. Published heads remain website6e66693 and CC04cbd80. Backend reports preserved local
+81b7746/c9a3bc1; those unpublished commits are not available here for exact review. Backend
+will publish additive request replay, pending-contact, Company IQ and authorized history
+contracts before frontend integration. No backend/shared files were edited here.
+
+A new frontend-only regression reproduction found Start Over reading discarded session IDs
+when sessionStorage.removeItem throws but getItem still succeeds. The focused test failed
+before the change (discarded-session instead of null). Reuse the existing failed-write mask
+for failed removals, so discarded credentials/drafts stay absent in the current runtime and a
+later successful replacement write resumes normal storage. This does not establish physical
+erasure or persistence across reload when the browser itself denies deletion. No visual,
+animation, API/model call, dependency or backend change. Seven focused recovery tests, lint,
+TypeScript and production build pass after this change; existing unaffected browser/database
+suites were inspected, not rerun. Independent review and affected integrated browser proof
+remain required before release.
+
+Billing verification attempted through the existing GitHub integration: budgets lookup404;
+actual October usage lookup403 Resource not accessible by integration. These responses do
+not establish current billing health or remaining prior budget. No push, CI retry, paid model,
+real email, production configuration, migration, merge or deployment was attempted. The fix
+is saved locally on top of6e66693 until budget/authorized publishing prerequisites are verified.
+The existing standalone deferred-panel growth gate remains open; no new runtime timing claim.

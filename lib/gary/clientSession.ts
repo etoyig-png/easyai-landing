@@ -18,8 +18,8 @@ function writeSession(key: string, value: string): void {
 }
 function removeSession(key: string): void {
   memory.delete(key);
-  failedWrites.delete(key);
-  try { window.sessionStorage.removeItem(key); } catch { /* In-memory fallback. */ }
+  try { window.sessionStorage.removeItem(key); failedWrites.delete(key); }
+  catch { failedWrites.add(key); } // Mask discarded data if reads still return the old value.
 }
 
 function randomId(): string {
