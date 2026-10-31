@@ -818,3 +818,42 @@ surfaced for release acceptance, not a waived budget. Gary panel remains4192/+5.
 No dependencies/assets/framework/provider/settings/security/network/credential changes,
 no CI/push without verified remaining prior$23Actionsbudget, no spending/merge/deploy grant.
 Local receiver/laptop divergence untouched; fixture rows and all earlier checkpoints retained.
+
+### Accepted-receipt replacement correction — same morning assignment
+
+Final review found a concrete additional correct-result bug in the pre-existing assessment
+writer: old receipt A removal could throw, skipping the valid new accepted B write; completion
+then legitimately authorized/rendered A. Exact original source-block reproduction retained
+newWrite=false/actualold-A/expectednew-B. Fixed only frontend receipt handling as
+ed55c183afe39ca5a178c05b655bca2c55efa31b, preserving664e577 and prior history. Existing
+lib/assessmentReceipt.ts now owns direct atomic replacement and read/clear behavior; both
+form and completion use it. Valid B never depends on removing A first. Missing/write-failed
+receipts clear/tombstone A where allowed and retain a current-runtime discard mask otherwise.
+Accepted POST remains non-retryable; malformed/null accepted receipt does not become an error
+that triggers resubmission. No new URL, token, auth, API, schema, module, library or framework.
+SSR guards precede boolean-mask mutation; no server-side private user data is cached. Actual
+client chunks use the same module5355 in form/completion, retaining the tab mask across SPA.
+
+Seven targeted storage tests pass; six affected completion cases and the actual native full-
+plan/refresh read case pass after this change. No producer POST/generation/send or unchanged
+27-case/eleven-step/staged journey rerun. Same row/wire/full text/image as original DATA;
+normal successful replacement refresh reads only B. All-mutation-denied boundary stays honest:
+if browser refuses both deletion and overwrite, current-runtime masking works, but physical
+erasure/old-cache prevention across a HARD RELOAD cannot be guaranteed. No claim covers it.
+
+Frontend-only delta/proof6543711349:16279bytes SHA256
+1d34790acfb2f4eadc7cf877acf903389ea9097ffeecd86c62e21d188c1ced34.
+DATA/PROOF packets remain immutable and unchanged; backend can consume the original exact
+assessment body. This updates frontend runtime/correctness only, not producer data/contract.
+Exact existing review ofed55 source, 7unit/6completion/1native logs and current screenshot PASS.
+Current screenshot reproduces original DATA hash; no visual redesign. Build/lint/types pass.
+
+Final page-only completionJS1848gzip vs1762before receipt correction and1425status-onlybaseline:
++86for this boundary, +423/+29.68%total. Form page5439→5536gzip(+97/+1.78%). Aggregate
+completion/layout+polyfill158691includes prior layout context; rawAPI3965/text3781unchanged.
+These costs remain surfaced for release acceptance, not a waiver or timing claim. Gary4192/
++5.46% and CompanyIQ authority remain unapproved/separate. No independent backend or CC edit;
+owner test maintenance source review does not imply old native POST test runtime rerun.
+All synthetic rows/earlier checkpoints/receiver/laptop divergence retained. Local test services
+stopped; no automatic background continuation, CI/push budget, spend/provider/send/model,
+security/network/credential/settings, merge or deployment action inferred.
