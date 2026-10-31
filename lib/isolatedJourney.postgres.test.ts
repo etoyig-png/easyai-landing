@@ -33,6 +33,7 @@ import { GET as status } from '@/app/api/assessment/status/route';
 import { POST as gary } from '@/app/api/gary/message/route';
 import * as options from './quizQuestions';
 import { internalRecipient } from './emailRouting';
+import { buildResultEmailText } from './resend';
 
 function request(path: string, body: unknown) {
   return new NextRequest(`http://localhost${path}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': (body as { anonymousId?: string }).anonymousId === 'isolated-retry' ? '192.0.2.19' : (body as { anonymousId?: string }).anonymousId === 'cross-repository-fixture' ? '192.0.2.20' : '192.0.2.18' }, body: JSON.stringify(body) });
@@ -78,7 +79,14 @@ describe.skipIf(!process.env.ISOLATED_JOURNEY_DATABASE_URL)('isolated real route
     expect(internalRecipient()).toBe('info@easyaiconsult.com');
     expect((await status(new NextRequest(`http://localhost/api/assessment/status?id=${accepted.id}`))).status).toBe(401);
     const tracked = await status(new NextRequest(`http://localhost/api/assessment/status?id=${accepted.id}`, { headers: { authorization: `Bearer ${accepted.statusCapability}` } }));
-    expect(await tracked.json()).toEqual({ status: 'completed' });
+    expect(tracked.status).toBe(200);
+    expect(tracked.headers.get('cache-control')).toBe('private, no-store');
+    const expectedResultText = buildResultEmailText(row.resultHtml!);
+    expect(fixture.inbox[1].text).toBe(expectedResultText);
+    expect(await tracked.json()).toEqual({
+      status: 'completed', submissionId: row.id, businessName: row.businessName,
+      result: { availability: 'available', text: expectedResultText }
+    });
     const replay = await assess(request('/api/assessment', data));
     expect(await replay.json()).toMatchObject({ id: accepted.id, duplicate: true });
     await settle();
