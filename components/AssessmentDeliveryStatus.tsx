@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ASSESSMENT_RECEIPT_KEY, type AssessmentReceipt } from '@/lib/assessmentReceipt';
+import { readAssessmentReceipt, storeAssessmentReceipt, type AssessmentReceipt } from '@/lib/assessmentReceipt';
 type SavedResult = { submissionId: string; businessName: string; text: string };
 type Status = 'checking' | 'unknown' | 'pending' | 'completed' | 'failed';
 const headings: Record<Status, string> = {
@@ -22,10 +22,11 @@ export default function AssessmentDeliveryStatus({ contactEmail }: { contactEmai
     let controller: AbortController | undefined;
     let receipt: AssessmentReceipt;
     try {
-      receipt = JSON.parse(sessionStorage.getItem(ASSESSMENT_RECEIPT_KEY) ?? 'null');
-      if (!receipt?.id || !receipt.capability || !Number.isFinite(receipt.storedAt) || Date.now() - receipt.storedAt > 24 * 60 * 60 * 1000) {
-        sessionStorage.removeItem(ASSESSMENT_RECEIPT_KEY); setStatus('unknown'); return;
+      const stored = readAssessmentReceipt();
+      if (!stored?.id || !stored.capability || !Number.isFinite(stored.storedAt) || Date.now() - stored.storedAt > 24 * 60 * 60 * 1000) {
+        storeAssessmentReceipt(null); setStatus('unknown'); return;
       }
+      receipt = stored;
     } catch { setStatus('unknown'); return; }
     async function poll(remaining: number) {
       controller = new AbortController();

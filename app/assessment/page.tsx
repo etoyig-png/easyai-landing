@@ -1,5 +1,5 @@
 'use client';
-import { ASSESSMENT_RECEIPT_KEY } from '@/lib/assessmentReceipt';
+import { storeAssessmentReceipt } from '@/lib/assessmentReceipt';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -223,12 +223,8 @@ function AssessmentPageInner() {
       }
 
       const receipt = await res.json().catch(() => ({}));
-      try {
-        sessionStorage.removeItem(ASSESSMENT_RECEIPT_KEY);
-        if (typeof receipt.id === 'string' && typeof receipt.statusCapability === 'string') {
-          sessionStorage.setItem(ASSESSMENT_RECEIPT_KEY, JSON.stringify({ id: receipt.id, capability: receipt.statusCapability, storedAt: Date.now() }));
-        }
-      } catch { /* Storage denial does not turn an accepted submission into a retry. */ }
+      storeAssessmentReceipt(typeof receipt?.id === 'string' && typeof receipt?.statusCapability === 'string'
+        ? { id: receipt.id, capability: receipt.statusCapability, storedAt: Date.now() } : null);
       setStep(BUILDING_STEP);
       setTimeout(() => router.push('/assessment/complete'), 2200);
     } catch (err) {
