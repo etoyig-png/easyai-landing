@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ASSESSMENT_RECEIPT_KEY, type AssessmentReceipt } from '@/lib/assessmentReceipt';
+type SavedResult = { submissionId: string; businessName: string; text: string };
 type Status = 'checking' | 'unknown' | 'pending' | 'completed' | 'failed';
 const headings: Record<Status, string> = {
   checking: 'Checking your assessment status', unknown: 'Your assessment submission',
@@ -12,8 +13,10 @@ export default function AssessmentDeliveryStatus({ contactEmail }: { contactEmai
   const [status, setStatus] = useState<Status>('checking');
   const [checkAttempt, setCheckAttempt] = useState(0);
   const [canRecheck, setCanRecheck] = useState(false);
+  const [result, setResult] = useState<SavedResult | null>(null);
   useEffect(() => {
     setStatus('checking');
+    setResult(null);
     setCanRecheck(false);
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
     let controller: AbortController | undefined;
@@ -34,12 +37,20 @@ export default function AssessmentDeliveryStatus({ contactEmail }: { contactEmai
         if (!response.ok) throw new Error('status unavailable');
         const body = await response.json();
         if (!['pending', 'completed', 'failed'].includes(body.status)) throw new Error('unknown status');
+        if (body.submissionId !== undefined && body.submissionId !== receipt.id) throw new Error('assessment identity mismatch');
+        let saved: SavedResult | null = null;
+        if (body.result?.availability === 'available') {
+          if (body.submissionId !== receipt.id || typeof body.businessName !== 'string' || !body.businessName.trim() ||
+              typeof body.result.text !== 'string' || !body.result.text.trim()) throw new Error('invalid saved result');
+          saved = { submissionId: body.submissionId, businessName: body.businessName, text: body.result.text };
+        } else if (body.result && !['pending', 'unavailable'].includes(body.result.availability)) throw new Error('unknown result availability');
         if (!stopped) {
           setStatus(body.status);
-          setCanRecheck(body.status === 'failed' || (body.status === 'pending' && remaining === 1));
+          setResult(saved);
+          setCanRecheck(body.status === 'failed' || (body.status === 'completed' && !saved) || (body.status === 'pending' && remaining === 1));
           if (body.status === 'pending' && remaining > 1) timer = setTimeout(() => void poll(remaining - 1), 5000);
         }
-      } catch { if (!stopped) { setStatus('unknown'); setCanRecheck(true); } }
+      } catch { if (!stopped) { setStatus('unknown'); setResult(null); setCanRecheck(true); } }
       finally { clearTimeout(timeout); }
     }
     void poll(24); // <=24 read-only calls; no re-generation, resend or paid call
@@ -56,6 +67,10 @@ export default function AssessmentDeliveryStatus({ contactEmail }: { contactEmai
               : 'Delivery cannot be confirmed in this browser. If you submitted an assessment and need help, contact us.'}
     </p>
     {canRecheck && <button type="button" className="block text-teal-200 underline my-4" onClick={() => setCheckAttempt(attempt => attempt + 1)}>Check status again</button>}
+    {result && <section aria-label="Your assessment results" className="card mt-8 p-6 sm:p-8 text-slate-900" data-assessment-id={result.submissionId}>
+      <h2 className="text-2xl font-bold mb-2 break-words">Your Action Plan for {result.businessName}</h2>
+      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{result.text}</p>
+    </section>}
     {(status === 'failed' || status === 'unknown') && <Link className="text-teal-200 underline" href={`mailto:${contactEmail}`}>{contactEmail}</Link>}
   </div>;
 }
