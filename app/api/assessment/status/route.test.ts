@@ -14,13 +14,13 @@ describe('assessment status resource capability', () => {
     }
     expect(find).not.toHaveBeenCalled();
   });
-  it.each(['pending', 'completed', 'failed'])('returns only the owned status (%s), never contact data or result HTML', async (status) => {
-    find.mockResolvedValue({ status });
+  it.each(['pending', 'completed', 'failed'])('returns owned result availability (%s) without contact data', async (status) => {
+    find.mockResolvedValue({ status, businessName: 'Fixture business', resultHtml: null });
     const response = await GET(request('fixture', createSessionCapability('assessment-status:fixture')));
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('private, no-store');
-    expect(await response.json()).toEqual({ status });
-    expect(find).toHaveBeenCalledWith({ where: { id: 'fixture' }, select: { status: true } });
+    expect(await response.json()).toEqual({ status, submissionId: 'fixture', businessName: 'Fixture business', result: { availability: status === 'pending' ? 'pending' : 'unavailable', text: null } });
+    expect(find).toHaveBeenCalledWith({ where: { id: 'fixture' }, select: { status: true, businessName: true, resultHtml: true } });
   });
   it('reports unavailable storage honestly without exposing errors', async () => {
     find.mockRejectedValue(new Error('sensitive internal fixture'));
@@ -28,4 +28,23 @@ describe('assessment status resource capability', () => {
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain('sensitive internal');
   });
+});
+
+
+it.each(['completed', 'failed'])('keeps saved results available for %s as the existing plain-text email representation', async status => {
+  find.mockResolvedValue({ status, businessName: 'Fixture business', resultHtml: '<p>Same full result &amp; details</p><img src=x onerror=alert(1)><p>&#60;script&#62;literal&#60;/script&#62;</p>', email: 'private@example.test', errorMessage: 'private failure' });
+  const response = await GET(request('fixture', createSessionCapability('assessment-status:fixture')));
+  expect(response.status).toBe(200);
+  const body = await response.json();
+  expect(body.result.availability).toBe('available');
+  expect(body.result.text).toContain('Same full result & details');
+  expect(body.result.text).toContain('Watch Your Next-Step Video:');
+  expect(body.submissionId).toBe('fixture');
+  expect(JSON.stringify(body)).not.toMatch(/private@example|private failure|onerror|<script/);
+  expect(response.headers.get('cache-control')).toBe('private, no-store');
+});
+it('keeps an unknown owned submission distinct from unavailable storage', async () => {
+  find.mockResolvedValue(null);
+  const response = await GET(request('fixture', createSessionCapability('assessment-status:fixture')));
+  expect(response.status).toBe(404); expect(response.headers.get('cache-control')).toBe('private, no-store');
 });
