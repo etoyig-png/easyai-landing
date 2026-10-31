@@ -746,3 +746,75 @@ no further shared variant attempted. No push/CI batch/retry without verified rem
 Actions budget (the prior$23 ceiling is not a new grant), and no merge/deploy/provider/send/
 model/spend/security/network/credentials/settings action. Services stopped; safe checkpoint
 before01:00UTC31October/21:00Eastern30October, no overnight implementation scheduled.
+
+## Standalone assessment visitor results — 31 October 2026 morning
+
+Morning work resumed after12:00UTC/08:00Eastern, preserving38415647 and all unpublished
+composition history/model/branch. Initial process inspection found no local test listeners.
+This criterion is separate from Gary: assessment-only contact/full results must reach the
+visitor and native founder Assessment Inbox without creating a Gary Lead or promoting Sales.
+CompanyIQ private-source authority and numericGaryperformance waiver remain unapproved;
+neither was used as a blanket blocker to this safe local work.
+
+Reproduced gap: protected status API selected/returned onlystatus; completion showed accepted
+for email delivery, with no result content/link. New native-browser assertion after existing
+receipt restoration failed on the actual saved plan's first paragraph. Existing form/eleven-
+step evidence was inspected, not rerun. Initial zero-height-font and later runner-stopped-server
+errors were fixture setup failures, separately retained; restoring the existing cached asset
+link/holding the existing server fixed them, without product visual/CSS/network changes.
+
+Backend supplied reviewed37182b7 artifact6543155329:6105bytes SHA256
+d68c39982c6fa78fbe10dffc623748d5aaa13585925e569e856499996ac3339e. Base routeblob7b72150
+matched; composed unchanged asd433ef0 (API+test only), no independent backend edits. Existing
+assessment-status capability/GET route now returns identity and available/pending/unavailable
+literal result text via the existing email-text formatter, independent of email status.
+UI1f77985903da3c263e2510f356eabaa9e026c0ef minimally renders that full text in an existing-
+style card, verifies receipt identity, preserves refresh, clears stale results after bad reads,
+and wraps long business names. React literal text, no HTML injection/new URL/token/library.
+Email acceptance wording remains honest and a saved plan is visible even if email failed.
+Independent review found/corrected stale-result-on-poll-failure and heading overflow; the
+latter has a preserved failing390px geometry test. Final completion checks24+2legacy+1at360
+=27PASS; types/lint/production build pass. Exact frontend source/capture review PASS.
+
+One NEW native assessment producer POST in the existing isolatedJourney/Prisma/PostgreSQL
+fixture (other six cases filtered), full existing deterministic fallback plan3708bytes. One
+submission, zero Gary sessions/PublicContacts/handoffs, no wire funnelCorrelationId and null
+stored correlation. NineQ&A and all founder HTML fields equal the saved full plan; that exact
+HTML is embedded in captured visitor email. After composing the new API, one read-only native
+case used the SAME persisted row: full3781byte text equals captured email.text, no generation/
+resend/new submission. Actual native browser then verifies every plan paragraph plus exact
+text/owned submission ID and refresh: two GETs, zero POSTs, no Gary. Both new read/browser
+cases pass with seven other cases filtered. This proves isolated visitor access beyond provider
+acceptance, not real mailbox arrival, live-model quality, hosted isolation or founder receipt.
+
+Stage provenance stays explicit: POST at38415647; producer/sync/email/template/schema blobs
+unchanged through UI1f. Protected read atd433; UI source/build equivalent to1f. Initial consent
+boolean type-widening correction emits identical JS; the executed producer case is unchanged
+in final proof source. No old assessment/Gary/correlated sales journey replay for ownership.
+Owner shared native assertion maintenance6543396789/bf8d4e3,2083bytes SHA256
+ae90a5f1df1edede3c36061c58fe98afe4041aa8bfb1dc7ceffbc000a13d66b4, was composed unchanged
+as2c803fd: full owned API identity/text/cache assertions retain prior delivery/dedupe checks.
+That old case is source-reviewed, not claimed runtime-rerun here.
+
+Portable exact DATA6543409413:57435bytes SHA256
+48d28ef64048cc2e7a367cf98b5f264ffe62088620babc0a0b6cecf48e04f0b8.
+PROOF6543437481:62823bytes SHA256
+ef4a0974f5dd745f9f338efb9f03cb2f082b9dcded13d3e56d55e8e2ff92fc4f.
+Both GitHub roundtrips and every decoded file length/hash verified. Data includes actual
+assessment-only {url,body}, contact/submission facts, full HTML/text/rendered proof and
+runtime/source/schema/Prisma-engine/migration hashes. Proof includes executed fixture stages,
+raw positive/negative logs and ON_ERROR_STOP migration log. Capabilities/private receipt remain
+local and excluded; exported fixture literals are explicitly synthetic, no real credentials.
+Server transcript/HTML/plaintext/email footer representations are distinguished, not conflated.
+Backend owns fresh native Assessment Inbox receipt/contact/full-result proof from this new
+packet; old correlated Gary-first receipt is not standalone acceptance. CC source was read-only.
+
+Measured feature cost: actual page-only completionJS1425→1762gzip(+337/+23.65%), source-
+matched before/after. Route/layout+polyfill158184→158605(+421,+0.27%) includes prior shared
+Gary-layout differences, not isolated attribution. Raw result response22→3965bytes, of which
+3781bytes are full text. Same one protected lookup, zero generation/send on reads, prior24-read
+pending bound; completed result stops after one GET per load. New page/payload growth is
+surfaced for release acceptance, not a waived budget. Gary panel remains4192/+5.46% baseline.
+No dependencies/assets/framework/provider/settings/security/network/credential changes,
+no CI/push without verified remaining prior$23Actionsbudget, no spending/merge/deploy grant.
+Local receiver/laptop divergence untouched; fixture rows and all earlier checkpoints retained.
