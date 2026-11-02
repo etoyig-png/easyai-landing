@@ -92,7 +92,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
 
   useEffect(() => {
     if (!restored) return;
-    storeConversation({ messages, options, offerAssessment, input, contactDraft, contactPlaceholder, choosingChange, pending, hasContactFlow, contactPending });
+    storeConversation(recoveryRef.current);
   }, [restored, messages, options, offerAssessment, input, contactDraft, contactPlaceholder, choosingChange, pending, hasContactFlow, contactPending]);
 
   useFocusTrap(panelRef, true, onClose);
@@ -150,7 +150,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
         setError(text);
         return;
       }
-      if (!data?.sessionId || typeof data.reply?.text !== 'string') throw new Error('Invalid Gary response');
+      if (!data?.sessionId || typeof data.reply?.text !== 'string') throw new Error();
       storeSessionId(data.sessionId);
       if (data.sessionCapability) storeSessionCapability(data.sessionCapability);
       setMessages((prev) => {
@@ -276,7 +276,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: getStoredSessionId(), sessionCapability: getStoredSessionCapability() }),
       });
-      if (!response.ok) throw new Error('handoff failed');
+      if (!response.ok) throw new Error();
       const { redirectUrl } = (await response.json()) as { redirectUrl: string };
       window.location.href = redirectUrl;
     } catch {

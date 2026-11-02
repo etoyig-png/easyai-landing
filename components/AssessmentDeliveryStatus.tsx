@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { readAssessmentReceipt, storeAssessmentReceipt, type AssessmentReceipt } from '@/lib/assessmentReceipt';
 type SavedResult = { submissionId: string; businessName: string; text: string };
 type Status = 'checking' | 'unknown' | 'pending' | 'completed' | 'failed';
@@ -35,16 +34,16 @@ export default function AssessmentDeliveryStatus({ contactEmail }: { contactEmai
         const response = await fetch(`/api/assessment/status?id=${encodeURIComponent(receipt.id)}`, {
           headers: { Authorization: `Bearer ${receipt.capability}` }, signal: controller.signal, cache: 'no-store',
         });
-        if (!response.ok) throw new Error('status unavailable');
+        if (!response.ok) throw new Error();
         const body = await response.json();
-        if (!['pending', 'completed', 'failed'].includes(body.status)) throw new Error('unknown status');
-        if (body.submissionId !== undefined && body.submissionId !== receipt.id) throw new Error('assessment identity mismatch');
+        if (!['pending', 'completed', 'failed'].includes(body.status)) throw new Error();
+        if (body.submissionId !== undefined && body.submissionId !== receipt.id) throw new Error();
         let saved: SavedResult | null = null;
         if (body.result?.availability === 'available') {
           if (body.submissionId !== receipt.id || typeof body.businessName !== 'string' || !body.businessName.trim() ||
-              typeof body.result.text !== 'string' || !body.result.text.trim()) throw new Error('invalid saved result');
+              typeof body.result.text !== 'string' || !body.result.text.trim()) throw new Error();
           saved = { submissionId: body.submissionId, businessName: body.businessName, text: body.result.text };
-        } else if (body.result && !['pending', 'unavailable'].includes(body.result.availability)) throw new Error('unknown result availability');
+        } else if (body.result && !['pending', 'unavailable'].includes(body.result.availability)) throw new Error();
         if (!stopped) {
           setStatus(body.status);
           setResult(saved);
@@ -72,6 +71,6 @@ export default function AssessmentDeliveryStatus({ contactEmail }: { contactEmai
       <h2 className="text-2xl font-bold mb-2 break-words">Your Action Plan for {result.businessName}</h2>
       <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{result.text}</p>
     </section>}
-    {(status === 'failed' || status === 'unknown') && <Link className="text-teal-200 underline" href={`mailto:${contactEmail}`}>{contactEmail}</Link>}
+    {(status === 'failed' || status === 'unknown') && <a className="text-teal-200 underline" href={`mailto:${contactEmail}`}>{contactEmail}</a>}
   </div>;
 }
