@@ -857,3 +857,13 @@ owner test maintenance source review does not imply old native POST test runtime
 All synthetic rows/earlier checkpoints/receiver/laptop divergence retained. Local test services
 stopped; no automatic background continuation, CI/push budget, spend/provider/send/model,
 security/network/credential/settings, merge or deployment action inferred.
+
+## Resumed frontend bundle reduction — 2 November 2026
+
+Preserved9e4d0dd/ed55c183 and all unpublished history on the same branch. Runtime773172dea45cb38ae4ac9d69a13d9f1f6c7cbf03 changes only two existing frontend components: reuse Gary's current recovery snapshot; discard caught exception descriptions that are never displayed/logged; use a native mailto anchor. No validation predicates, user-visible copy/styles, original request envelopes, explicit retry, result identity, receipt storage or backend source changes.
+
+Actual supported Next build (including lint/types) passes. Same Node gzip method: Gary panel11586→11411raw,4192→4169gzip (-23);3975baseline→4169 is+4.8805%, below the unchanged5% numeric gate. Assessment completion4109→3957raw,1848→1786gzip (-62);1425baseline→1786 is+361/+25.3333%, still OPEN. No waiver or overall performance/live acceptance claimed. No new dependency/asset; API/model-call count and request/response payload unchanged. Removing NextLink here does not remove its shared route chunk: the surrounding page still uses it. Full safe-result/receipt protections remain in the client bundle.
+
+Focused final production-browser run and exact independent review recorded in the local sprint-nov2 evidence manifest; no unchanged full suite, producer/receiver replay or live call rerun. Retained isolated producer/visitor/founder evidence is staged evidence, not real-model quality, hosted cross-service acceptance or actual mailbox receipt. CompanyIQ is optional for the current prompt; no private-source permission inferred.
+
+No push/CI/deploy/merge, credential/security/network change, paid call or live send. PG17/receiver/laptop divergence and all cached fixtures retained without cleanup. User-reported actual account meter21% weekly remaining/0credits; this session exposes no account-meter tool, so no inferred5% reading or billing/limit change. Verified remaining prior Actions budget and specific isolated provider/mail authorization are still needed before their gated actions.
