@@ -278,7 +278,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
       });
       if (!response.ok) throw new Error();
       const { redirectUrl } = (await response.json()) as { redirectUrl: string };
-      window.location.href = redirectUrl;
+      if (mountedRef.current) window.location.href = redirectUrl;
     } catch {
       setError("Couldn't open the assessment just now — try the button in the menu instead.");
       setSending(false);

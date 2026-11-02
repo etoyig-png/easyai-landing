@@ -128,6 +128,34 @@ test.describe('Gary widget', () => {
     await expect(page.getByRole('button', { name: 'Chat with Gary from Accounting' })).toHaveCount(0);
   });
 
+  test('a late assessment handoff cannot navigate after Gary is closed and reopened', async ({ page }) => {
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    let handoffs = 0;
+    await page.route('**/api/gary/handoff', async route => {
+      handoffs++;
+      await held;
+      await route.fulfill({ json: { redirectUrl: '/assessment?token=synthetic-late-handoff' } });
+    });
+    const dialog = await openGary(page, { text: 'The assessment may help.' }, true);
+    await dialog.getByPlaceholder('Type a message...').fill('Help me assess my business.');
+    await dialog.getByRole('button', { name: 'Send', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Start My Free Assessment', exact: true }).click();
+    await expect.poll(() => handoffs).toBe(1);
+    await dialog.getByRole('button', { name: 'Close chat', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await page.getByRole('button', { name: 'Chat with Gary from Accounting', exact: true }).click();
+    await expect(dialog).toBeVisible();
+    const response = page.waitForResponse('**/api/gary/handoff');
+    release();
+    await (await response).finished();
+    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL('http://127.0.0.1:3200/');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('The assessment may help.', { exact: true })).toBeVisible();
+    expect(handoffs).toBe(1);
+  });
+
   test('Escape closes the panel', async ({ page }) => {
     const dialog = await openGary(page);
     await expect(dialog).toBeVisible();
