@@ -33,7 +33,7 @@ export const RESULT_EMAIL_CTA_URL = 'https://www.easyaiconsult.com/assessment/co
  * Internal notification that a new assessment came in. Delivered to the one Easy AI business
  * inbox, with the lead as Reply-To so the notification can be answered directly.
  */
-export async function sendInternalNotification(submission: AssessmentSubmission & { id: string }) {
+export async function sendInternalNotification(submission: AssessmentSubmission & { id: string }, resultHtml?: string) {
   const delivery = resolveDelivery(internalRecipient());
   if (!delivery.allowed) throw new Error(delivery.reason);
 
@@ -77,11 +77,13 @@ export async function sendInternalNotification(submission: AssessmentSubmission 
           <table style="width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #ede5d4;">
             ${rowsHtml}
           </table>
+          ${resultHtml ? `<h2>Full assessment report</h2>${resultHtml}` : ''}
           <p style="color:#8b9aaa;font-size:12px;margin-top:16px;">Submission ID: ${escapeHtml(submission.id)}</p>
         </div>
       </div>
     `,
-  });
+    ...(resultHtml ? { text: `${rows.map(([label, value]) => `${label}: ${value}`).join('\n')}\nSubmission ID: ${submission.id}\n\n${buildResultEmailText(resultHtml)}` } : {}),
+  }, { idempotencyKey: `assessment-owner:${submission.id}:${resultHtml ? 'report' : 'intake'}` });
   // The Resend SDK resolves with { data, error } rather than throwing on API-level
   // rejections (e.g. unverified sending domain) — without this, a rejected send
   // would silently look like success to every caller.

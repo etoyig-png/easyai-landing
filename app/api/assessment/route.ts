@@ -54,12 +54,6 @@ export async function POST(req: NextRequest) {
   if (admission.kind === 'duplicate') return acceptedSubmission(admission.submission.id, true);
   const submission = admission.submission;
 
-  try {
-    await withTimeout(sendInternalNotification({ ...data, id: submission.id }), PROVIDER_TIMEOUT_MS, 'email provider');
-  } catch (err) {
-    console.error('Failed to send internal notification email', err);
-  }
-
   // Everything below can take a while (web search + generation) — run it after
   // the response goes out so the visitor isn't stuck waiting on this request.
   // waitUntil keeps the serverless invocation alive until this resolves, even
@@ -71,6 +65,12 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error('Claude generation failed, using fallback result', err);
       resultHtml = buildFallbackResultHtml(data);
+    }
+
+    try {
+      await withTimeout(sendInternalNotification({ ...data, id: submission.id }, resultHtml), PROVIDER_TIMEOUT_MS, 'email provider');
+    } catch (err) {
+      console.error('Failed to send owner assessment report email', err);
     }
 
     let emailSent = false;
