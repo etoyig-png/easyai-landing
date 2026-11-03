@@ -83,13 +83,14 @@ it.skipIf(!process.env.MOCKED_CONNECTED_BROWSER)('connects Gary handoff, assessm
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
     args: chromiumArgs.filter(argument => !['--single-process', '--in-process-gpu', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'].includes(argument)) });
   try {
-    const page = await browser.newPage();
+    const page = await browser.newPage({ viewport: process.env.SEMANTIC_MOBILE ? { width: 390, height: 844 } : { width: 1280, height: 800 } });
     await page.route('**/*', async route => {
       const url = new URL(route.request().url());
       if (url.origin !== 'http://127.0.0.1:3200') return route.abort();
       if (!url.pathname.startsWith('/api/')) return route.continue();
       const body = route.request().postDataJSON() ?? {};
       calls.push({ path: url.pathname, body });
+      if (url.pathname === '/api/contact') return route.fulfill({ json: { success: true } });
       if (url.pathname === '/api/gary/message') {
         const reply = body.message ? await generateGaryReply(adapter, { knownAnswers: [], visitorTurnCount: 1,
           assessmentOfferCount: 0, lastVisitorSafetyClass: 'none' }, [{ role: 'user', content: body.message }]) : null;
@@ -127,19 +128,26 @@ it.skipIf(!process.env.MOCKED_CONNECTED_BROWSER)('connects Gary handoff, assessm
     await dialog.getByRole('button', { name: 'Send', exact: true }).click();
     await dialog.getByRole('button', { name: 'Start My Free Assessment', exact: true }).click();
     await page.waitForURL('**/assessment?**');
-    await page.locator('input.input').nth(0).fill(data.firstName);
-    await page.locator('input.input').nth(1).fill(data.businessName);
+    await page.getByLabel('First name', { exact: true }).fill(data.firstName);
+    await page.getByLabel('Business name', { exact: true }).fill(data.businessName);
     await page.getByRole('button', { name: 'Continue →', exact: true }).click();
     for (const question of options.buildQuestions(data.businessName)) {
       await browserExpect(page.getByRole('heading', { level: 1 })).toHaveText(question.title);
       await page.getByRole('button', { name: question.options[0], exact: true }).click();
     }
-    await page.locator('input.input').first().fill(data.lastName);
-    await page.locator('input[type=email]').fill(data.email);
+    await page.getByLabel('Last name', { exact: true }).fill(data.lastName);
+    await page.getByLabel('Email address', { exact: true }).fill(data.email);
     await page.getByRole('button', { name: 'Continue without sharing a website', exact: true }).click();
     await page.getByRole('button', { name: 'Continue →', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
+    await page.getByLabel('We’ll send your personalized Customer Opportunity Action Plan to:', { exact: true }).fill(data.email);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
     await browserExpect(page.getByRole('button', { name: 'Confirm & Send →', exact: true })).toBeDisabled();
     await page.getByRole('checkbox').check();
+    await browserExpect(page.locator('input[name=companyUrl]')).toHaveValue('');
+    await browserExpect(page.locator('input[name=companyUrl]')).toHaveAttribute('aria-hidden', 'true');
+    await browserExpect(page.locator('input[name=companyUrl]')).toHaveAttribute('tabindex', '-1');
+    expect(await page.locator('input[name=companyUrl]').evaluate(el => el.getBoundingClientRect().right)).toBeLessThan(0);
     await page.getByRole('button', { name: 'Confirm & Send →', exact: true }).click();
     const results = page.getByRole('region', { name: 'Your assessment results', exact: true });
     await browserExpect(results).toBeVisible();
@@ -159,14 +167,27 @@ it.skipIf(!process.env.MOCKED_CONNECTED_BROWSER)('connects Gary handoff, assessm
     expect(inbox[0].options).toEqual({ idempotencyKey: 'assessment-owner:connected-submission:report' });
     expect(inbox[1].message).toMatchObject({ html: expect.stringContaining(report), text: mail.buildResultEmailText(report) });
     expect(calls.filter(call => call.path === '/api/assessment')).toHaveLength(1);
+    expect(calls.find(call => call.path === '/api/assessment')?.body.companyUrl).toBe('');
     expect(calls.filter(call => call.path === '/api/assessment/status')).toHaveLength(2);
     expect(calls.filter(call => call.path === '/api/gary/handoff')).toHaveLength(1);
     expect(calls.filter(call => call.path === '/api/gary/message')).toHaveLength(2);
     expect(calls.filter(call => call.path === '/api/gary/message').every(call => !call.body.contactFlow)).toBe(true);
     expect(calls.filter(call => call.path === '/api/gary/handoff/consume')).toHaveLength(1);
     expect(f.notify).toHaveBeenCalledWith({ status: 'assessment_completed', submissionId: 'connected-submission' });
+    await page.goto('http://127.0.0.1:3200/contact');
+    await page.getByLabel('Name', { exact: true }).fill('Synthetic Visitor');
+    await page.getByLabel('Email', { exact: true }).fill(data.email);
+    await page.getByLabel('Phone (optional)', { exact: true }).fill('');
+    await page.getByLabel('Business name (optional)', { exact: true }).fill(data.businessName);
+    await page.getByLabel('Message', { exact: true }).fill('Synthetic semantic contact check');
+    await browserExpect(page.locator('input[name=companyUrl]')).toHaveValue('');
+    await browserExpect(page.locator('input[name=companyUrl]')).toHaveAttribute('aria-hidden', 'true');
+    await page.getByRole('button', { name: 'Send Message', exact: true }).click();
+    await browserExpect(page.getByText('Thanks. Your message is on its way.', { exact: true })).toBeVisible();
+    expect(calls.filter(call => call.path === '/api/contact')).toHaveLength(1);
+    expect(calls.find(call => call.path === '/api/contact')?.body.companyUrl).toBe('');
     const fs = await import('node:fs');
-    fs.writeFileSync('/workspace/work/connected-mocked-flow.capture.json', JSON.stringify({ runtime: 'de4d6381c2c3803681561b1ec873418d9c74e628',
+    fs.writeFileSync(`/workspace/work/semantic-assessment-${process.env.SEMANTIC_MOBILE ? 'mobile' : 'desktop'}.capture.json`, JSON.stringify({ baseline: 'de4d6381c2c3803681561b1ec873418d9c74e628', runtime: 'local semantic-label candidate',
       scope: 'connected browser + real reply pipeline/assessment POST/email formatter; mocked model/auth/handoff/storage/status/SDK/CC',
       calls, completion, inbox, actualProviderCalls: 0, actualEmailSends: 0 }, null, 2));
   } finally { await browser.close(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); }
