@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import * as options from '@/lib/quizQuestions';
 
-const f = vi.hoisted(() => ({ admit: vi.fn(), owner: vi.fn(), visitor: vi.fn(), generate: vi.fn(), complete: vi.fn(), notify: vi.fn(), mail: vi.fn(), pending: [] as Promise<unknown>[] }));
+const f = vi.hoisted(() => ({ admit: vi.fn(), owner: vi.fn(), visitor: vi.fn(), generate: vi.fn(), complete: vi.fn(), notify: vi.fn(), mail: vi.fn(), verify: vi.fn(), pending: [] as Promise<unknown>[] }));
 vi.mock('@vercel/functions', () => ({ waitUntil: (p: Promise<unknown>) => f.pending.push(p) }));
 vi.mock('@/lib/assessmentAdmission', () => ({ admitAssessment: f.admit }));
 vi.mock('resend', () => ({ Resend: class { emails = { send: f.mail }; } }));
@@ -10,7 +10,7 @@ vi.mock('@/lib/resend', () => ({ sendInternalNotification: f.owner, sendResultEm
 vi.mock('@/lib/anthropic', () => ({ generateAssessmentResult: f.generate, buildFallbackResultHtml: () => '<p>Complete fallback report</p>' }));
 vi.mock('@/lib/assessmentSync', () => ({ completeAssessmentSync: f.complete }));
 vi.mock('@/lib/commandCenter', () => ({ notifyCommandCenter: f.notify }));
-vi.mock('@/lib/sessionCapability', () => ({ createSessionCapability: () => 'synthetic-capability' }));
+vi.mock('@/lib/sessionCapability', () => ({ createSessionCapability: () => 'synthetic-capability', verifySessionCapability: f.verify }));
 vi.mock('@/lib/rateLimit', () => ({ looksLikeSpam: () => false, getClientIp: () => '192.0.2.18' }));
 import { POST } from './route';
 const data = {
@@ -23,7 +23,7 @@ const data = {
 const request = (body = data) => new NextRequest('http://localhost/api/assessment', { method: 'POST', body: JSON.stringify(body) });
 const settle = async () => { await Promise.all(f.pending.splice(0)); };
 beforeEach(() => {
-  vi.clearAllMocks(); f.pending.length = 0;
+  vi.clearAllMocks(); f.verify.mockReturnValue(false); f.pending.length = 0;
   f.admit.mockResolvedValue({ kind: 'accepted', submission: { id: 'synthetic-1' } });
   f.generate.mockResolvedValue('<p>Full generated report</p>');
   f.owner.mockResolvedValue(undefined); f.visitor.mockResolvedValue(undefined);
@@ -37,7 +37,7 @@ describe('owner report route (mock effects only)', () => {
     expect(f.visitor).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ to: data.email, resultHtml: report }));
     expect(f.complete).toHaveBeenCalledWith(expect.objectContaining({ submissionId: 'synthetic-1', resultHtml: report }));
     f.admit.mockResolvedValueOnce({ kind: 'duplicate', submission: { id: 'synthetic-1' } });
-    expect(await (await POST(request())).json()).toMatchObject({ duplicate: true }); await settle();
+    expect(await (await POST(request())).json()).toEqual({ success: true, duplicate: true }); await settle();
     expect(f.owner).toHaveBeenCalledTimes(1); expect(f.visitor).toHaveBeenCalledTimes(1); expect(f.generate).toHaveBeenCalledTimes(1);
   });
   it('does not send or admit without consent', async () => {
@@ -78,6 +78,7 @@ it.skipIf(!process.env.MOCKED_CONNECTED_BROWSER)('connects Gary handoff, assessm
     model: 'synthetic-only', provider: 'openai' as const,
   }) };
   const calls: { path: string; body: Record<string, unknown> }[] = [];
+  const assessmentAuthorizations: (string | undefined)[] = [];
   let completion: { resultHtml: string; submissionId: string; submission: typeof data } | undefined;
   f.complete.mockImplementation(async value => { completion = value; });
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
@@ -107,7 +108,11 @@ it.skipIf(!process.env.MOCKED_CONNECTED_BROWSER)('connects Gary handoff, assessm
         return route.fulfill({ json: { sessionId: 'connected-gary', prefill: {} } });
       }
       if (url.pathname === '/api/assessment') {
-        const result = await POST(request(body as typeof data));
+        const authorization = route.request().headers().authorization;
+        assessmentAuthorizations.push(authorization);
+        const submitted = request(body as typeof data);
+        if (authorization) submitted.headers.set('authorization', authorization);
+        const result = await POST(submitted);
         await settle();
         return route.fulfill({ status: result.status, json: await result.json() });
       }
@@ -174,6 +179,37 @@ it.skipIf(!process.env.MOCKED_CONNECTED_BROWSER)('connects Gary handoff, assessm
     expect(calls.filter(call => call.path === '/api/gary/message').every(call => !call.body.contactFlow)).toBe(true);
     expect(calls.filter(call => call.path === '/api/gary/handoff/consume')).toHaveLength(1);
     expect(f.notify).toHaveBeenCalledWith({ status: 'assessment_completed', submissionId: 'connected-submission' });
+    expect(assessmentAuthorizations).toEqual([undefined]);
+    for (const owned of [false, true]) {
+      f.admit.mockResolvedValue({ kind: 'duplicate', submission: { id: 'connected-submission' } });
+      f.verify.mockReturnValue(owned);
+      const receiptBefore = await page.evaluate(() => sessionStorage.getItem('easyai-assessment-receipt-v1'));
+      await page.goto('http://127.0.0.1:3200/assessment');
+      await page.getByLabel('First name', { exact: true }).fill(data.firstName);
+      await page.getByLabel('Business name', { exact: true }).fill(data.businessName);
+      await page.getByRole('button', { name: 'Continue →', exact: true }).click();
+      for (const question of options.buildQuestions(data.businessName)) {
+        await page.getByRole('button', { name: question.options[0], exact: true }).click();
+      }
+      await page.getByLabel('Last name', { exact: true }).fill(data.lastName);
+      await page.getByLabel('Email address', { exact: true }).fill(data.email);
+      await page.getByRole('button', { name: 'Continue without sharing a website', exact: true }).click();
+      await page.getByRole('button', { name: 'Continue →', exact: true }).click();
+      await page.getByRole('checkbox').check();
+      await page.getByRole('button', { name: 'Confirm & Send →', exact: true }).click();
+      if (owned) {
+        await browserExpect(results).toBeVisible();
+        expect(await results.locator('p').textContent()).toBe(mail.buildResultEmailText(report));
+      } else {
+        await browserExpect(page.getByText('We could not start a new assessment just now.', { exact: false })).toBeVisible();
+        await browserExpect(page).toHaveURL('http://127.0.0.1:3200/assessment');
+        expect(await page.evaluate(() => sessionStorage.getItem('easyai-assessment-receipt-v1'))).toBe(receiptBefore);
+        await browserExpect(page.getByRole('button', { name: 'Confirm & Send →', exact: true })).toBeEnabled();
+      }
+    }
+    expect(assessmentAuthorizations).toEqual([undefined, 'Bearer synthetic-capability', 'Bearer synthetic-capability']);
+    expect(f.generate).toHaveBeenCalledTimes(1);
+    expect(inbox).toHaveLength(2);
     await page.goto('http://127.0.0.1:3200/contact');
     await page.getByLabel('Name', { exact: true }).fill('Synthetic Visitor');
     await page.getByLabel('Email', { exact: true }).fill(data.email);

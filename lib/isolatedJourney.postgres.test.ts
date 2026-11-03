@@ -87,7 +87,9 @@ describe.skipIf(!process.env.ISOLATED_JOURNEY_DATABASE_URL)('isolated real route
       status: 'completed', submissionId: row.id, businessName: row.businessName,
       result: { availability: 'available', text: expectedResultText }
     });
-    const replay = await assess(request('/api/assessment', data));
+    const replayRequest = request('/api/assessment', data);
+    replayRequest.headers.set('authorization', `Bearer ${accepted.statusCapability}`);
+    const replay = await assess(replayRequest);
     expect(await replay.json()).toMatchObject({ id: accepted.id, duplicate: true });
     await settle();
     expect(fixture.generate).toHaveBeenCalledTimes(1);

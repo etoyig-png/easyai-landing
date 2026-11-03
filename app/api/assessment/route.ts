@@ -1,4 +1,4 @@
-import { createSessionCapability } from '@/lib/sessionCapability';
+import { createSessionCapability, verifySessionCapability } from '@/lib/sessionCapability';
 import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { assessmentSubmissionSchema } from '@/lib/validation';
@@ -13,11 +13,11 @@ import { admitAssessment } from '@/lib/assessmentAdmission';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-function acceptedSubmission(id: string, duplicate = false) {
+function acceptedSubmission(id: string) {
   let statusCapability: string | undefined;
   try { statusCapability = createSessionCapability(`assessment-status:${id}`); }
   catch { /* Existing assessments can still process when tracking is not provisioned. */ }
-  return NextResponse.json({ success: true, id, ...(duplicate ? { duplicate: true } : {}), statusCapability });
+  return NextResponse.json({ success: true, id, statusCapability }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 
 export async function POST(req: NextRequest) {
@@ -51,7 +51,18 @@ export async function POST(req: NextRequest) {
   if (admission.kind === 'limited') {
     return NextResponse.json({ error: 'Too many submissions. Please try again later.' }, { status: 429 });
   }
-  if (admission.kind === 'duplicate') return acceptedSubmission(admission.submission.id, true);
+  if (admission.kind === 'duplicate') {
+    // Email cooldown prevents duplicate work; it is not proof of report ownership.
+    const capability = req.headers.get('authorization')?.replace(/^Bearer /, '') ?? '';
+    let owned = false;
+    try {
+      owned = capability.length > 0 && capability.length <= 2048 &&
+        verifySessionCapability(capability, `assessment-status:${admission.submission.id}`);
+    } catch { /* Missing signing configuration must not disclose an existing receipt. */ }
+    return NextResponse.json({ success: true, duplicate: true,
+      ...(owned ? { id: admission.submission.id, statusCapability: capability } : {}),
+    }, { headers: { 'Cache-Control': 'private, no-store' } });
+  }
   const submission = admission.submission;
 
   // Everything below can take a while (web search + generation) — run it after

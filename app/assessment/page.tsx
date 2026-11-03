@@ -1,5 +1,5 @@
 'use client';
-import { storeAssessmentReceipt } from '@/lib/assessmentReceipt';
+import { readAssessmentReceipt, storeAssessmentReceipt } from '@/lib/assessmentReceipt';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -190,9 +190,14 @@ function AssessmentPageInner() {
     setSubmitError('');
     setSubmitting(true);
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      try {
+        const capability = readAssessmentReceipt()?.capability;
+        if (typeof capability === 'string' && /^[\w.-]{1,2048}$/.test(capability)) headers.Authorization = `Bearer ${capability}`;
+      } catch { /* Unavailable or corrupt storage must not block a fresh submission. */ }
       const res = await fetch('/api/assessment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           workSituation: answers.workSituation,
           searchVisibility: answers.searchVisibility,
@@ -223,6 +228,11 @@ function AssessmentPageInner() {
       }
 
       const receipt = await res.json().catch(() => ({}));
+      if (receipt.duplicate && (!receipt.id || !receipt.statusCapability)) {
+        setSubmitError('We could not start a new assessment just now. If you already submitted, use your saved results in the original browser tab or try again later.');
+        setSubmitting(false);
+        return;
+      }
       storeAssessmentReceipt(typeof receipt?.id === 'string' && typeof receipt?.statusCapability === 'string'
         ? { id: receipt.id, capability: receipt.statusCapability, storedAt: Date.now() } : null);
       setStep(BUILDING_STEP);
