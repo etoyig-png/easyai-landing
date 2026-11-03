@@ -18,7 +18,7 @@ function extractOfferMarker(rawText: string): { text: string; offerAssessment: b
   return { text, offerAssessment };
 }
 
-const FALLBACK_REPLY = "I want to make sure I get this right for you — could you say a bit more about what's going on?";
+const FALLBACK_REPLY = "I want to make sure I get this right for you. Could you say a bit more about what's going on?";
 
 export async function generateGaryReply(
   adapter: LlmProviderAdapter,

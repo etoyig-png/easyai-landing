@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { generateGaryReply } from './replyPipeline';
+import { validateGaryResponse } from './responseValidator';
 import type { GaryConversationState } from './systemPrompt';
 import type { LlmProviderAdapter } from './llm/types';
 
@@ -59,6 +60,7 @@ describe('generateGaryReply', () => {
     ]);
     const result = await generateGaryReply(adapter, baseState, [{ role: 'user', content: 'We lose leads.' }]);
     expect(result.usedFallback).toBe(true);
+    expect(validateGaryResponse(result.text, { lastVisitorMessage: 'We lose leads.' })).toEqual({ valid: true, violations: [] });
     expect(result.offerAssessment).toBe(false);
     expect(adapter.generateChatCompletion).toHaveBeenCalledTimes(2);
   });
