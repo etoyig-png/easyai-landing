@@ -1,3 +1,4 @@
+import { gotoGaryReady } from './garyReady';
 import { expect, test } from '@playwright/test';
 
 for (const [width, height] of [[360, 800], [390, 844], [412, 915], [768, 1024], [1440, 1000]]) {
@@ -7,7 +8,7 @@ for (const [width, height] of [[360, 800], [390, 844], [412, 915], [768, 1024], 
       json: { sessionId: 'clearance-fixture', reply: { text: 'What would you like help with today?', options: [] }, offerAssessment: false },
     }));
     await page.clock.install();
-    await page.goto('/');
+    await gotoGaryReady(page);
     await page.evaluate(() => document.fonts.ready);
     await page.clock.fastForward(6000);
     const hero = page.locator('.home-story > section').first();

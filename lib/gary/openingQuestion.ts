@@ -8,3 +8,12 @@ export const GARY_OPENING_OPTIONS = [
   'Understanding how AI could help my business',
   'Improving my current software or workflows',
 ] as const;
+
+/**
+ * The first thing Gary says in a new conversation: the site's artificial-intelligence
+ * disclosure, then the fixed opening question. The disclosure comes from server-side site
+ * configuration so a white-label site names its own assistant and brand.
+ */
+export function garyOpeningMessage(disclosure: string): string {
+  return `${disclosure.trim()} ${GARY_OPENING_QUESTION}`;
+}

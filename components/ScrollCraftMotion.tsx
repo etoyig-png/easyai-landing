@@ -33,7 +33,8 @@ export default function ScrollCraftMotion() {
       const image = new window.Image();
       image.src = '/devices/phone-photograph-crop.webp';
       try { await image.decode(); } catch { revealStatic(); return; }
-      if (active && !preference.matches && !root?.hasAttribute('data-opening-complete')) setRequested(true);
+      // The completed opening stays latched in CSS; decorative motion may still start.
+      if (active && !preference.matches) setRequested(true);
     };
     request();
     preference.addEventListener('change', request);
