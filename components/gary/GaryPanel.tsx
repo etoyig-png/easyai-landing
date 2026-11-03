@@ -49,7 +49,7 @@ interface ConversationSnapshot {
   pending: PendingRequest | null; hasContactFlow: boolean; contactPending?: boolean;
 }
 
-const BLOCKED_REQUEST = 'This request cannot be retried safely here. It is kept in this tab. Start Over opens another chat; it does not cancel this request.';
+const BLOCKED_REQUEST = 'This request cannot be retried safely. Start Over opens a new chat; it does not cancel this request.';
 
 const LEGACY_REQUEST = 'This older request has no replay protection. Its outcome is unknown; retrying may repeat it.';
 
@@ -139,7 +139,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
           storeConversation({ ...recoveryRef.current, pending: stopped });
         }
         const text = outcome === 'pending'
-          ? 'Your original request is still pending or uncertain. Wait a moment, then retry the same request to check.'
+          ? 'Your original request is still pending or uncertain. Wait a moment, then retry the same request.'
           : outcome === 'unavailable'
             ? 'Gary could not access the saved request. Retry it when ready.'
             : blocked
@@ -270,9 +270,12 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
 
   async function handleStartAssessment() {
     setSending(true);
+    setError(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 65_000);
     try {
       const response = await fetch('/api/gary/handoff', {
-        method: 'POST',
+        method: 'POST', signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: getStoredSessionId(), sessionCapability: getStoredSessionCapability() }),
       });
@@ -280,9 +283,11 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
       const { redirectUrl } = (await response.json()) as { redirectUrl: string };
       if (mountedRef.current) window.location.href = redirectUrl;
     } catch {
-      setError("Couldn't open the assessment just now — try the button in the menu instead.");
-      setSending(false);
-    }
+      if (mountedRef.current) {
+        setError("Couldn't open the assessment. Try again or keep chatting.");
+        setSending(false);
+      }
+    } finally { window.clearTimeout(timeout); }
   }
 
   function handleStartOver() {
@@ -426,6 +431,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
             <button
               type="button"
               onClick={() => setOfferAssessment(false)}
+              disabled={sending}
               className="min-h-[44px] text-sm text-slate-600 underline"
             >
               Keep Chatting

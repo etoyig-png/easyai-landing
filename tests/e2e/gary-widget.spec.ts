@@ -156,6 +156,55 @@ test.describe('Gary widget', () => {
     expect(handoffs).toBe(1);
   });
 
+  test('a stalled assessment handoff releases chat without losing the draft or retrying automatically', async ({ page }) => {
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const requests: string[] = [];
+    await page.route('**/api/gary/handoff', async route => {
+      requests.push(route.request().postData()!);
+      if (requests.length > 1) return route.fulfill({ status: 503, json: { error: 'synthetic unavailable' } });
+      await held;
+      await route.fulfill({ json: { redirectUrl: '/about?source=timed-out-handoff' } }).catch(() => {});
+    });
+    try {
+      const dialog = await openGary(page, { text: 'The assessment may help.' }, true);
+      await dialog.getByRole('textbox').fill('Help me assess my business.');
+      await dialog.getByRole('button', { name: 'Send', exact: true }).click();
+      const draft = "I'd rather discuss a practical next step.";
+      await dialog.getByRole('textbox').fill(draft);
+      await page.evaluate(() => sessionStorage.setItem('gary-session-capability', 'synthetic-handoff-cap'));
+      await dialog.getByRole('button', { name: 'Start My Free Assessment', exact: true }).click();
+      await expect.poll(() => requests.length).toBe(1);
+      await expect(dialog.getByRole('button', { name: 'Keep Chatting', exact: true })).toBeDisabled();
+      await page.clock.fastForward(65001);
+      await expect(dialog.getByRole('alert')).toContainText("Couldn't open the assessment");
+      await expect(dialog.getByRole('textbox')).toBeEnabled();
+      await expect(dialog.getByRole('textbox')).toHaveValue(draft);
+      await expect(dialog.getByRole('button', { name: 'Start My Free Assessment', exact: true })).toBeEnabled();
+      await page.clock.fastForward(65001);
+      expect(requests).toHaveLength(1);
+      release();
+      await page.waitForLoadState('networkidle');
+      await expect(page).toHaveURL('http://127.0.0.1:3200/');
+      const retried = page.waitForResponse('**/api/gary/handoff');
+      await dialog.getByRole('button', { name: 'Start My Free Assessment', exact: true }).click();
+      await retried;
+      await expect(dialog.getByRole('textbox')).toBeEnabled();
+      await expect(dialog.getByRole('alert')).toContainText('Try again or keep chatting.');
+      expect(requests).toHaveLength(2);
+      expect(requests[1]).toBe(requests[0]);
+      expect(JSON.parse(requests[0])).toEqual({ sessionId: 'e2e-session-1', sessionCapability: 'synthetic-handoff-cap' });
+      await dialog.getByRole('button', { name: 'Keep Chatting', exact: true }).click();
+      await expect(dialog.getByRole('button', { name: 'Start My Free Assessment', exact: true })).toHaveCount(0);
+      const response = page.waitForResponse('**/api/gary/message');
+      await dialog.getByRole('button', { name: 'Send', exact: true }).click();
+      await response;
+      await expect(dialog.getByText(draft, { exact: true })).toBeVisible();
+      await expect(dialog.getByRole('textbox')).toBeEnabled();
+      expect(requests).toHaveLength(2);
+    } finally { release(); }
+  });
+
   test('Escape closes the panel', async ({ page }) => {
     const dialog = await openGary(page);
     await expect(dialog).toBeVisible();
