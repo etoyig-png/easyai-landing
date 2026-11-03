@@ -80,7 +80,8 @@ describe('Gary SDK safety boundaries', () => {
     const factory = provider === 'openai' ? createGaryOpenAiAdapter : createGaryAnthropicAdapter;
     const adapter = factory({ apiKey: 'synthetic-only', model: 'fixture-model' });
     await adapter.generateChatCompletion({ systemPrompt: 'fixture', messages: [], timeoutMs: 1234, maxTokens: 800 });
-    expect(sdk[provider]).toHaveBeenLastCalledWith(expect.objectContaining({ max_tokens: 800 }), { timeout: 1234, maxRetries: 0 });
+    expect(sdk[provider]).toHaveBeenLastCalledWith(expect.objectContaining(provider === 'openai' ? { max_completion_tokens: 800 } : { max_tokens: 800 }), { timeout: 1234, maxRetries: 0 });
+    if (provider === 'openai') expect(sdk.openai.mock.calls.at(-1)![0]).not.toHaveProperty('max_tokens');
     expect(sdk[provider === 'openai' ? 'openaiOptions' : 'anthropicOptions']).toHaveBeenLastCalledWith(expect.objectContaining({ timeout: 45000, maxRetries: 0 }));
   });
   it.each(['openai', 'anthropic'] as const)('rejects exhausted deadlines and excessive output before calling %s', async (provider) => {
@@ -108,4 +109,27 @@ describe('Gary SDK safety boundaries', () => {
     sdk.anthropic.mockResolvedValueOnce({ stop_reason, content: [{ type: 'text', text: 'partial' }] });
     await expect(createGaryAnthropicAdapter({ apiKey: 'synthetic', model: 'fixture' }).generateChatCompletion({ systemPrompt: '', messages: [] })).rejects.toThrow('complete answer');
   });
+});
+
+
+it('uses the same completion token cap for original and correction OpenAI requests', async () => {
+  const { createGaryOpenAiAdapter } = await import('./openaiAdapter');
+  const { generateGaryReply } = await import('../replyPipeline');
+  const before = sdk.openai.mock.calls.length;
+  sdk.openai.mockResolvedValueOnce({ choices: [{ finish_reason: 'stop', message: { content: 'This is not a small thing, but a drain.' } }] })
+    .mockResolvedValueOnce({ choices: [{ finish_reason: 'stop', message: { content: 'Track each quote and its next follow-up date.' } }] });
+  const reply = await generateGaryReply(createGaryOpenAiAdapter({ apiKey: 'synthetic-only', model: 'gpt-5.4-mini' }), {
+    knownAnswers: [], visitorTurnCount: 1, assessmentOfferCount: 0, lastVisitorSafetyClass: 'none'
+  }, [{ role: 'user', content: 'We lose leads.' }]);
+  expect(reply.usedFallback).toBe(false);
+  const calls = sdk.openai.mock.calls.slice(before);
+  expect(calls).toHaveLength(2);
+  for (const [request, options] of calls) {
+    expect(request).toMatchObject({ model: 'gpt-5.4-mini', max_completion_tokens: 1024 });
+    expect(request).not.toHaveProperty('max_tokens');
+    expect(options.maxRetries).toBe(0);
+  }
+  expect(calls[1][0].messages).toEqual(expect.arrayContaining([
+    expect.objectContaining({ role: 'assistant', content: 'This is not a small thing, but a drain.' })
+  ]));
 });

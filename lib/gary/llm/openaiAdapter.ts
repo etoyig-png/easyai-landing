@@ -25,7 +25,7 @@ export function createGaryOpenAiAdapter(params: { apiKey: string | undefined; mo
       const openai = requireClient();
       const response = await openai.chat.completions.create({
         model,
-        max_tokens: input.maxTokens ?? 1024,
+        max_completion_tokens: input.maxTokens ?? 1024,
         temperature: input.temperature,
         messages: [
           { role: 'system', content: input.systemPrompt },
