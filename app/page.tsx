@@ -54,22 +54,15 @@ export default function HomePage() {
           <div className="discovery-brand">
             <div className="logo-depth"><svg className="easyai-wordmark" viewBox="0 0 1240 280" role="img" aria-label="Easy AI. Business AI Solutions.">
               <title>Easy AI. Business AI Solutions.</title>
-              {[{ sx:27, sy:10, width:552, height:220, x:0, y:0, slices:16 },
-                { sx:630, sy:48, width:90, height:126, x:592, y:48, slices:4 },
-                { sx:756, sy:48, width:114, height:126, x:696, y:48, slices:4 },
-                { sx:904, sy:48, width:95, height:126, x:824, y:48, slices:4 },
-                { sx:1030, sy:48, width:111, height:126, x:933, y:48, slices:4 },
-                { sx:1206, sy:48, width:114, height:126, x:1078, y:48, slices:4 },
-                { sx:1356, sy:48, width:33, height:126, x:1206, y:48, slices:4 }].flatMap((part, partIndex) => Array.from({ length:part.slices }, (_, index) => {
-                  // Preserve supplied glyph pixels; close gaps, then wrap around the sphere.
-                  const x = part.x + part.width * index / part.slices;
-                  const position = (x + part.width / part.slices / 2) / 1240 * 2 - 1;
-                  const angle = position;
-                  const scale = 1480 / (2100 - 620 * Math.cos(angle));
-                  const projectX = (theta: number) => 1480 * Math.sin(theta) / (2100 - 620 * Math.cos(theta));
-                  const curveX = (value: number) => (projectX(value / 1240 * 2 - 1) / projectX(1) + 1) * 620;
-                  return <svg key={`${partIndex}-${index}`} x={curveX(x)} y={120 + (part.y - 120) * scale + 18 * position * position} width={curveX(x + part.width / part.slices) - curveX(x) + .2} height={part.height * scale} viewBox={`${part.sx + part.width * index / part.slices} ${part.sy} ${part.width / part.slices} ${part.height}`} preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>;
-                }))}
+              {[{ sx:27, sy:10, width:552, height:220, x:0, y:0 },
+                { sx:630, sy:48, width:90, height:126, x:592, y:48 },
+                { sx:756, sy:48, width:114, height:126, x:696, y:48 },
+                { sx:904, sy:48, width:95, height:126, x:824, y:48 },
+                { sx:1030, sy:48, width:111, height:126, x:933, y:48 },
+                { sx:1206, sy:48, width:114, height:126, x:1078, y:48 },
+                { sx:1356, sy:48, width:33, height:126, x:1206, y:48 }].map((part,index) => (
+                  <svg key={index} x={part.x} y={part.y} width={part.width} height={part.height} viewBox={`${part.sx} ${part.sy} ${part.width} ${part.height}`} preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>
+                ))}
               <svg x="592" y="200" width="647" height="39" viewBox="630 185 760 48" preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>
             </svg></div>
             <h1>Get Found. Get Chosen.</h1>
@@ -84,17 +77,17 @@ export default function HomePage() {
           <svg width="0" height="0" className="logo-mask-definitions" aria-hidden="true" focusable="false"><defs><filter id="gap-paper-mask" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 2.85" result="paperless" /><feComposite in="paperless" in2="SourceAlpha" operator="in" /></filter><filter id="brand-radiance" colorInterpolationFilters="sRGB"><feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncG type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncB type="gamma" amplitude="1" exponent=".55" offset="0" /></feComponentTransfer></filter></defs></svg>
           <div className="product-identity identity-gap">
             <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#ffe28a" />
-            <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><circle cx="180" cy="120" r="100" /><circle cx="180" cy="120" r="74" /><path d="M30 155H100L150 70H255L330 135M55 55L130 120H290M70 205L220 50" /><circle cx="100" cy="155" r="6" /><circle cx="255" cy="70" r="6" /></svg>
-            <Image quality={90} className="gap-identity" src="/gap-logo.png" alt="GAP — Google and AI Presence" width={1254} height={1254} sizes="(max-width:767px) 300px, 300px" />
+            <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><ellipse cx="180" cy="120" rx="158" ry="104" /></svg>
+            <Image quality={90} className="gap-identity" src="/gap-logo.png" alt="GAP — Google and AI Presence" width={1254} height={1254} sizes="(max-width:767px) 340px, 340px" />
           </div>
           <div className="product-identity identity-web">
             <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#ff9a80" />
-            <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><rect x="30" y="35" width="300" height="170" rx="20" /><path d="M30 70H330M60 110H140M60 135H115M200 115H290V160H240L220 180V160H200Z" /><circle cx="54" cy="52" r="3" /><circle cx="68" cy="52" r="3" /></svg>
+            <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><rect x="22" y="16" width="316" height="208" rx="32" /></svg>
             <Image quality={90} className="smartsite-identity" src="/smartsite-logo.webp" alt="SmartSite" width={2048} height={682} sizes="(max-width:767px) 340px, 340px" />
           </div>
           <div className="product-identity identity-aim">
             <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#bbff91" />
-            <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><path d="M35 120H65L80 80L100 165L120 60L140 175L160 75L180 155L200 90L220 140H325M80 200H270L295 220V200H315V40H80Z" /></svg>
+            <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><rect x="22" y="16" width="316" height="208" rx="70" /></svg>
             <Image quality={90} src="/aim-logo.webp?v=1983" alt="AIM Digital / Voice" width={1983} height={793} sizes="(max-width:767px) 360px, 360px" />
           </div>
         </div>

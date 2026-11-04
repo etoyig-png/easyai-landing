@@ -518,7 +518,7 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 
 /* Reference treatment: lit identity and coordinated foreground/background planes. */
 .logo-depth { position:relative; width:min(900px,88vw); margin:0 auto .35rem; transform-style:preserve-3d; perspective:1100px; }
-.logo-depth .easyai-wordmark { display:block; width:100%; height:auto; margin:0; transform:translateZ(18px); filter:drop-shadow(1px 1px 0 #7394ac) drop-shadow(1px 2px 0 #243d55) drop-shadow(1px 3px 0 #122437) drop-shadow(0 12px 12px #000b); }
+.logo-depth .easyai-wordmark { display:block; width:100%; height:auto; margin:0; transform:none; filter:drop-shadow(1px 1px 0 #7394ac) drop-shadow(1px 2px 0 #243d55) drop-shadow(1px 3px 0 #122437) drop-shadow(0 12px 12px #000b); }
 @media (prefers-reduced-motion:no-preference) {
  .home-story[data-motion-ready]:not([data-opening-complete]) .logo-depth { animation:logo-emerge 8.4s both; }
 
@@ -629,3 +629,12 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 .identity-traces { object-fit:contain; position:absolute; inset:0; width:100%; height:100%; z-index:-1; }
 .product-identity img,.aim-device-logo,.smartsite-screen-logo { filter:url(#brand-radiance) drop-shadow(0 0 8px #77baff33); }
 .product-identities .gap-identity { filter:url(#gap-paper-mask) url(#brand-radiance) drop-shadow(0 0 8px #77baff33); }
+
+/* Quiet colored product plates: motion stays on the perimeter, clear of each logo. */
+.product-identity { border-radius:32px; }
+.product-identity::before { content:''; position:absolute; inset:8px; border-radius:inherit; z-index:-2; box-shadow:inset 0 1px 0 #ffffff30,0 12px 28px #0004; }
+.identity-gap::before { background:radial-gradient(ellipse at 35% 25%,#8b5640,#4a2b32 75%); }
+.identity-web::before { background:radial-gradient(ellipse at 35% 25%,#75548b,#392847 75%); }
+.identity-aim::before { background:radial-gradient(ellipse at 35% 25%,#5b7550,#2d4437 75%); }
+.product-identity .identity-context { opacity:.6; }
+.product-identities .gap-identity { width:340px; height:auto; aspect-ratio:1.8; object-fit:cover; object-position:center 47%; }

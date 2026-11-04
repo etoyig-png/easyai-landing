@@ -32,7 +32,7 @@ type Geography = ReturnType<typeof geographyPath>[];
 function drawTrace(context:CanvasRenderingContext2D, now:number, elapsed:number, offset:number, duration:number, color:string, sample:(progress:number)=>Point) {
   let previous:Point|undefined, previousProgress = 2;
   // A point's brightness depends on its actual age, not the whole path's animation phase.
-  for (let age = 0; age <= Math.min(TRAIL_MS, elapsed); age += 80) {
+  for (let age = 0; age <= Math.min(TRAIL_MS, elapsed); age += 40) {
     const progress = (((now - age + offset) % duration) + duration) % duration / duration;
     const point = sample(progress);
     if (previous && progress <= previousProgress && (point.z ?? 1) > 0 && (previous.z ?? 1) > 0) {
@@ -60,7 +60,7 @@ export function mountTraceMotion(root:Element) {
     const globe = canvas.dataset.lightTrace === 'globe', width = globe ? 600 : 360, height = globe ? 600 : 240;
     const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
     canvas.width = width * ratio; canvas.height = height * ratio; context.setTransform(ratio,0,0,ratio,0,0);
-    const paths = Array.from(canvas.parentElement!.querySelectorAll<SVGGeometryElement>('.identity-context path, .identity-context circle, .identity-context rect'));
+    const paths = Array.from(canvas.parentElement!.querySelectorAll<SVGGeometryElement>('.identity-context path, .identity-context circle, .identity-context ellipse, .identity-context rect'));
     return [{ canvas, context, globe, width, height, paths:paths.map(path => ({ path, length:path.getTotalLength() })) }];
   });
   let geography:Geography = [], stopped = false, frame = 0, last = -Infinity, globeEpoch = 0;
@@ -87,11 +87,15 @@ export function mountTraceMotion(root:Element) {
         const worldTime = Math.max(0, time - globeEpoch), rotation = 25 + worldTime / 180;
         geography.slice(0,6).forEach((path,index) => {
           const color = ['#ffe28a','#ff9a80','#bbff91'][index%3];
-          const heads = index < 3 ? 2 : 1;
-          for (let head = 0; head < heads; head++) drawTrace(context,worldTime,worldTime,index*1900 + head*5000,10000,color,progress => projectGlobe(path.sample(progress),rotation));
+          drawTrace(context,worldTime,worldTime,index*1900,10000,color,progress => projectGlobe(path.sample(progress),rotation));
         });
       } else {
-        surface.paths.forEach(({path,length},index) => drawTrace(context,elapsed,elapsed,index*1700,10000,canvas.dataset.traceColor ?? '#ffe28a',progress => path.getPointAtLength(progress*length)));
+        surface.paths.slice(0,2).forEach(({path,length},index) => {
+          const head = path.getPointAtLength(((elapsed / 12000 + index / 2) % 1) * length);
+          context.globalAlpha = 1;
+          context.fillStyle = canvas.dataset.traceColor ?? '#ffe28a';
+          context.beginPath(); context.arc(head.x,head.y,3.2,0,Math.PI*2); context.fill();
+        });
       }
       if (canvas.dataset.rendered !== 'true') canvas.dataset.rendered = 'true';
     }

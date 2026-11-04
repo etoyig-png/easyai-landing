@@ -2,6 +2,14 @@ import { gotoGaryReady } from './garyReady';
 import { expect, test, type Locator } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+// No fixture may fall through to a live API or external service.
+test.beforeEach(async ({ context }) => {
+  await context.route('**/*', route => {
+    const url = new URL(route.request().url());
+    return url.origin === 'http://127.0.0.1:3200' && !url.pathname.startsWith('/api/') ? route.continue() : route.abort();
+  });
+});
+
 // Playwright's JS clock does not own the CSS compositor timeline. Seek the
 // real CSS animations for phase assertions; duration is still pinned below.
 async function setNativeAnimationTime(locator: Locator, milliseconds: number) {
@@ -232,12 +240,13 @@ test('missing device photograph leaves the business identity readable', async ({
 });
 
 
-test('screenshot corrections center the curved logo and direct conversation toward the phone', async ({ page }) => {
+test('approved 1.1 straight logo stays centered and conversation points toward the phone', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   const logo = await page.locator('.logo-depth').boundingBox();
   expect(Math.abs(logo!.x + logo!.width / 2 - page.viewportSize()!.width / 2)).toBeLessThan(2);
   await expect(page.locator('.easyai-wordmark')).toHaveAttribute('role', 'img');
+  await expect(page.locator('.easyai-wordmark')).toHaveCSS('transform', 'none');
   await expect(page.locator('.product-identities')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Start Your Consultation ↗', exact: true })).toHaveAttribute('href', '/assessment?intent=consultation');
   const pointer = await page.locator('.aim-art .message-answer').evaluate(el => {
@@ -325,6 +334,13 @@ test('supplied product identities and fictional workup stay inside the restored 
   await page.goto('/');
   await expect(page.locator('.product-identities img[alt="SmartSite"]')).toHaveAttribute('src', /smartsite-logo/);
   await expect(page.locator('.product-identity')).toHaveCount(3);
+  const plateColors: string[] = [];
+  for (const plate of await page.locator('.product-identity').all()) {
+    await expect(plate.locator('.identity-context path, .identity-context circle, .identity-context rect, .identity-context ellipse')).toHaveCount(1);
+    const color = await plate.evaluate(el => getComputedStyle(el, '::before').backgroundImage);
+    expect(color).toContain('radial-gradient'); plateColors.push(color);
+  }
+  expect(new Set(plateColors).size).toBe(3);
   await expect(page.locator('#discovery .gap-device-action')).toContainText('BrightPath Home Services');
   await expect(page.locator('.home-story')).not.toContainText('Sample Data');
   await expect(page.locator('#discovery .growth-chart')).toHaveCount(1);

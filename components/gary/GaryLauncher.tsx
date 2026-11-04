@@ -8,8 +8,8 @@ import type { GaryIntent } from './GaryPanel';
 import { OPEN_GARY_EVENT } from '@/lib/gary/openGary';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
-// initial page rendering never downloads the heavier chat bundle. Approved media loads only
-// after Gary is revealed; reduced motion and open chat use the seated sheet cell.
+// initial page rendering never downloads the heavier chat bundle. Video waits for reveal;
+// the seated sheet gets a low-priority head start to avoid a blank cold-cache character.
 const GaryPanel = dynamic(() => import('./GaryPanel'), { ssr: false });
 
 const LAUNCH_DELAY_MS = 5000;
@@ -36,6 +36,7 @@ export default function GaryLauncher() {
   const [playIntro, setPlayIntro] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
   const launchTimer = useRef<number>();
+  const posterTimer = useRef<number>();
   const chatButton = useRef<HTMLButtonElement>(null);
 
   // Runs once, LAUNCH_DELAY_MS after mount: reveal the button + Gary, then either play the full
@@ -52,6 +53,13 @@ export default function GaryLauncher() {
   // whole effect exists to prevent — an actual behavioral bug caught by testing this with
   // page.emulateMedia(), not just a lint nitpick.
   useEffect(() => {
+    let posterHint: HTMLLinkElement | undefined;
+    posterTimer.current = window.setTimeout(() => {
+      posterHint = document.createElement('link');
+      posterHint.rel = 'preload'; posterHint.as = 'image'; posterHint.href = '/gary/gary-poses.webp';
+      posterHint.setAttribute('fetchpriority', 'low');
+      document.head.appendChild(posterHint);
+    }, LAUNCH_DELAY_MS - 2000);
     const timer = window.setTimeout(() => {
       setVisible(true);
       setEntering(true);
@@ -71,6 +79,8 @@ export default function GaryLauncher() {
     return () => {
       document.documentElement.removeAttribute('data-gary-ready');
       window.clearTimeout(timer);
+      window.clearTimeout(posterTimer.current);
+      posterHint?.remove();
     };
     // Intentionally runs once on mount — the delay and once-per-session check are both evaluated
     // at that single point, not re-derived on every render.
@@ -97,6 +107,7 @@ export default function GaryLauncher() {
   useEffect(() => {
     if (!open) return;
     window.clearTimeout(launchTimer.current);
+    window.clearTimeout(posterTimer.current);
     setEntering(false);
     setPlayIntro(false);
   }, [open]);
