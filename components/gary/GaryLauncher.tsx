@@ -3,22 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { hasPlayedLaunchAnimation, markLaunchAnimationPlayed } from '@/lib/gary/clientSession';
-import { ROUTINE_STEPS } from '@/lib/gary/routineSteps';
-import GaryCharacter, { type GaryPose } from './GaryCharacter';
+import GaryCharacter from './GaryCharacter';
 import type { GaryIntent } from './GaryPanel';
 import { OPEN_GARY_EVENT } from '@/lib/gary/openGary';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
-// initial page rendering never downloads the heavier chat bundle. Gary's own character is plain
-// inline SVG + CSS (no image request, negligible byte size), so it doesn't need its own lazy
-// boundary — it renders as soon as the launch delay elapses, same as before.
+// initial page rendering never downloads the heavier chat bundle. Approved media loads only
+// after Gary is revealed; reduced motion and open chat use the seated sheet cell.
 const GaryPanel = dynamic(() => import('./GaryPanel'), { ssr: false });
 
 const LAUNCH_DELAY_MS = 5000;
-
-// Locked routine timing lives in lib/gary/routineSteps.ts (a plain .ts module, not this 'use
-// client' component) specifically so it can be imported directly by a Vitest unit test — see that
-// file's own comment for why that matters more than it might seem.
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -32,8 +26,6 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-const SIGN_RELATED_POSES: GaryPose[] = ['sign', 'signPoint', 'signWave', 'lowering'];
-
 export default function GaryLauncher() {
   const [visible, setVisible] = useState(false);
   const [entering, setEntering] = useState(false);
@@ -41,33 +33,10 @@ export default function GaryLauncher() {
   // Set when a page button opened Gary for a specific purpose (the contact flow). Cleared on close
   // so a later manual open starts a normal chat.
   const [intent, setIntent] = useState<GaryIntent>(null);
-  const [pose, setPose] = useState<GaryPose>('seated');
-  const [routineFinished, setRoutineFinished] = useState(false);
+  const [playIntro, setPlayIntro] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
-  const timers = useRef<number[]>([]);
   const launchTimer = useRef<number>();
-
-  function clearScheduledTimers() {
-    timers.current.forEach((id) => window.clearTimeout(id));
-    timers.current = [];
-  }
-
-  function runRoutine() {
-    let elapsed = 0;
-    ROUTINE_STEPS.forEach((step) => {
-      const id = window.setTimeout(() => setPose(step.pose), elapsed);
-      timers.current.push(id);
-      elapsed += step.holdMs;
-    });
-    // Step 20: after lowering the sign, Gary sits beneath the chat button — the routine's own
-    // last pose ('lowering') is transient, so explicitly land back on 'seated' rather than
-    // leaving the sign-lowering pose as the permanent resting state.
-    const finishId = window.setTimeout(() => {
-      setPose('seated');
-      setRoutineFinished(true);
-    }, elapsed);
-    timers.current.push(finishId);
-  }
+  const chatButton = useRef<HTMLButtonElement>(null);
 
   // Runs once, LAUNCH_DELAY_MS after mount: reveal the button + Gary, then either play the full
   // locked routine (first time this session, motion allowed) or go straight to the seated
@@ -89,13 +58,11 @@ export default function GaryLauncher() {
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const alreadyPlayed = hasPlayedLaunchAnimation();
       if (prefersReducedMotion || alreadyPlayed) {
-        setPose('seated');
-        setRoutineFinished(true);
         if (!alreadyPlayed) markLaunchAnimationPlayed();
         return;
       }
       markLaunchAnimationPlayed();
-      runRoutine();
+      setPlayIntro(true);
     }, LAUNCH_DELAY_MS);
     launchTimer.current = timer;
     // Initialization is distinct from visibility: clocks/hosts can wait for the
@@ -104,7 +71,6 @@ export default function GaryLauncher() {
     return () => {
       document.documentElement.removeAttribute('data-gary-ready');
       window.clearTimeout(timer);
-      clearScheduledTimers();
     };
     // Intentionally runs once on mount — the delay and once-per-session check are both evaluated
     // at that single point, not re-derived on every render.
@@ -131,10 +97,8 @@ export default function GaryLauncher() {
   useEffect(() => {
     if (!open) return;
     window.clearTimeout(launchTimer.current);
-    clearScheduledTimers();
     setEntering(false);
-    setPose('seated');
-    setRoutineFinished(true);
+    setPlayIntro(false);
   }, [open]);
 
   // Progressive enhancement: server-rendered contact links also work without JavaScript.
@@ -153,11 +117,8 @@ export default function GaryLauncher() {
 
   if (!visible) return null;
 
-  const idleGlanceActive = pose === 'seated' && routineFinished && !open && !reducedMotion;
-  // Message behavior follows Gary's pose, never viewport geometry. Real conditional rendering
-  // fully removes the intro bubble while Gary is holding or lowering the physical sign, ensuring
-  // there is exactly one white message element at every screen size.
-  const showIntroBubble = !open && !SIGN_RELATED_POSES.includes(pose);
+  // The approved video already contains its sign; never overlay a second message on it.
+  const showIntroBubble = !open && (!playIntro || reducedMotion);
 
   return (
     <div
@@ -184,9 +145,12 @@ export default function GaryLauncher() {
           </div>
         )}
         <button
+          ref={chatButton}
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Chat with Gary from Accounting"
+          aria-haspopup="dialog"
+          aria-expanded={open}
           className="gary-chat-button flex flex-shrink-0 items-center justify-center rounded-full bg-green-600 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
           style={{ width: 'clamp(56px, 11vw, 64px)', height: 'clamp(56px, 11vw, 64px)' }}
         >
@@ -198,30 +162,30 @@ export default function GaryLauncher() {
 
       {!open && (
         <div className="gary-decorative-cluster relative">
-          {(pose === 'sign' || pose === 'signPoint' || pose === 'signWave' || pose === 'lowering') && (
-            <div
-              className={`gary-sign-board${pose === 'lowering' ? ' is-lowering' : ''}`}
-              aria-hidden="false"
-            >
-              <span className="gary-sign-copy">The button. Up there.</span>
-            </div>
-          )}
           <div
             className={`gary-character-wrap${entering ? ' gary-entering' : ''}`}
             aria-hidden="true"
             onAnimationEnd={() => setEntering(false)}
           >
-            <GaryCharacter pose={pose} idleGlanceActive={idleGlanceActive} />
+            <GaryCharacter pose="seated" idleGlanceActive={false} animate={playIntro && !reducedMotion}
+              onFinished={() => setPlayIntro(false)} />
           </div>
         </div>
       )}
 
       {open && (
         <GaryPanel
+          identity={<div className="flex min-w-0 items-center gap-2">
+          <div className="h-16 w-16 flex-shrink-0" data-testid="gary-chat-character">
+            <GaryCharacter pose="seated" idleGlanceActive={false} />
+          </div>
+          <span className="text-sm font-semibold text-white">Gary from Accounting</span>
+        </div>}
           initialIntent={intent}
           onClose={() => {
             setOpen(false);
             setIntent(null);
+            chatButton.current?.focus();
           }}
         />
       )}

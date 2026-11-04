@@ -130,8 +130,8 @@
 
   .gary-character-wrap {
     position: relative;
-    width: clamp(52px, 14vw, 104px);
-    aspect-ratio: 160 / 200;
+    width: clamp(96px, 24vw, 160px);
+    aspect-ratio: 1;
     overflow: visible;
     /* Purely decorative (aria-hidden in the DOM too) — must never intercept a click meant for
        page content behind/around it. The chat button is a separate sibling element and is
@@ -254,7 +254,7 @@
 
   @media (max-height: 940px) and (max-width: 480px) {
     .gary-launcher .gary-character-wrap {
-      width: clamp(42px, 12vw, 50px);
+      width: 96px;
     }
     /* The smaller character also needs the existing compact sign offset. Applying
        it only below 844px left the sign crossing the button on 412x915/430x932. */

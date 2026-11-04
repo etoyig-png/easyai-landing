@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { useFocusTrap } from '@/lib/gary/useFocusTrap';
 import {
@@ -57,7 +57,7 @@ const UNCONFIRMED_REQUEST = 'The outcome is unknown. Your request is kept here; 
 
 export type GaryIntent = 'contact' | null;
 
-export default function GaryPanel({ onClose, initialIntent = null }: { onClose: () => void; initialIntent?: GaryIntent }) {
+export default function GaryPanel({ onClose, initialIntent = null, identity }: { onClose: () => void; initialIntent?: GaryIntent; identity: ReactNode }) {
   const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<ChatBubble[]>([]);
@@ -325,7 +325,7 @@ export default function GaryPanel({ onClose, initialIntent = null }: { onClose: 
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-center justify-between border-b border-slate-200 bg-navy-900 px-4 py-3 sm:rounded-t-xl">
-        <span className="text-sm font-semibold text-white">Gary from Accounting</span>
+        {identity}
         <div className="flex items-center gap-1">
           <button
             type="button"
