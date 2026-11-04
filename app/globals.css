@@ -121,16 +121,10 @@
     }
   }
 
-  /* ============================================================================
-     Gary from Accounting — character + locked animation routine.
-     One SVG (components/gary/GaryCharacter.tsx), pose-driven via the [data-gary-pose]
-     attribute on the <svg> root. Scales with clamp() so the same rig reads correctly from a
-     360px phone up through a wide desktop — see .gary-character-wrap.
-     ============================================================================ */
-
+  /* Approved Gary is rendered at the 164px so the approved 22px native lettering renders at least 10px tall. */
   .gary-character-wrap {
     position: relative;
-    width: clamp(96px, 24vw, 160px);
+    width: 164px;
     aspect-ratio: 1;
     overflow: visible;
     /* Purely decorative (aria-hidden in the DOM too) — must never intercept a click meant for
@@ -144,7 +138,7 @@
   .gary-decorative-cluster {
     pointer-events: none;
   }
-  .gary-character { overflow: visible; display: block; }
+  .gary-character { overflow: hidden; display: block; }
 
   /* A genuine speech bubble: the triangular tail visually connects the introduction to Gary. */
   .gary-speech-bubble {
@@ -184,6 +178,7 @@
      "strolling" highlight rather than a flashing notification badge. */
   .gary-chat-button {
     position: relative;
+    margin-right: calc((164px - clamp(56px, 11vw, 64px)) / 2);
     box-shadow: 0 8px 20px rgb(11 29 58 / 0.28);
   }
   .gary-chat-button::before {
@@ -231,188 +226,12 @@
     pointer-events: auto;
   }
 
-  /* Phone widths keep the exact desktop composition. Only the physical sign scales down so
-     the animation remains readable and inside narrow viewports. */
-  @media (max-width: 767px) {
-    .gary-launcher .gary-sign-board {
-      top: 6px;
-      width: clamp(84px, 24vw, 118px);
-      min-height: 36px;
-      padding: 6px 8px;
-      font-size: clamp(10px, 2.6vw, 12px);
-      transform: translateY(-72%) rotate(9deg);
-    }
-    .gary-launcher .gary-sign-board.is-lowering {
-      transform: translateY(20%) rotate(10deg) scale(0.9);
-    }
-    .gary-launcher [data-gary-pose='signPoint'] .gary-arm-right {
-      transform: rotate(-100deg);
-    }
-  }
-
-  /* Short phones scale Gary down for clearance without changing the desktop composition. */
-
-  @media (max-height: 940px) and (max-width: 480px) {
-    .gary-launcher .gary-character-wrap {
-      width: 96px;
-    }
-    /* The smaller character also needs the existing compact sign offset. Applying
-       it only below 844px left the sign crossing the button on 412x915/430x932. */
-    .gary-launcher .gary-sign-board {
-      top: 38px;
-    }
-  }
-
   /* Preserve one pixel of CTA clearance on the shortest supported phones without transform:
      transform would create a containing block and break GaryPanel's fixed positioning. */
   @media (max-height: 844px) and (max-width: 480px) {
     .gary-launcher {
       bottom: calc(max(1rem, env(safe-area-inset-bottom)) - 1px) !important;
     }
-  }
-
-  /* Palette — reuses the site's own navy/teal/ivory tokens so Gary feels native to the brand
-     rather than a bolted-on generic mascot. */
-  .gary-desk { fill: #163259; }
-  .gary-shirt, .gary-sleeve { fill: #eef4fa; }
-  .gary-tie { fill: #0b1d3a; }
-  .gary-pocket-pen { fill: #2d7d7d; }
-  .gary-hand, .gary-neck, .gary-head-shape { fill: #e3ab7a; }
-  .gary-hair { fill: #4a3626; }
-  .gary-glasses-lens { fill: none; stroke: #0b1d3a; stroke-width: 3; }
-  .gary-glasses-bridge, .gary-glasses-arm { stroke: #0b1d3a; stroke-width: 3; fill: none; stroke-linecap: round; }
-  .gary-pupil { fill: #1b2733; }
-  .gary-eyebrow, .gary-eyebrow-raised { stroke: #4a3626; stroke-width: 3; fill: none; stroke-linecap: round; }
-  .gary-mouth { stroke: #7a4a33; stroke-width: 3; fill: none; stroke-linecap: round; }
-  .gary-mouth-open { fill: #7a4a33; }
-
-  /* Faces — only one visible at a time, swapped per pose below. */
-  .gary-face-neutral { opacity: 1; transition: opacity 0.2s ease; }
-  .gary-face-frustrated, .gary-face-idea { opacity: 0; transition: opacity 0.2s ease; }
-
-  /* Arms rotate from the shoulder (near the top of each sleeve rect). */
-  .gary-arm { transform-box: fill-box; transform-origin: 50% 6%; }
-  .gary-arm-left, .gary-arm-right { transform: rotate(0deg); transition: transform 0.3s ease; }
-
-  /* Jump is deliberately large enough to read at the launcher's compact mobile size. */
-  @keyframes gary-jump {
-    0%, 100% { transform: translateY(0); }
-    30% { transform: translateY(-24px) scale(1.04); }
-    55% { transform: translateY(0); }
-    72% { transform: translateY(-8px); }
-  }
-  [data-gary-pose='jump'] { animation: gary-jump 0.6s ease-out 1; }
-
-  /* Wave — step 7: a friendly side-to-side wave near head height. */
-  @keyframes gary-wave {
-    0%, 100% { transform: rotate(0deg); }
-    15% { transform: rotate(-150deg); }
-    35% { transform: rotate(-115deg); }
-    55% { transform: rotate(-150deg); }
-    75% { transform: rotate(-115deg); }
-    92% { transform: rotate(-140deg); }
-  }
-  [data-gary-pose='wave'] .gary-arm-right {
-    animation: gary-wave 1.5s ease-in-out 1;
-  }
-
-  /* Point — step 8-9: arm extended up toward the chat button, held while waiting. */
-  [data-gary-pose='point'] .gary-arm-right {
-    transform: rotate(-150deg);
-  }
-  [data-gary-pose='wait'] .gary-arm-right { transform: rotate(-138deg); }
-  [data-gary-pose='wait'] .gary-head { transform: rotate(-7deg); transform-box: fill-box; }
-
-  /* Frustrated — step 10-12: furrowed brow, flat mouth, arms drawn in, a small readable
-     shake — never a red/angry treatment. */
-  @keyframes gary-frustrated-shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translate(-4px, 3px) rotate(-6deg); }
-    75% { transform: translate(4px, 3px) rotate(6deg); }
-  }
-  [data-gary-pose='frustrated'] .gary-face-neutral { opacity: 0; }
-  [data-gary-pose='frustrated'] .gary-face-frustrated { opacity: 1; }
-  [data-gary-pose='frustrated'] .gary-arm-left { transform: translateY(5px) rotate(-62deg); }
-  [data-gary-pose='frustrated'] .gary-arm-right { transform: translateY(5px) rotate(62deg); }
-  [data-gary-pose='frustrated'] .gary-shirt { transform: translateY(4px); }
-  [data-gary-pose='frustrated'] .gary-head {
-    transform-box: fill-box;
-    animation: gary-frustrated-shake 0.5s ease-in-out 2;
-  }
-
-  /* Idea — step 13-14: wide eyes, raised brow, hand-up "just thought of something" pop. */
-  @keyframes gary-idea-pop {
-    0% { transform: scale(1); }
-    45% { transform: scale(1.07); }
-    100% { transform: scale(1); }
-  }
-  [data-gary-pose='idea'] .gary-face-neutral { opacity: 0; }
-  [data-gary-pose='idea'] .gary-face-idea { opacity: 1; }
-  [data-gary-pose='idea'] .gary-arm-right { transform: rotate(-165deg); }
-  [data-gary-pose='idea'] { animation: gary-idea-pop 0.5s ease-out 1; }
-
-  /* One physical board, including its readable copy, sits in Gary's raised hands. */
-  [data-gary-pose='sign'] .gary-arm-left { transform: rotate(-140deg); }
-  [data-gary-pose='sign'] .gary-arm-right { transform: rotate(-140deg); }
-  [data-gary-pose='signPoint'] .gary-arm-left { transform: rotate(-140deg); }
-  [data-gary-pose='signPoint'] .gary-arm-right { transform: rotate(-165deg); }
-
-  /* signWave — the sign itself is a separate, independently-positioned element (.gary-sign-board
-     below), not attached to the arm's transform, so it never moves or "jumps" regardless of what
-     the arm does here; the left arm just keeps reading as "still holding it up" while the right
-     arm reuses the same gary-wave keyframes as the routine's very first greeting wave (already
-     proven to read clearly without covering the face), looped twice to fill the full 3s hold. */
-  [data-gary-pose='signWave'] .gary-arm-left { transform: rotate(-140deg); }
-  [data-gary-pose='signWave'] .gary-arm-right {
-    animation: gary-wave 1.5s ease-in-out 2;
-  }
-  .gary-sign-board {
-    position: absolute;
-    z-index: 2;
-    right: max(44px, 80%);
-    top: 10px;
-    width: clamp(116px, 30vw, 172px);
-    min-height: 48px;
-    display: grid;
-    place-items: center;
-    border: 3px solid #0b1d3a;
-    border-radius: 5px;
-    background: #fdfcf9;
-    color: #0b1d3a;
-    padding: 8px 10px;
-    font-size: clamp(12px, 3vw, 15px);
-    font-weight: 700;
-    line-height: 1.2;
-    text-align: center;
-    box-shadow: 0 5px 12px rgb(11 29 58 / 0.2);
-    transform: translateY(-72%) rotate(-2deg);
-    transition: opacity 0.25s ease, transform 0.25s ease;
-    pointer-events: none;
-  }
-  .gary-sign-board.is-lowering { opacity: 0; transform: translateY(20%) rotate(3deg) scale(0.9); }
-
-  /* Lowering — step 19: sign slides away, arms return to resting. */
-
-  /* Seated — step 20-21, 23: final resting state. Idle glance/point loop is opt-in via
-     data-gary-idle (only enabled while resting, chat closed, and motion isn't reduced) and is
-     deliberately slow/subtle — a small motion once every several seconds, not a repeating
-     flourish. */
-  @keyframes gary-idle-glance {
-    0%, 88%, 100% { transform: rotate(0deg); }
-    91% { transform: rotate(-20deg); }
-    95% { transform: rotate(-20deg); }
-    98% { transform: rotate(0deg); }
-  }
-  @keyframes gary-idle-head-tilt {
-    0%, 90%, 100% { transform: rotate(0deg); }
-    93%, 96% { transform: rotate(-3deg); }
-  }
-  [data-gary-pose='seated'][data-gary-idle='true'] .gary-arm-right {
-    animation: gary-idle-glance 10s ease-in-out infinite;
-  }
-  [data-gary-pose='seated'][data-gary-idle='true'] .gary-head {
-    transform-box: fill-box;
-    animation: gary-idle-head-tilt 10s ease-in-out infinite;
   }
 
   /* Entrance — step 5: Gary fades/settles in beneath the already-visible chat button. */
@@ -424,23 +243,13 @@
     animation: gary-enter 0.4s ease-out 1;
   }
 
-  /* Reduced motion — a static seated Gary, chat button, and "Gary from Accounting" label only.
-     GaryLauncher.tsx already skips the whole routine and goes straight to the seated pose when
-     prefers-reduced-motion is set; this is the CSS-level backstop in case that pose is ever
-     reached some other way. */
+  /* Reduced motion keeps the approved seated crop, entrance and chat ring static. */
   @media (prefers-reduced-motion: reduce) {
     .gary-chat-button { animation: none !important; }
     /* The silver ring itself stays visible (a legitimate static border), only its rotation stops
        — "become static" per the requirement, not "disappear". */
     .gary-chat-button::before { animation: none !important; transform: none !important; }
     [data-gary-pose] { animation: none !important; }
-    [data-gary-pose] .gary-arm-left,
-    [data-gary-pose] .gary-arm-right,
-    [data-gary-pose] .gary-head {
-      animation: none !important;
-      transform: rotate(0deg) !important;
-      transition: none !important;
-    }
     .gary-character-wrap.gary-entering { animation: none !important; opacity: 1 !important; transform: none !important; }
   }
 

@@ -1,6 +1,14 @@
-import { gotoGaryReady, installGaryClock } from './garyReady';
+import { gotoGaryReady } from './garyReady';
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+
+// All API traffic must be explicitly mocked; never let an existing local binding reach a service.
+test.beforeEach(async ({ context }) => {
+  await context.route('**/*', route => {
+    const url = new URL(route.request().url());
+    return url.origin === 'http://127.0.0.1:3200' && !url.pathname.startsWith('/api/') ? route.continue() : route.abort();
+  });
+});
 
 const OPENING_QUESTION = 'What would you like help with today?';
 const OPENING_OPTIONS = [
@@ -236,272 +244,174 @@ test.describe('Gary widget', () => {
 });
 
 // Cumulative elapsed time (ms) from mount at which each locked-routine step starts, matching
-// GaryLauncher.tsx's ROUTINE_STEPS exactly — used only to size how long to sample for below, not
-// to jump to an exact instant (see samplePoseSequence's own comment for why).
+// Real media time replaces the retired SVG timer/pose signals. Seeking only accelerates
+// deterministic frame inspection; these helpers assert decoded pixels, not synthetic pose attributes.
 const LAUNCH_DELAY_MS = 5000;
-const ROUTINE_TOTAL_MS =
-  LAUNCH_DELAY_MS + 700 + 1600 + 1200 + 1400 + 1400 + 600 + 700 + 1500 + 1500 + 3000 + 600; // = 19200
-const ROUTINE_START = {
-  sign: LAUNCH_DELAY_MS + 700 + 1600 + 1200 + 1400 + 1400 + 600 + 700 // = 12600
-};
-// The physical sign board itself (rendered for 'sign' | 'signPoint' | 'signWave' | 'lowering')
-// stays fully visible (not aria-hidden) for sign(1500) + signPoint(1500) + signWave(3000) = 6000ms
-// before 'lowering' starts — comfortably past the required 5000ms minimum (asserted directly
-// against the real source values in lib/gary/routineSteps.test.ts, not measured here — see the
-// "sign is still solidly visible when signWave arrives" test below for why).
-const ROUTINE_START_SIGN_POINT = ROUTINE_START.sign + 1500;
+const APPROVED_WEBM_SHA256 = '7d688e315ce79cf3538d3bd196b38d9e65ff322474e0233a71ed9a5ce113f2e9';
 
-// A plain snapshot read via page.evaluate() rather than a Locator's auto-waiting getAttribute():
-// Playwright's fake clock (page.clock.install()) also virtualizes requestAnimationFrame, which
-// the auto-waiting/polling machinery behind Locator assertions relies on — once the clock stops
-// advancing, that polling can stall for the assertion's full timeout waiting on a frame that
-// never comes. A direct synchronous DOM read has no such dependency and is exactly what's
-// needed here anyway, since every call site already advanced the clock to the precise instant
-// it wants to inspect.
-async function currentGaryPose(page: Page): Promise<string | null> {
-  return page.evaluate(() => document.querySelector('.gary-character')?.getAttribute('data-gary-pose') ?? null);
+async function startApprovedGary(page: Page) {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.clock.install();
+  await gotoGaryReady(page);
+  await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
+  await expect.poll(() => page.locator('.gary-character-wrap video').evaluate(el => (el as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
+  await page.clock.fastForward(1000);
+  await expect(page.locator('.gary-character-wrap')).not.toHaveClass(/gary-entering/); // Native media time 10s is after the entrance.
 }
 
-async function isSignBoardVisible(page: Page): Promise<boolean> {
-  return page.evaluate(() => {
-    const board = document.querySelector('.gary-sign-board');
-    return !!board && board.getAttribute('aria-hidden') !== 'true';
-  });
+async function approvedFrame(page: Page, seconds: number) {
+  return page.locator('.gary-character-wrap video').evaluate(async (el, time) => {
+    const video = el as HTMLVideoElement;
+    video.pause();
+    if (Math.abs(video.currentTime - time) > 0.001) {
+      // seeked updates the media clock before the compositor necessarily exposes that frame.
+      const presented = new Promise<void>(resolve => {
+        const inspect: VideoFrameRequestCallback = (_now, metadata) => {
+          if (Math.abs(metadata.mediaTime - time) <= 1 / 24) resolve();
+          else video.requestVideoFrameCallback(inspect);
+        };
+        video.requestVideoFrameCallback(inspect);
+      });
+      const sought = new Promise<void>(resolve => video.addEventListener('seeked', () => resolve(), { once: true }));
+      video.currentTime = time;
+      await Promise.all([sought, presented]);
+    }
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 360;
+    const context = canvas.getContext('2d')!; context.drawImage(video, 0, 0, 360, 360);
+    const pixels = context.getImageData(0, 0, 360, 360).data;
+    let white = 0, left = 360, right = 0, top = 360, bottom = 0;
+    for (let y = 195; y < 335; y++) for (let x = 75; x < 320; x++) {
+      const n = (y * 360 + x) * 4;
+      if (pixels[n] > 230 && pixels[n + 1] > 230 && pixels[n + 2] > 230 && pixels[n + 3] > 240) {
+        white++; left = Math.min(left, x); right = Math.max(right, x); top = Math.min(top, y); bottom = Math.max(bottom, y);
+      }
+    }
+    const inkRows = [];
+    for (let y = 210; y < 248; y++) {
+      let black = 0;
+      for (let x = 110; x < 255; x++) {
+        const n = (y * 360 + x) * 4;
+        if (pixels[n] < 100 && pixels[n + 1] < 100 && pixels[n + 2] < 100 && pixels[n + 3] > 240) black++;
+      }
+      if (black > 3) inkRows.push(y);
+    }
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', pixels))).map(x => x.toString(16).padStart(2, '0')).join('');
+    return { time: video.currentTime, hash, white, sign: white > 8000,
+      board: { x: left, y: top, width: right - left + 1, height: bottom - top + 1 },
+      firstLineInkHeight: inkRows.length ? inkRows.at(-1)! - inkRows[0] + 1 : 0 };
+  }, seconds);
 }
 
-// The intro bubble is conditionally rendered (GaryLauncher.tsx's showIntroBubble), so presence in
-// the DOM is the real signal — there's no hidden-but-present state to distinguish. Same
-// fake-clock-safe snapshot read as currentGaryPose above, for the same reason.
-async function isIntroBubbleShown(page: Page): Promise<boolean> {
-  return page.evaluate(() => !!document.querySelector('.gary-speech-bubble'));
+async function finishApprovedGary(page: Page) {
+  const video = page.locator('.gary-character-wrap video');
+  await video.evaluate(el => { const v = el as HTMLVideoElement; v.currentTime = v.duration - 0.02; void v.play(); });
+  await expect(video).toHaveCount(0);
+  await expect(page.locator('.gary-character-wrap svg')).toBeVisible();
 }
 
-// A Node-side pause is not virtualized by page.clock. Use it after advancing virtual time so
-// React and compositor work can commit without accidentally advancing (or stalling on) another
-// browser timer.
-const settleBrowser = (ms = 0) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-// Samples data-gary-pose at a fixed virtual-time cadence across the routine and returns the
-// deduplicated sequence of poses actually observed, in order. Deliberately doesn't try to land
-// on one exact instant per pose (page.clock.fastForward() is a real CDP round trip whose
-// resolution timing relative to the React commit it triggers isn't precise enough to reliably
-// hit a single specific millisecond) — sampling densely enough to catch every pose at least
-// once, then asserting on relative order, is far more robust than pinning exact timestamps.
-async function samplePoseSequence(page: Page, totalMs: number, stepMs = 300): Promise<string[]> {
-  const observed: string[] = [];
-  let remaining = totalMs;
-  while (remaining > 0) {
-    const step = Math.min(stepMs, remaining);
-    await page.clock.fastForward(step);
-    await settleBrowser();
-    const pose = await currentGaryPose(page);
-    if (pose && observed[observed.length - 1] !== pose) observed.push(pose);
-    remaining -= step;
-  }
-  return observed;
+async function assertApprovedClip(page: Page) {
+  const response = await page.request.get('/gary/gary-approved.webm');
+  expect(response.status()).toBe(200);
+  const { createHash } = await import('node:crypto');
+  expect(createHash('sha256').update(await response.body()).digest('hex')).toBe(APPROVED_WEBM_SHA256);
 }
 
-/** Index of the first occurrence of `pose` in `sequence`, or -1. Used to assert relative order
- * without requiring every single pose to have been caught by a sample. */
-function firstIndexOf(sequence: string[], pose: string): number {
-  return sequence.indexOf(pose);
+async function screenBoard(page: Page, native: { x: number; y: number; width: number; height: number }) {
+  const box = (await page.locator('.gary-character-wrap').boundingBox())!;
+  return { x: box.x + native.x * box.width / 360, y: box.y + native.y * box.height / 360,
+    width: native.width * box.width / 360, height: native.height * box.height / 360 };
 }
 
 test.describe('Gary character — appearance', () => {
-  test('renders as a human illustrated character, not a robot/emoji/orb', async ({ page }) => {
-    await page.clock.install();
-    await gotoGaryReady(page);
-    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
-    const svg = page.locator('.gary-character');
-    await expect(svg).toBeVisible();
-    // Human-figure markers actually present in the illustration.
-    await expect(page.locator('.gary-head-shape')).toHaveCount(1);
-    await expect(page.locator('.gary-glasses-lens')).toHaveCount(2);
-    await expect(page.locator('.gary-shirt')).toHaveCount(1);
-    await expect(page.locator('.gary-tie')).toHaveCount(1);
-    // The old generic launcher's 🤖 emoji must be gone.
-    const launcherText = await page.locator('.fixed').last().innerText();
-    expect(launcherText).not.toContain('🤖');
+  test('renders the exact approved illustrated Gary rather than a substitute', async ({ page }) => {
+    await startApprovedGary(page); await assertApprovedClip(page);
+    const frame = await approvedFrame(page, 0.5);
+    expect(frame.sign).toBe(false);
+    expect(await page.locator('.gary-launcher').innerText()).not.toContain('🤖');
+    await expect(page.locator('.gary-character image')).toHaveAttribute('href', '/gary/gary-poses.webp');
   });
-
   test('"Hi! I\'m Gary from Accounting" is visibly displayed in the resting launcher, as real text', async ({ page }) => {
-    await page.clock.install();
-    await gotoGaryReady(page);
-    await page.clock.fastForward(ROUTINE_TOTAL_MS + 200);
-    await page.waitForTimeout(20);
+    await startApprovedGary(page); await finishApprovedGary(page);
     await expect(page.getByText("Hi! I'm Gary from Accounting", { exact: true })).toBeVisible();
   });
-
   test('Gary appears beneath the chat button in the DOM/visual stack', async ({ page }) => {
-    await page.clock.install();
-    await gotoGaryReady(page);
-    await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
-    const button = page.getByRole('button', { name: 'Chat with Gary from Accounting' });
-    const character = page.locator('.gary-character-wrap');
-    const buttonBox = await button.boundingBox();
-    const characterBox = await character.boundingBox();
-    expect(buttonBox).not.toBeNull();
-    expect(characterBox).not.toBeNull();
-    expect(characterBox!.y).toBeGreaterThan(buttonBox!.y);
+    await startApprovedGary(page);
+    const button = (await page.locator('.gary-chat-button').boundingBox())!;
+    const character = (await page.locator('.gary-character-wrap').boundingBox())!;
+    expect(character.y).toBeGreaterThanOrEqual(button.y + button.height);
   });
 });
 
-test.describe('Gary character — locked animation routine', () => {
-  test('plays jump -> wave -> point -> frustrated -> idea -> sign -> seated in that order, once per session', async ({ page }) => {
-    await page.clock.install();
-    await gotoGaryReady(page);
-    const sequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
-
-    for (const pose of ['jump', 'wave', 'point', 'frustrated', 'idea', 'sign']) {
-      expect(sequence, `sequence: ${sequence.join(' -> ')}`).toContain(pose);
-    }
-    // Strictly increasing indices proves the order, not just presence.
-    const indices = ['jump', 'wave', 'point', 'frustrated', 'idea', 'sign'].map((p) => firstIndexOf(sequence, p));
-    for (let i = 1; i < indices.length; i += 1) {
-      expect(indices[i], `sequence: ${sequence.join(' -> ')}`).toBeGreaterThan(indices[i - 1]);
-    }
-    // Ends on seated, not stuck on lowering or any other transient pose.
-    expect(sequence[sequence.length - 1]).toBe('seated');
+test.describe('Gary character — approved media routine', () => {
+  test('plays distinct approved wave, point and sign frames in order and finishes seated', async ({ page }) => {
+    await startApprovedGary(page);
+    const frames = [];
+    for (const time of [0.5, 5, 10, 13, 16, 18]) frames.push(await approvedFrame(page, time));
+    expect(frames.map(f => f.time)).toEqual([0.5, 5, 10, 13, 16, 18]);
+    expect(new Set(frames.map(f => f.hash)).size).toBe(6);
+    expect(frames.map(f => f.sign)).toEqual([false, false, true, true, true, false]);
+    await finishApprovedGary(page);
+    await expect(page.locator('.gary-character')).toHaveAttribute('data-gary-pose', 'seated');
   });
-
-  test('the sign reads exactly "The button. Up there." while held', async ({ page }) => {
-    await page.clock.install();
-    await gotoGaryReady(page);
-    let sawSign = false;
-    let remaining = ROUTINE_START.sign + 500;
-    while (remaining > 0 && !sawSign) {
-      const step = Math.min(150, remaining);
-      await page.clock.fastForward(step);
-      await page.waitForTimeout(10);
-      if ((await currentGaryPose(page)) === 'sign') sawSign = true;
-      remaining -= step;
-    }
-    expect(sawSign, 'never observed the sign pose').toBe(true);
-    expect(await isSignBoardVisible(page)).toBe(true);
-    const signTextContent = await page.evaluate(
-      () => document.querySelector('.gary-sign-copy')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
-    );
-    expect(signTextContent).toBe('The button. Up there.');
+  test('the sign retains exactly the approved "The button. Up there." pixels while held', async ({ page }) => {
+    await startApprovedGary(page); await assertApprovedClip(page);
+    expect((await approvedFrame(page, 10)).sign).toBe(true);
+    await page.locator('.gary-character-wrap').screenshot({ path: test.info().outputPath('approved-sign.png') });
   });
-
   test('the full routine runs only once per session — a later page load goes straight to seated', async ({ page }) => {
-    await page.clock.install();
-    await gotoGaryReady(page);
-    const firstLoadSequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
-    expect(firstLoadSequence).toContain('jump'); // confirms it actually played the first time
-
-    // A second page load within the same session (sessionStorage persists across page.goto in
-    // the same tab/context) must never replay jump/wave/frustrated/sign — straight to seated.
-    await gotoGaryReady(page, '/how-it-works');
-    const secondLoadSequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
-    expect(secondLoadSequence, `sequence: ${secondLoadSequence.join(' -> ')}`).toEqual(['seated']);
+    await startApprovedGary(page); expect((await approvedFrame(page, 5)).sign).toBe(false);
+    await gotoGaryReady(page, '/how-it-works'); await page.clock.fastForward(26000);
+    await expect(page.locator('.gary-character-wrap video')).toHaveCount(0);
+    await expect(page.locator('.gary-character-wrap svg')).toBeVisible();
   });
-
-  test('opening the chat mid-routine interrupts it and settles on seated', async ({ page }) => {
-    await mockGaryConversation(page);
-    await page.clock.install();
-    await gotoGaryReady(page);
-    // Advance partway into the routine (well before it would naturally reach seated on its own).
-    await page.clock.fastForward(LAUNCH_DELAY_MS + 1500);
-    await page.waitForTimeout(20);
-    expect(await currentGaryPose(page)).not.toBe('seated');
-
-    await page.getByRole('button', { name: 'Chat with Gary from Accounting' }).click();
-    // A plain evaluate-based poll (not an auto-waiting Locator assertion) for the same reason
-    // currentGaryPose() is one — see its comment. The fake clock isn't being advanced across
-    // this click, so anything relying on requestAnimationFrame-driven polling can stall here.
-    await expect
-      .poll(() => page.evaluate(() => document.querySelector('[role="dialog"]') !== null))
-      .toBe(true);
-    // GaryCharacter isn't rendered at all while the panel is open (see GaryLauncher.tsx's
-    // {!open && ...} guard) — currentGaryPose() would just see it doesn't exist. The interrupt
-    // is really proven by what happens once the panel closes: pose lands on seated, not
-    // whatever pose the routine was mid-way through.
-
-    // The interrupted routine's remaining timers must actually be cancelled, not just visually
-    // overridden — fast-forwarding well past when frustrated/sign would have fired must not
-    // resurrect them once the panel is closed.
-    await page.getByRole('button', { name: 'Close chat' }).click();
-    await expect
-      .poll(() => page.evaluate(() => document.querySelector('.gary-character') !== null))
-      .toBe(true);
-    await page.clock.fastForward(ROUTINE_TOTAL_MS);
-    await page.waitForTimeout(20);
-    expect(await currentGaryPose(page)).toBe('seated');
+  test('opening the chat mid-routine cancels video and leaves visible seated Gary after close', async ({ page }) => {
+    await mockGaryConversation(page); await startApprovedGary(page); await approvedFrame(page, 10);
+    const button = page.getByRole('button', { name: 'Chat with Gary from Accounting', exact: true });
+    for (let cycle = 0; cycle < 3; cycle++) {
+      await button.click(); await expect(page.getByTestId('gary-chat-character')).toBeVisible();
+      await expect(page.locator('.gary-launcher video')).toHaveCount(0);
+      await page.keyboard.press('Escape'); await expect(button).toBeFocused();
+      await page.clock.fastForward(26000);
+      await expect(page.locator('.gary-character-wrap svg')).toBeVisible();
+      await expect(page.locator('.gary-character-wrap video')).toHaveCount(0);
+    }
   });
-
-  test('reduced motion shows a stable seated Gary with no jump/frustration/sign', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.clock.install();
-    await gotoGaryReady(page);
-    const sequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
-    // Reduced motion must never enter jump/wave/frustrated/idea/sign at all — seated the whole way.
-    expect(sequence, `sequence: ${sequence.join(' -> ')}`).toEqual(['seated']);
+  test('reduced motion shows a stable seated Gary without requesting moving media', async ({ page }) => {
+    const videos: string[] = []; page.on('request', r => { if (r.url().includes('gary-approved.webm')) videos.push(r.url()); });
+    await page.emulateMedia({ reducedMotion: 'reduce' }); await page.clock.install(); await gotoGaryReady(page);
+    await page.clock.fastForward(26000);
+    await expect(page.locator('.gary-character-wrap video')).toHaveCount(0);
+    await expect(page.locator('.gary-character-wrap svg')).toBeVisible();
     await expect(page.getByText("Hi! I'm Gary from Accounting", { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Chat with Gary from Accounting' })).toBeVisible();
+    expect(videos).toEqual([]);
   });
-
-  test('idle glance loop is disabled while reduced motion is on', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.clock.install();
-    await gotoGaryReady(page);
-    await page.clock.fastForward(LAUNCH_DELAY_MS + 100);
-    await page.waitForTimeout(20);
-    await expect(page.locator('.gary-character')).toHaveAttribute('data-gary-idle', 'false');
+  test('idle movement remains disabled while reduced motion is on', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' }); await page.clock.install(); await gotoGaryReady(page);
+    await page.clock.fastForward(5200);
+    const still = page.locator('.gary-character-wrap svg'); const before = await still.screenshot();
+    await page.clock.fastForward(26000); expect(await still.screenshot()).toEqual(before);
+    await expect(still).toHaveAttribute('data-gary-idle', 'false');
   });
 });
 
 test.describe('Gary character — mobile viewport usability', () => {
-  const MOBILE_VIEWPORTS = [
-    { width: 360, height: 800 },
-    { width: 390, height: 844 },
-    { width: 412, height: 915 }
-  ];
-
-  for (const viewport of MOBILE_VIEWPORTS) {
+  for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }, { width: 412, height: 915 }]) {
     test(`launcher stays within the viewport and the chat button opens the panel at ${viewport.width}x${viewport.height}`, async ({ page }) => {
-      await page.setViewportSize(viewport);
-      await page.clock.install();
-      await mockGaryConversation(page);
-      await gotoGaryReady(page);
-      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
-
-      const launcherRoot = page.locator('.fixed').last();
-      const box = await launcherRoot.boundingBox();
-      expect(box).not.toBeNull();
-      expect(box!.x).toBeGreaterThanOrEqual(0);
-      expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width + 1);
-
-      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
-      expect(scrollWidth).toBeLessThanOrEqual(viewport.width + 1);
-
-      await page.getByRole('button', { name: 'Chat with Gary from Accounting' }).click();
-      await expect(page.getByRole('dialog', { name: 'Chat with Gary from Accounting' })).toBeVisible();
+      await page.setViewportSize(viewport); await mockGaryConversation(page); await startApprovedGary(page);
+      const box = (await page.locator('.gary-launcher').boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width + 1);
+      await page.getByRole('button', { name: 'Chat with Gary from Accounting', exact: true }).click();
+      await expect(page.getByTestId('gary-chat-character')).toBeVisible();
     });
   }
-
-  test('the sign text stays legible (not shrunk illegibly small) at the narrowest required viewport', async ({ page }) => {
-    await page.setViewportSize({ width: 360, height: 800 });
-    await page.clock.install();
-    await gotoGaryReady(page);
-    let sawSign = false;
-    let remaining = ROUTINE_START.sign + 500;
-    while (remaining > 0 && !sawSign) {
-      const step = Math.min(150, remaining);
-      await page.clock.fastForward(step);
-      await page.waitForTimeout(10);
-      if ((await currentGaryPose(page)) === 'sign') sawSign = true;
-      remaining -= step;
-    }
-    expect(sawSign, 'never observed the sign pose').toBe(true);
-    expect(await isSignBoardVisible(page)).toBe(true);
-    const signText = page.locator('.gary-sign-copy');
-    const fontSize = await signText.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-    expect(fontSize).toBeGreaterThanOrEqual(10);
-    const box = await signText.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(361);
+  test('native sign lettering retains at least ten rendered pixels at the narrowest required viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 }); await startApprovedGary(page);
+    const frame = await approvedFrame(page, 10), box = (await page.locator('.gary-character-wrap').boundingBox())!;
+    expect(frame.sign).toBe(true);
+    expect(frame.firstLineInkHeight * box.width / 360).toBeGreaterThanOrEqual(10);
+    const sign = await screenBoard(page, frame.board);
+    expect(sign.x).toBeGreaterThanOrEqual(0); expect(sign.x + sign.width).toBeLessThanOrEqual(361);
   });
 });
 
@@ -823,21 +733,6 @@ test.describe('Gary launcher — current conversation video layout', () => {
   }
 });
 
-// Advances the fake clock in small steps (matching the routine's own established pattern — a
-// single large fastForward isn't precise enough to reliably land inside a specific pose's hold
-// window) until the given pose is observed, or throws if it never appears within `budgetMs`.
-async function advanceToPose(page: Page, pose: string, budgetMs: number, stepMs = 250): Promise<void> {
-  let remaining = budgetMs;
-  while (remaining > 0) {
-    const step = Math.min(stepMs, remaining);
-    await page.clock.fastForward(step);
-    await settleBrowser();
-    if ((await currentGaryPose(page)) === pose) return;
-    remaining -= step;
-  }
-  throw new Error(`never observed pose "${pose}" within ${budgetMs}ms`);
-}
-
 test.describe('Gary launcher — chat button color/ring and universal sign/bubble composition', () => {
   test('chat button and primary CTA retain their approved colors and readable CTA contrast', async ({ page }) => {
     await page.clock.install();
@@ -897,363 +792,108 @@ test.describe('Gary launcher — chat button color/ring and universal sign/bubbl
     expect(before.hasGradient).toBe(true);
   });
 
-  const COMPACT_VIEWPORTS = [
-    { width: 360, height: 800 },
-    { width: 390, height: 844 },
-    { width: 412, height: 915 },
-    { width: 430, height: 932 }
-  ];
-
+  const COMPACT_VIEWPORTS = [{ width: 360, height: 800 }, { width: 390, height: 844 }, { width: 412, height: 915 }, { width: 430, height: 932 }];
   for (const viewport of COMPACT_VIEWPORTS) {
-    test(`chat button stays above Gary using the desktop composition at ${viewport.width}x${viewport.height}`, async ({ page }) => {
-      await page.setViewportSize(viewport);
-      await page.clock.install();
-      await gotoGaryReady(page);
-      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
-
-      const buttonBox = await page.locator('.gary-chat-button').boundingBox();
-      const characterBox = await page.locator('.gary-character-wrap').boundingBox();
-
-      expect(
-        buttonBox!.y + buttonBox!.height,
-        `button: ${JSON.stringify(buttonBox)}, character: ${JSON.stringify(characterBox)}`
-      ).toBeLessThanOrEqual(characterBox!.y + 1);
-
-      const buttonCenterX = buttonBox!.x + buttonBox!.width / 2;
-      const characterCenterX = characterBox!.x + characterBox!.width / 2;
-      expect(Math.abs(buttonCenterX - characterCenterX)).toBeLessThanOrEqual(20);
+    test(`chat button stays above and aligned with approved Gary at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page);
+      const button = (await page.locator('.gary-chat-button').boundingBox())!, character = (await page.locator('.gary-character-wrap').boundingBox())!;
+      expect(button.y + button.height).toBeLessThanOrEqual(character.y + 1);
+      expect(Math.abs(button.x + button.width / 2 - character.x - character.width / 2)).toBeLessThanOrEqual(20);
     });
-
-    test(`mobile uses the same bubble-button top row and Gary-below composition as desktop at ${viewport.width}x${viewport.height}`, async ({
-      page
-    }) => {
-      await page.setViewportSize(viewport);
-      await page.clock.install();
-      await gotoGaryReady(page);
-      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
-
-      const bubble = page.locator('.gary-speech-bubble');
-      const bubbleBox = await bubble.boundingBox();
-      const buttonBox = await page.locator('.gary-chat-button').boundingBox();
-      const characterBox = await page.locator('.gary-character-wrap').boundingBox();
-
-      expect(await bubble.evaluate((el) => getComputedStyle(el).position)).toBe('relative');
-      expect(boxOverlapArea(bubbleBox, buttonBox)).toBe(0);
-
-      const bubbleCenterY = bubbleBox!.y + bubbleBox!.height / 2;
-      const buttonCenterY = buttonBox!.y + buttonBox!.height / 2;
-      expect(Math.abs(bubbleCenterY - buttonCenterY)).toBeLessThanOrEqual(2);
-      expect(bubbleBox!.x + bubbleBox!.width).toBeLessThanOrEqual(buttonBox!.x);
-      expect(buttonBox!.y + buttonBox!.height).toBeLessThanOrEqual(characterBox!.y + 1);
+    test(`mobile retains the resting bubble-button row and Gary-below composition at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page); await finishApprovedGary(page);
+      const bubble = page.locator('.gary-speech-bubble'), b = (await bubble.boundingBox())!, button = (await page.locator('.gary-chat-button').boundingBox())!, character = (await page.locator('.gary-character-wrap').boundingBox())!;
+      expect(await bubble.evaluate(el => getComputedStyle(el).position)).toBe('relative');
+      expect(boxOverlapArea(b, button)).toBe(0); expect(Math.abs(b.y + b.height / 2 - button.y - button.height / 2)).toBeLessThanOrEqual(2);
+      expect(b.x + b.width).toBeLessThanOrEqual(button.x); expect(button.y + button.height).toBeLessThanOrEqual(character.y + 1);
     });
-
-    test(`mobile speech bubble stays inside the viewport, off Gary's face, and left of his head/face center at ${viewport.width}x${viewport.height}`, async ({
-      page
-    }) => {
-      await page.setViewportSize(viewport);
-      await page.clock.install();
-      await gotoGaryReady(page);
-      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
-
-      const bubbleBox = await page.locator('.gary-speech-bubble').boundingBox();
-      const faceBox = await page.locator('.gary-glasses').boundingBox();
-      expect(bubbleBox!.x).toBeGreaterThanOrEqual(-1);
-      expect(bubbleBox!.x + bubbleBox!.width).toBeLessThanOrEqual(viewport.width + 1);
-      expect(
-        boxOverlapArea(bubbleBox, faceBox),
-        `bubble: ${JSON.stringify(bubbleBox)}, face: ${JSON.stringify(faceBox)}`
-      ).toBe(0);
-
-      const bubbleCenterX = bubbleBox!.x + bubbleBox!.width / 2;
-      const faceCenterX = faceBox!.x + faceBox!.width / 2;
-      expect(
-        bubbleCenterX,
-        `bubble center ${bubbleCenterX} should be left of face center ${faceCenterX}`
-      ).toBeLessThan(faceCenterX);
+    test(`mobile resting bubble stays inside the viewport and off Gary at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page); await finishApprovedGary(page);
+      const bubble = (await page.locator('.gary-speech-bubble').boundingBox())!, character = (await page.locator('.gary-character-wrap').boundingBox())!;
+      expect(bubble.x).toBeGreaterThanOrEqual(-1); expect(bubble.x + bubble.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(boxOverlapArea(bubble, character)).toBe(0); expect(bubble.x + bubble.width / 2).toBeLessThan(character.x + character.width / 2);
     });
-
-    test(`mobile sign stays inside the viewport, off the video/both CTAs/Gary's face, is smaller than the old mobile sign, and still readable at ${viewport.width}x${viewport.height}`, async ({
-      page
-    }) => {
-      await page.setViewportSize(viewport);
-      await page.clock.install();
-      await gotoGaryReady(page);
-      const closingSection = page.locator('#free-assessment');
-      const greenCta = closingSection.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true });
-      const ghostCta = closingSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
-      // Establish the scroll position before entering the short-lived sign pose.
-      await ghostCta.scrollIntoViewIfNeeded();
-      await expect(greenCta).toBeInViewport();
-      await expect(ghostCta).toBeInViewport();
-      await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
-      const signBox = await page.locator('.gary-sign-board').boundingBox();
-      // The retained legacy video assertion is not evidence that the new decorative
-      // conversation video meets the retired full-frame hero-video contract.
-      const hasVideo = (await page.locator('video').count()) > 0;
-      const videoBox = hasVideo ? await page.locator('[data-conversation-video]').boundingBox() : null;
-      const greenCtaBox = await greenCta.boundingBox();
-      const ghostCtaBox = await ghostCta.boundingBox();
-      const buttonBox = await page.locator('.gary-chat-button').boundingBox();
-      const faceBox = await page.locator('.gary-glasses').boundingBox();
-
-      expect(signBox!.x).toBeGreaterThanOrEqual(-1);
-      expect(signBox!.x + signBox!.width).toBeLessThanOrEqual(viewport.width + 1);
-      if (hasVideo) expect(boxOverlapArea(signBox, videoBox), `sign vs video: ${JSON.stringify({ signBox, videoBox })}`).toBe(0);
-      expect(boxOverlapArea(signBox, greenCtaBox), `sign vs green CTA`).toBe(0);
-      expect(boxOverlapArea(signBox, ghostCtaBox), `sign vs ghost CTA`).toBe(0);
-      expect(boxOverlapArea(signBox, buttonBox), `sign vs button: ${JSON.stringify({ signBox, buttonBox })}`).toBe(0);
-
-      // Smaller than the previous mobile sign (which measured up to ~135x72 at these widths) —
-      // ceilings set comfortably above the new clamp(84px,24vw,118px)/min-height:36px values so
-      // the test isn't flaky on sub-pixel rendering, but well below what the old sign measured.
-      expect(signBox!.width, `sign was ${signBox!.width}px wide`).toBeLessThanOrEqual(125);
-      expect(signBox!.height, `sign was ${signBox!.height}px tall`).toBeLessThanOrEqual(70);
-
-      // Still legibly readable — a real floor, not just "greater than zero".
-      const fontSize = await page.locator('.gary-sign-copy').evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-      expect(fontSize).toBeGreaterThanOrEqual(9);
-      expect(boxOverlapArea(signBox, faceBox), `sign vs face: ${JSON.stringify({ signBox, faceBox })}`).toBe(0);
-    });
-
-    test(`the sign still reads exactly "The button. Up there." at ${viewport.width}x${viewport.height}`, async ({ page }) => {
-      await page.setViewportSize(viewport);
-      await page.clock.install();
-      await gotoGaryReady(page);
-      await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
-
-      const text = await page.locator('.gary-sign-copy').textContent();
-      expect(text?.replace(/\s+/g, ' ').trim()).toBe('The button. Up there.');
-    });
-
-    test(`the initial pointing gesture (signPoint) angles up-and-right toward the chat button, not straight up, at ${viewport.width}x${viewport.height}`, async ({
-      page
-    }) => {
-      await page.setViewportSize(viewport);
-      await page.clock.install();
-      await gotoGaryReady(page);
-      await advanceToPose(page, 'signPoint', ROUTINE_START_SIGN_POINT + 500);
-      // The arm rotates via a real CSS transition (transform 0.3s ease) — advanceToPose stops the
-      // instant data-gary-pose flips to signPoint, which can be mid-transition from signPoint's
-      // predecessor angle. A short real-time wait (unaffected by the fake clock, which only
-      // virtualizes the page's own JS timers, not the compositor) lets it settle before reading.
-      await settleBrowser(400);
-
-      const transform = await page.locator('.gary-arm-right').evaluate((el) => getComputedStyle(el).transform);
-      // matrix(a, b, c, d, tx, ty) — the rotation angle is atan2(b, a). The desktop/base angle is
-      // -165deg (near-straight-up); compact mode overrides it to -100deg (up-and-right). Assert
-      // it's in the up-and-right band, not the near-vertical one, without hardcoding the exact
-      // matrix string (which drifts with float rounding).
-      const angleDeg = await page.evaluate((t) => {
-        const m = t.match(/matrix\(([^)]+)\)/);
-        if (!m) return null;
-        const [a, b] = m[1].split(',').map(Number);
-        return (Math.atan2(b, a) * 180) / Math.PI;
-      }, transform);
-      expect(angleDeg, `arm-right transform: ${transform}`).not.toBeNull();
-      // -165deg normalizes to 195deg; -100deg stays -100deg — assert it's closer to -100 than -165.
-      const distanceFromCompact = Math.abs(((angleDeg! - -100 + 540) % 360) - 180);
-      const distanceFromDesktop = Math.abs(((angleDeg! - -165 + 540) % 360) - 180);
-      expect(
-        distanceFromCompact,
-        `angle ${angleDeg}deg should be closer to the compact -100deg than the desktop -165deg`
-      ).toBeLessThan(distanceFromDesktop);
-    });
-
-    test(`the sign is still solidly visible when signWave arrives, and Gary waves without the sign jumping or leaving the viewport, at ${viewport.width}x${viewport.height}`, async ({
-      page
-    }) => {
-      await page.setViewportSize(viewport);
-      await installGaryClock(page);
-      await gotoGaryReady(page);
-
-      // The exact >=5000ms hold duration is asserted directly against the routine's real source
-      // values in lib/gary/routineSteps.test.ts (a unit test, not e2e) — a fake-clock e2e test
-      // that tries to *measure* a ~6s continuous duration by chaining ~190 small
-      // page.clock.fastForward() calls turns out to drift significantly (confirmed empirically:
-      // measured holds came back ~25% short of the real values), so it's not a reliable way to
-      // verify a duration here. advanceToPose() is drift-tolerant by contrast: it stops as soon
-      // as it observes the target pose, so a few dozen short-lived steps can't accumulate the
-      // same error. What's checked here at each of the three sub-poses is presence and ordering —
-      // sign, then signPoint, then signWave all solidly visible in sequence — which is exactly
-      // what the routine's structure (a single sign board rendered continuously across all three
-      // poses, per GaryLauncher.tsx) guarantees once each pose is confirmed reached in turn.
-      await advanceToPose(page, 'sign', ROUTINE_START.sign + 500);
-      expect(await currentGaryPose(page)).toBe('sign');
-      let solid = await page.evaluate(() => {
-        const board = document.querySelector('.gary-sign-board');
-        return !!board && board.getAttribute('aria-hidden') !== 'true';
-      });
-      expect(solid, 'sign board should be solidly visible at sign').toBe(true);
-
-      await advanceToPose(page, 'signPoint', 1500 + 500);
-      solid = await page.evaluate(() => {
-        const board = document.querySelector('.gary-sign-board');
-        return !!board && board.getAttribute('aria-hidden') !== 'true';
-      });
-      expect(solid, 'sign board should be solidly visible at signPoint').toBe(true);
-
-      await advanceToPose(page, 'signWave', 1500 + 500);
-      solid = await page.evaluate(() => {
-        const board = document.querySelector('.gary-sign-board');
-        return !!board && board.getAttribute('aria-hidden') !== 'true';
-      });
-      expect(solid, 'sign board should be solidly visible at signWave').toBe(true);
-
-      // The right arm is genuinely animating (the wave) during signWave.
-      const t1 = await page.locator('.gary-arm-right').evaluate((el) => getComputedStyle(el).transform);
-      const signBoxT1 = await page.locator('.gary-sign-board').boundingBox();
-      await page.clock.fastForward(500);
-      await page.waitForTimeout(20);
-      // Still in signWave (500ms in, well inside its 3000ms hold) — if it already moved on, the
-      // arm-changed/sign-stable assertions below wouldn't mean what they claim to.
-      expect(await currentGaryPose(page)).toBe('signWave');
-      const t2 = await page.locator('.gary-arm-right').evaluate((el) => getComputedStyle(el).transform);
-      const signBoxT2 = await page.locator('.gary-sign-board').boundingBox();
-
-      expect(t1, 'arm should visibly animate (wave) while the sign is up').not.toBe(t2);
-      // The sign itself must not move/jump during the wave — it's a physically independent
-      // element, not attached to the waving arm's transform.
-      expect(signBoxT2).toEqual(signBoxT1);
-      expect(signBoxT2!.x).toBeGreaterThanOrEqual(-1);
-      expect(signBoxT2!.x + signBoxT2!.width).toBeLessThanOrEqual(viewport.width + 1);
-
-      const text = await page.locator('.gary-sign-copy').textContent();
-      expect(text?.replace(/\s+/g, ' ').trim()).toBe('The button. Up there.');
-    });
-
-    test(`intro speech bubble is visible in the normal resting state at ${viewport.width}x${viewport.height}`, async ({ page }) => {
-      await page.setViewportSize(viewport);
-      await page.clock.install();
-      await gotoGaryReady(page);
-      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
-      // Snapshot read, not a Locator assertion — see currentGaryPose's comment: under an
-      // installed fake clock, auto-waiting assertions can stall on a rAF that never comes.
-      expect(await isIntroBubbleShown(page)).toBe(true);
-    });
-
-    test(`intro speech bubble is hidden throughout the whole sign routine (sign, signPoint, signWave, lowering) at ${viewport.width}x${viewport.height}`, async ({
-      page
-    }) => {
-      await page.setViewportSize(viewport);
-      await page.clock.install();
-      await gotoGaryReady(page);
-
-      // Each call resumes the clock from wherever the previous one left off, so the budget per
-      // step is just that step's own hold duration (plus slack) — not the cumulative time from
-      // mount, which only the first call (reaching 'sign') actually needs.
-      const stepsInOrder: Array<{ pose: string; budgetMs: number }> = [
-        { pose: 'sign', budgetMs: ROUTINE_START.sign + 500 },
-        { pose: 'signPoint', budgetMs: 1500 + 500 },
-        { pose: 'signWave', budgetMs: 1500 + 500 },
-        { pose: 'lowering', budgetMs: 3000 + 500 }
-      ];
-      for (const step of stepsInOrder) {
-        await advanceToPose(page, step.pose, step.budgetMs);
-        expect(await isIntroBubbleShown(page), `bubble should not exist while pose is "${step.pose}"`).toBe(false);
+    test(`baked sign stays inside the viewport and off video, CTAs, button and face at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page);
+      const section = page.locator('#free-assessment'); const ghost = section.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
+      await ghost.scrollIntoViewIfNeeded();
+      const frame = await approvedFrame(page, 10), sign = await screenBoard(page, frame.board);
+      expect(frame.sign).toBe(true); expect(sign.x).toBeGreaterThanOrEqual(-1); expect(sign.x + sign.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(sign.width).toBeLessThanOrEqual(125); expect(sign.height).toBeLessThanOrEqual(70);
+      for (const el of [page.locator('[data-conversation-video]'), section.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true }), ghost, page.locator('.gary-chat-button')]) {
+        expect(boxOverlapArea(sign, await el.boundingBox())).toBe(0);
       }
+      const character = (await page.locator('.gary-character-wrap').boundingBox())!;
+      expect(frame.firstLineInkHeight * character.width / 360).toBeGreaterThanOrEqual(9);
+      const face = await screenBoard(page, { x: 105, y: 0, width: 195, height: 185 });
+      expect(boxOverlapArea(sign, face)).toBe(0);
     });
-
-    test(`intro speech bubble returns once Gary settles back to seated after the routine, at ${viewport.width}x${viewport.height}`, async ({
-      page
-    }) => {
-      await page.setViewportSize(viewport);
-      await installGaryClock(page);
-      await gotoGaryReady(page);
-      // Walk to the routine's LAST pose first. Going straight for 'seated' would be ambiguous:
-      // advanceToPose stops at the first match, and 'seated' is also the pre-routine state and a
-      // brief mid-routine beat — so it could "succeed" without the sign routine ever running,
-      // making the restore assertion below vacuous. Reaching 'lowering' proves the sign routine
-      // genuinely happened; only then is the following 'seated' the real post-routine rest.
-      await advanceToPose(page, 'lowering', ROUTINE_TOTAL_MS);
-      expect(await isIntroBubbleShown(page), 'bubble should still be hidden at lowering').toBe(false);
-
-      await advanceToPose(page, 'seated', 600 + 500);
-      expect(await isIntroBubbleShown(page), 'bubble should be back once Gary is seated again').toBe(true);
-      const signExists = await page.evaluate(() => !!document.querySelector('.gary-sign-board'));
-      expect(signExists, 'sign board should be gone once back at rest').toBe(false);
+    test(`the sign retains its approved exact lettering at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page); await assertApprovedClip(page);
+      const frame = await approvedFrame(page, 10); expect(frame.sign).toBe(true); expect(frame.firstLineInkHeight).toBeGreaterThanOrEqual(22);
+      await page.locator('.gary-character-wrap').screenshot({ path: test.info().outputPath('approved-lettering.png') });
+    });
+    test(`approved pointing frames target the separate button above Gary at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page); await assertApprovedClip(page);
+      const point = await approvedFrame(page, 5), sign = await approvedFrame(page, 10);
+      expect(point.hash).not.toBe(sign.hash); expect(point.sign).toBe(false); expect(sign.sign).toBe(true);
+      const button = (await page.locator('.gary-chat-button').boundingBox())!, character = (await page.locator('.gary-character-wrap').boundingBox())!;
+      expect(button.y + button.height).toBeLessThanOrEqual(character.y);
+      // Native approved pointing hand is around x=160; verify the button is above its screen position.
+      expect(Math.abs(button.x + button.width / 2 - (character.x + 160 * character.width / 360))).toBeLessThanOrEqual(20);
+    });
+    test(`approved sign persists for six seconds while frames advance without layout jumps at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page);
+      const positions: Array<{ x: number; y: number; width: number; height: number } | null> = [], hashes: string[] = [];
+      for (let time = 10; time <= 16; time += 0.5) {
+        const frame = await approvedFrame(page, time); expect(frame.sign, `sign at media time ${time}`).toBe(true);
+        positions.push(await page.locator('.gary-character-wrap video').boundingBox()); hashes.push(frame.hash);
+        const sign = await screenBoard(page, frame.board); expect(sign.x).toBeGreaterThanOrEqual(-1); expect(sign.x + sign.width).toBeLessThanOrEqual(viewport.width + 1);
+      }
+      expect(new Set(hashes).size).toBe(13); expect(positions.every(p => JSON.stringify(p) === JSON.stringify(positions[0]))).toBe(true);
+    });
+    test(`intro bubble is visible in the seated resting state at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await page.emulateMedia({ reducedMotion: 'reduce' }); await page.clock.install(); await gotoGaryReady(page); await page.clock.fastForward(5200);
+      await expect(page.getByTestId('gary-speech-bubble')).toBeVisible(); await expect(page.locator('.gary-character-wrap svg')).toBeVisible();
+    });
+    test(`intro bubble stays absent through the whole approved video at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page);
+      for (const time of [0.5, 5, 10, 13, 16, 18, 20]) { await approvedFrame(page, time); await expect(page.getByTestId('gary-speech-bubble')).toHaveCount(0); }
+    });
+    test(`intro bubble returns only after actual video completion at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page); expect((await approvedFrame(page, 16)).sign).toBe(true);
+      await expect(page.getByTestId('gary-speech-bubble')).toHaveCount(0); await finishApprovedGary(page);
+      await expect(page.getByTestId('gary-speech-bubble')).toBeVisible(); await expect(page.locator('.gary-sign-board')).toHaveCount(0);
     });
   }
-
-  test('reduced motion never enters signWave — no forced long wave for reduced-motion users', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.clock.install();
-    await gotoGaryReady(page);
-    const sequence = await samplePoseSequence(page, ROUTINE_TOTAL_MS + 400);
-    expect(sequence, `sequence: ${sequence.join(' -> ')}`).toEqual(['seated']);
+  test('reduced motion has no sign animation or delayed replay', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' }); await page.clock.install(); await gotoGaryReady(page); await page.clock.fastForward(5200);
+    await expect(page.locator('.gary-character-wrap video')).toHaveCount(0);
+    const before = await page.locator('.gary-character-wrap svg').screenshot(); await page.clock.fastForward(26000);
+    expect(await page.locator('.gary-character-wrap svg').screenshot()).toEqual(before);
   });
 });
 
-test.describe('Gary launcher — pose-driven message exclusivity and responsive geometry', () => {
-  const REQUIRED_VIEWPORTS = [
-    { width: 360, height: 800 },
-    { width: 390, height: 844 },
-    { width: 412, height: 915 },
-    { width: 430, height: 932 },
-    { width: 600, height: 900 },
-    { width: 768, height: 1024 },
-    { width: 1024, height: 768 },
-    { width: 1440, height: 900 }
-  ];
-
-  for (const viewport of REQUIRED_VIEWPORTS) {
-    test(`bubble and sign remain exclusive through every relevant pose at ${viewport.width}x${viewport.height}`, async ({ page }) => {
-      await page.setViewportSize(viewport);
-      await installGaryClock(page);
-      await gotoGaryReady(page);
-      await page.clock.fastForward(LAUNCH_DELAY_MS + 200);
-      await page.waitForTimeout(20);
-
-      const launcher = page.locator('.gary-launcher');
-      const button = page.locator('.gary-chat-button');
-      const face = page.locator('.gary-glasses');
-      const bubble = page.locator('.gary-speech-bubble');
-      const closingSection = page.locator('#free-assessment');
-      const greenCta = closingSection.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true });
-      const ghostCta = closingSection.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
-      await ghostCta.scrollIntoViewIfNeeded();
-      await expect(greenCta).toBeInViewport();
-      await expect(ghostCta).toBeInViewport();
-      const launcherBox = await launcher.boundingBox();
-      const buttonBox = await button.boundingBox();
-      const faceBox = await face.boundingBox();
-      const bubbleBox = await bubble.boundingBox();
-      const greenCtaBox = await greenCta.boundingBox();
-      const ghostCtaBox = await ghostCta.boundingBox();
-
-      expect(await currentGaryPose(page)).not.toBeNull();
-      expect(await isIntroBubbleShown(page)).toBe(true);
-      expect(await isSignBoardVisible(page)).toBe(false);
-      expect(launcherBox!.x).toBeGreaterThanOrEqual(-1);
-      expect(launcherBox!.x + launcherBox!.width).toBeLessThanOrEqual(viewport.width + 1);
-      expect(boxOverlapArea(bubbleBox, faceBox), `bubble vs face: ${JSON.stringify({ bubbleBox, faceBox })}`).toBe(0);
-      expect(boxOverlapArea(bubbleBox, buttonBox), `bubble vs button: ${JSON.stringify({ bubbleBox, buttonBox })}`).toBe(0);
-      expect(boxOverlapArea(launcherBox, greenCtaBox), `launcher vs green CTA`).toBe(0);
-      expect(boxOverlapArea(launcherBox, ghostCtaBox), `launcher vs ghost CTA`).toBe(0);
-
-      const stepsInOrder: Array<{ pose: string; budgetMs: number }> = [
-        { pose: 'sign', budgetMs: ROUTINE_START.sign },
-        { pose: 'signPoint', budgetMs: 2000 },
-        { pose: 'signWave', budgetMs: 2000 },
-        { pose: 'lowering', budgetMs: 7000 }
-      ];
-      for (const step of stepsInOrder) {
-        await advanceToPose(page, step.pose, step.budgetMs, step.pose === 'lowering' ? 200 : 250);
-        expect(await isIntroBubbleShown(page), `bubble existed during ${step.pose}`).toBe(false);
-        expect(await isSignBoardVisible(page), `sign absent during ${step.pose}`).toBe(true);
-
-        const signBox = await page.locator('.gary-sign-board').boundingBox();
-        const currentFaceBox = await face.boundingBox();
-        const currentButtonBox = await button.boundingBox();
-        const navBox = await page.locator('header').first().boundingBox();
-        expect(boxOverlapArea(signBox, currentFaceBox), `sign vs face at ${step.pose}: ${JSON.stringify({ signBox, currentFaceBox })}`).toBe(0);
-        expect(boxOverlapArea(signBox, currentButtonBox), `sign vs button at ${step.pose}: ${JSON.stringify({ signBox, currentButtonBox })}`).toBe(0);
-        expect(boxOverlapArea(signBox, navBox), `sign vs navigation at ${step.pose}`).toBe(0);
+test.describe('Gary launcher — media message exclusivity and responsive geometry', () => {
+  for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }, { width: 412, height: 915 }, { width: 430, height: 932 }, { width: 600, height: 900 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }]) {
+    test(`bubble and baked sign remain exclusive through media states at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport); await startApprovedGary(page);
+      const section = page.locator('#free-assessment'), green = section.getByRole('link', { name: 'Start Your Free Assessment ↗', exact: true }), ghost = section.getByRole('link', { name: HOMEPAGE_CTA_TEXT, exact: true });
+      await ghost.scrollIntoViewIfNeeded(); await expect(green).toBeInViewport(); await expect(ghost).toBeInViewport();
+      const root = (await page.locator('.gary-launcher').boundingBox())!;
+      expect(root.x).toBeGreaterThanOrEqual(-1); expect(root.x + root.width).toBeLessThanOrEqual(viewport.width + 1);
+      expect(boxOverlapArea(root, await green.boundingBox())).toBe(0); expect(boxOverlapArea(root, await ghost.boundingBox())).toBe(0);
+      for (const time of [0.5, 10, 13, 16, 18]) {
+        const frame = await approvedFrame(page, time); await expect(page.getByTestId('gary-speech-bubble')).toHaveCount(0);
+        if (frame.sign) {
+          const sign = await screenBoard(page, frame.board);
+          for (const target of [page.locator('.gary-chat-button'), page.locator('header').first()]) expect(boxOverlapArea(sign, await target.boundingBox())).toBe(0);
+          expect(boxOverlapArea(sign, await screenBoard(page, { x: 105, y: 0, width: 195, height: 185 }))).toBe(0);
+        }
       }
-
-      await advanceToPose(page, 'seated', 1100);
-      expect(await isSignBoardVisible(page)).toBe(false);
-      expect(await isIntroBubbleShown(page)).toBe(true);
-      await expect(button).toBeVisible();
+      await finishApprovedGary(page); await expect(page.getByTestId('gary-speech-bubble')).toBeVisible();
+      const bubble = await page.locator('.gary-speech-bubble').boundingBox(), character = await page.locator('.gary-character-wrap').boundingBox(), button = await page.locator('.gary-chat-button').boundingBox();
+      expect(boxOverlapArea(bubble, character)).toBe(0); expect(boxOverlapArea(bubble, button)).toBe(0); await expect(page.locator('.gary-chat-button')).toBeVisible();
     });
   }
 });
@@ -1331,15 +971,18 @@ test('ordinary chat survives refresh without sharing recovery with another visit
   expect(requests).toBe(2);
   const other = await context.newPage();
   try {
-    let identity: unknown = 'not-requested';
+    let identity: Record<string, unknown> | undefined;
     await other.route('**/api/gary/message', async route => {
-      identity = route.request().postDataJSON().sessionId;
+      identity = route.request().postDataJSON();
       await route.fulfill({ json: { sessionId: 'other-session', sessionCapability: 'other-cap', reply: { text: 'A separate visitor opening' } } });
     });
     await gotoGaryReady(other, '/contact');
     await other.getByRole('button', { name: 'Talk to Gary', exact: true }).click();
     await expect(other.getByText('A separate visitor opening')).toBeVisible();
-    expect(identity).toBeNull();
+    expect(identity).toBeDefined();
+    expect(identity).not.toHaveProperty('sessionId');
+    expect(identity).not.toHaveProperty('sessionCapability');
+    expect(identity!.contactFlow).toEqual({ action: 'start' });
     await expect(other.getByText('My bakery keeps missing enquiries.')).toHaveCount(0);
   } finally { await other.close(); }
 });

@@ -2,18 +2,7 @@
 
 import { useState } from 'react';
 
-export type GaryPose =
-  | 'seated'
-  | 'jump'
-  | 'wave'
-  | 'point'
-  | 'wait'
-  | 'frustrated'
-  | 'idea'
-  | 'sign'
-  | 'signPoint'
-  | 'signWave'
-  | 'lowering';
+export type GaryPose = 'seated';
 
 type GaryCharacterProps = {
   pose: GaryPose;
@@ -32,7 +21,7 @@ export default function GaryCharacter({ pose, idleGlanceActive, animate = false,
     <div className="relative h-full w-full" aria-hidden="true" data-gary-media>
       <svg viewBox="0 0 360 360" width="100%" height="100%" className="gary-character"
         data-gary-pose={pose} data-gary-idle={idleGlanceActive ? 'true' : 'false'}
-        style={{ overflow: 'hidden', visibility: showVideo && playing ? 'hidden' : 'visible' }}>
+        style={{ visibility: showVideo && playing ? 'hidden' : 'visible' }}>
         <image href="/gary/gary-poses.webp" width="1440" height="1080" />
       </svg>
       {showVideo && <video src="/gary/gary-approved.webm" className="absolute inset-0 h-full w-full" autoPlay muted playsInline preload="none"
