@@ -29,8 +29,13 @@ export default function HomePage() {
 
       <section id="introduction" className="discovery-intro" data-sc-act="flow">
         <h2 data-sc-in>Here’s how</h2>
-        <div className="product-identities" aria-label="GAP, SmartSite, and AIM" data-sc-in>
+        <div className="product-identities" aria-label="AIM, GAP, and SmartSite" data-sc-in>
           <svg width="0" height="0" className="logo-mask-definitions" aria-hidden="true" focusable="false"><defs><filter id="gap-paper-mask" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 2.85" result="paperless" /><feComposite in="paperless" in2="SourceAlpha" operator="in" /></filter><filter id="brand-radiance" colorInterpolationFilters="sRGB"><feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncG type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncB type="gamma" amplitude="1" exponent=".55" offset="0" /></feComponentTransfer></filter></defs></svg>
+          <div className="product-identity identity-aim">
+            <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#bbff91" />
+            <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><rect x="22" y="16" width="316" height="208" rx="70" /></svg>
+            <Image quality={90} src="/aim-logo.webp?v=1983" alt="AIM Digital / Voice" width={1983} height={793} sizes="(max-width:767px) 360px, 360px" />
+          </div>
           <div className="product-identity identity-gap">
             <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#ffe28a" />
             <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><ellipse cx="180" cy="120" rx="158" ry="104" /></svg>
@@ -41,16 +46,36 @@ export default function HomePage() {
             <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><rect x="22" y="16" width="316" height="208" rx="32" /></svg>
             <Image quality={90} className="smartsite-identity" src="/smartsite-logo.webp" alt="SmartSite" width={2048} height={682} sizes="(max-width:767px) 340px, 340px" />
           </div>
-          <div className="product-identity identity-aim">
-            <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#bbff91" />
-            <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><rect x="22" y="16" width="316" height="208" rx="70" /></svg>
-            <Image quality={90} src="/aim-logo.webp?v=1983" alt="AIM Digital / Voice" width={1983} height={793} sizes="(max-width:767px) 360px, 360px" />
-          </div>
         </div>
       </section>
 
 
       <div id="how-easy-ai-works">
+        <section id="response" className="product-scene story-chapter" data-sc-act="flow">
+          <div className="product-art aim-art device-art" aria-hidden="true">
+            <div className="color-ribbon ribbon-mint" />
+            <Iphone className="phone-device"><Image quality={90} className="aim-device-logo" src="/aim-logo.webp?v=1983" alt="AIM Digital / Voice" width={1983} height={793} sizes="260px" /><p>AI Interaction Manager</p>
+              <div className="conversation-wave">{Array.from({ length: 17 }, (_, i) => <i key={i} style={{ height: `${20 + (8 - Math.abs(8 - i)) * 9}px`, animationDelay: `${i * 70}ms` }} />)}</div>
+              <div className="screen-prompt"><span className="typed-line">How can I help?</span></div>
+              <div className="demo-conversation">
+                <span className="demo-step">Can you help me get started?</span>
+                <span className="demo-step demo-reply">Of course. What does your business need?</span>
+                <span className="demo-step demo-handoff">A conversation your team can follow up.</span>
+              </div>
+            </Iphone>
+            <div className="floating-message message-search">A question becomes a conversation.</div>
+            <div className="floating-message message-answer"><span className="message-dot mint" />Keep the human connection.</div>
+          </div>
+          <div className="story-chapter-copy">
+            <h2 data-sc-in>Be there when interest becomes a question.</h2>
+            <p>A potential customer has a question. But what happens when you’re helping someone else or your business is closed?</p>
+            <p>If nobody responds, they may move on before you get a chance to help.</p>
+            <p className="product-question">What if you could keep that conversation going and give your team the information they need to follow up?</p>
+            <p>Meet AIM, your AI Interaction Manager. Talk with Gary about helping your business respond online or by phone—while keeping the human connection.</p>
+            <a href="/contact" data-open-gary className="story-link">Meet AIM with Gary <span aria-hidden="true">↗</span></a>
+          </div>
+        </section>
+
         <section id="discovery" className="product-scene story-chapter" data-sc-act="flow">
           <div className="product-art gap-art device-art">
             <div className="color-ribbon" />
@@ -98,31 +123,6 @@ export default function HomePage() {
             <p className="product-question">What if your website could start a conversation, answer their questions, and give you an opportunity to follow up?</p>
             <p>Talk with Gary about SmartSite and discover how your website could turn more visits into real customer opportunities.</p>
             <a href="/contact" data-open-gary className="story-link">Explore SmartSite with Gary <span aria-hidden="true">↗</span></a>
-          </div>
-        </section>
-
-        <section id="response" className="product-scene story-chapter" data-sc-act="flow">
-          <div className="product-art aim-art device-art" aria-hidden="true">
-            <div className="color-ribbon ribbon-mint" />
-            <Iphone className="phone-device"><Image quality={90} className="aim-device-logo" src="/aim-logo.webp?v=1983" alt="AIM Digital / Voice" width={1983} height={793} sizes="260px" /><p>AI Interaction Manager</p>
-              <div className="conversation-wave">{Array.from({ length: 17 }, (_, i) => <i key={i} style={{ height: `${20 + (8 - Math.abs(8 - i)) * 9}px`, animationDelay: `${i * 70}ms` }} />)}</div>
-              <div className="screen-prompt"><span className="typed-line">How can I help?</span></div>
-              <div className="demo-conversation">
-                <span className="demo-step">Can you help me get started?</span>
-                <span className="demo-step demo-reply">Of course. What does your business need?</span>
-                <span className="demo-step demo-handoff">A conversation your team can follow up.</span>
-              </div>
-            </Iphone>
-            <div className="floating-message message-search">A question becomes a conversation.</div>
-            <div className="floating-message message-answer"><span className="message-dot mint" />Keep the human connection.</div>
-          </div>
-          <div className="story-chapter-copy">
-            <h2 data-sc-in>Be there when interest becomes a question.</h2>
-            <p>A potential customer has a question. But what happens when you’re helping someone else or your business is closed?</p>
-            <p>If nobody responds, they may move on before you get a chance to help.</p>
-            <p className="product-question">What if you could keep that conversation going and give your team the information they need to follow up?</p>
-            <p>Meet AIM, your AI Interaction Manager. Talk with Gary about helping your business respond online or by phone—while keeping the human connection.</p>
-            <a href="/contact" data-open-gary className="story-link">Meet AIM with Gary <span aria-hidden="true">↗</span></a>
           </div>
         </section>
       </div>
