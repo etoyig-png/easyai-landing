@@ -424,9 +424,9 @@ for (const motion of ['no-preference', 'reduce'] as const) {
     const order = await page.locator('.home-story > section, .home-story > #how-easy-ai-works').evaluateAll(elements => elements.map(el => el.id === 'how-easy-ai-works' ? el.id : el.classList[0]));
     expect(order).toEqual(['discovery-lead', 'discovery-intro', 'how-easy-ai-works', 'discovery-opening', 'discovery-assessment', 'discovery-human', 'discovery-close']);
     await expect(page.locator('#introduction h2')).toHaveText('Here’s how');
-    expect(await page.locator('.product-identities > .product-identity').evaluateAll(elements => elements.map(el => el.classList[1]))).toEqual(['identity-aim', 'identity-gap', 'identity-web']);
-    expect(await page.locator('#how-easy-ai-works > section').evaluateAll(elements => elements.map(el => el.id))).toEqual(['response', 'discovery', 'engagement']);
-    for (const id of ['response', 'discovery', 'engagement']) await expect(page.locator(`#${id} .product-art`)).toHaveCount(1);
+    expect(await page.locator('.product-identities > .product-identity').evaluateAll(elements => elements.map(el => el.classList[1]))).toEqual(['identity-gap', 'identity-aim', 'identity-web']);
+    expect(await page.locator('#how-easy-ai-works > section').evaluateAll(elements => elements.map(el => el.id))).toEqual(['discovery', 'response', 'engagement']);
+    for (const id of ['discovery', 'response', 'engagement']) await expect(page.locator(`#${id} .product-art`)).toHaveCount(1);
     for (const link of await page.locator('.home-story a.btn-green').all()) await expect(link).toHaveAttribute('href', '/assessment');
     await expect(page.locator('.discovery-assessment a')).toHaveText('Free Assessment');
     const invitation = lead.locator('a[data-open-gary]');
