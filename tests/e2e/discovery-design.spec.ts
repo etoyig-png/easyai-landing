@@ -81,6 +81,8 @@ test('opening advances from search to brand without layout shift', async ({ page
   });
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await page.locator('.discovery-opening').scrollIntoViewIfNeeded();
+  await expect(page.locator('.discovery-opening')).toHaveClass(/scene-visible/);
   await page.screenshot({ path: testInfo.outputPath('opening-search.png') });
   await page.waitForTimeout(9000);
   await page.screenshot({ path: testInfo.outputPath('opening-transition.png') });
@@ -107,15 +109,17 @@ test('latest visual direction keeps header, centers copy and uses real device ar
   await expect(page.locator('.gary-launcher')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   const logo = await page.locator('.easyai-wordmark').boundingBox();
-  const tagline = await page.locator('.discovery-brand h1').boundingBox();
+  const tagline = await page.locator('.discovery-brand .brand-tagline').boundingBox();
   expect(logo!.width).toBeGreaterThan(tagline!.height * 6);
-  await expect(page.locator('.discovery-brand h1')).toHaveCSS('white-space', 'nowrap');
+  await expect(page.locator('.discovery-brand .brand-tagline')).toHaveCSS('white-space', 'nowrap');
 });
 
 test('search phone resolves to a fixed identity while continent traces keep moving', async ({ page }, testInfo) => {
   await gotoGaryReady(page);
 
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await page.locator('.discovery-opening').scrollIntoViewIfNeeded();
+  await expect(page.locator('.discovery-opening')).toHaveClass(/scene-visible/);
   const opening = page.locator('.discovery-search, .discovery-brand');
   await setNativeAnimationTime(opening, 2300);
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
@@ -188,6 +192,8 @@ test('device conversations animate in sequence and remain readable with motion o
 test('opening holds photographed phone for four seconds and GAP screen reveals a working action', async ({ page }) => {
   await gotoGaryReady(page);
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await page.locator('.discovery-opening').scrollIntoViewIfNeeded();
+  await expect(page.locator('.discovery-opening')).toHaveClass(/scene-visible/);
   await expect(page.locator('.discovery-search')).toHaveCSS('animation-duration', '8.4s');
   const opening = page.locator('.discovery-search, .discovery-brand');
   await setNativeAnimationTime(opening, 4500);
@@ -279,6 +285,8 @@ test('conversation footage loads near view and pauses with the motion control', 
 test('phone entrance is gradual and reacts to scrolling before brand handoff', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await page.locator('.discovery-opening').scrollIntoViewIfNeeded();
+  await expect(page.locator('.discovery-opening')).toHaveClass(/scene-visible/);
   await page.locator('.discovery-search').evaluate(async el => {
     const animations = el.getAnimations();
     for (const animation of animations) { animation.pause(); animation.currentTime = 1000; }
@@ -297,9 +305,9 @@ test('phone entrance is gradual and reacts to scrolling before brand handoff', a
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   const phone = page.locator('.discovery-search .photograph-phone');
   const before = await phone.evaluate(el => getComputedStyle(el).transform);
-  await page.evaluate(() => scrollTo({ top: 100, behavior: 'instant' }));
+  await page.evaluate(() => scrollBy({ top: 100, behavior: 'instant' }));
   await expect.poll(() => phone.evaluate(el => getComputedStyle(el).transform)).not.toBe(before);
-  await expect.poll(() => phone.evaluate(el => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41)).toBeGreaterThan(0);
+  await expect.poll(() => phone.evaluate(el => Math.abs(new DOMMatrixReadOnly(getComputedStyle(el).transform).m41))).toBeGreaterThan(1);
 });
 
 
@@ -321,6 +329,8 @@ test('late intro script never replaces an already visible finished identity', as
 test('completed opening stays complete when decorative motion resumes', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
+  await page.locator('.discovery-opening').scrollIntoViewIfNeeded();
+  await expect(page.locator('.discovery-opening')).toHaveClass(/scene-visible/);
   await page.getByRole('button', { name: 'Pause motion' }).click();
   await expect(page.locator('.home-story')).toHaveAttribute('data-opening-complete', 'true');
   await page.getByRole('button', { name: 'Resume motion' }).click();
@@ -388,3 +398,56 @@ test('unavailable coastline asset preserves the static globe and business identi
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-reveal')).toHaveCSS('opacity', '0');
 });
+
+for (const motion of ['no-preference', 'reduce'] as const) {
+  test(`requested homepage flow and Gary invitation with ${motion} motion`, async ({ page }, info) => {
+    await page.emulateMedia({ reducedMotion: motion });
+    let openings = 0;
+    await page.route('**/api/gary/message', route => {
+      openings++;
+      return route.fulfill({ json: { sessionId: 'homepage-flow-fixture', sessionCapability: 'synthetic-only', reply: { text: 'Synthetic Gary introduction.' } } });
+    });
+    await page.goto('/');
+    const lead = page.locator('.discovery-lead');
+    await expect(lead.getByRole('heading', { level: 1 })).toHaveText('Are customers finding your business? We help put you in their path.');
+    await expect(lead.getByRole('heading', { level: 1 })).toBeInViewport();
+    const pause = page.getByRole('button', { name: 'Pause motion', exact: true });
+    if (motion === 'no-preference') {
+      await expect(pause).toBeVisible();
+      const control = await pause.boundingBox(), heading = await lead.getByRole('heading', { level: 1 }).boundingBox();
+      expect(control!.y + control!.height).toBeLessThanOrEqual(heading!.y);
+    }
+    const firstAssessment = lead.getByRole('link', { name: 'Free Assessment', exact: true });
+    await expect(firstAssessment).toBeInViewport();
+    await expect(firstAssessment).toHaveAttribute('href', '/assessment');
+    await expect(firstAssessment).toHaveCSS('background-color', 'rgb(20, 120, 60)');
+    const order = await page.locator('.home-story > section, .home-story > #how-easy-ai-works').evaluateAll(elements => elements.map(el => el.id === 'how-easy-ai-works' ? el.id : el.classList[0]));
+    expect(order).toEqual(['discovery-lead', 'discovery-intro', 'how-easy-ai-works', 'discovery-opening', 'discovery-assessment', 'discovery-human', 'discovery-close']);
+    await expect(page.locator('#introduction h2')).toHaveText('Here’s how');
+    for (const id of ['discovery', 'engagement', 'response']) await expect(page.locator(`#${id} .product-art`)).toHaveCount(1);
+    for (const link of await page.locator('.home-story a.btn-green').all()) await expect(link).toHaveAttribute('href', '/assessment');
+    await expect(page.locator('.discovery-assessment a')).toHaveText('Free Assessment');
+    const invitation = lead.locator('a[data-open-gary]');
+    await expect(invitation).toHaveAttribute('href', '/contact');
+    await expect(lead).toContainText('See AIM, our AI Interaction Manager, in action with Gary.');
+    await expect(invitation.locator('svg')).toBeVisible();
+    if (motion === 'reduce') await expect(invitation.locator('span')).toHaveCSS('animation-name', 'none');
+    else await expect(invitation.locator('span')).toHaveCSS('animation-iteration-count', '3');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: info.outputPath('homepage-opening.png') });
+    for (let cycle = 0; cycle < 2; cycle++) {
+      await invitation.focus();
+      await page.keyboard.press('Enter');
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByText('Synthetic Gary introduction.', { exact: true })).toBeVisible();
+      await expect(dialog.getByTestId('gary-chat-character')).toBeVisible();
+      if (cycle === 0) await page.screenshot({ path: info.outputPath('gary-open.png') });
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Chat with Gary from Accounting', exact: true })).toBeFocused();
+    }
+    expect(openings).toBe(1);
+    await firstAssessment.click();
+    await expect(page).toHaveURL(/\/assessment$/);
+  });
+}

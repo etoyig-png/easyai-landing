@@ -17,62 +17,18 @@ export default function HomePage() {
     <div className="home-story" data-opening-pending>
       <noscript><style>{'.home-story[data-opening-pending] .discovery-brand{opacity:1!important}'}</style></noscript>
       <ScrollCraftMotion />
-      <section className="discovery-opening" data-sc-act="flow" aria-label="Get discovered">
-        <div className="discovery-stage">
-          <div className="discovery-reveal" aria-hidden="true" />
-          <div className="opening-seed" aria-hidden="true" />
-          <div className="discovery-orbit story-hero-plane" data-sc-parallax="-0.08" aria-hidden="true">
-            <div className="globe-surface" />
-            <svg viewBox="0 0 600 600" className="globe-map-static">
-              {continentOutlines.map((outline, index) => {
-                let connected = false;
-                const path = outline.map(([longitude, latitude]) => {
-                  const point = projectGlobe(globeVector(longitude, latitude),25);
-                  if (point.z <= 0) { connected = false; return ''; }
-                  const command = connected ? 'L' : 'M'; connected = true;
-                  return `${command}${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
-                }).join('');
-                return <path key={index} d={path} />;
-              })}
-            </svg>
-            <canvas aria-hidden="true" className="globe-traces" width="600" height="600" data-light-trace="globe" />
-          </div>
-          <div className="discovery-search" aria-hidden="true">
-            <Iphone className="search-phone">
-              <span className="search-phone-label">Looking for a local expert?</span>
-              <div className="search-field"><span>⌕</span><span className="typed-line">Who should you call?</span></div>
-              <svg className="search-map" viewBox="0 0 260 170">
-                <path className="map-road" d="M0 38H260M0 105H260M55 0V170M180 0V170M0 160L260 0" />
-                <circle className="map-signal" cx="130" cy="80" r="38" />
-                <path className="map-pin" d="M130 45c-18 0-30 13-30 29 0 23 30 48 30 48s30-25 30-48c0-16-12-29-30-29z" />
-                <circle cx="130" cy="74" r="10" fill="#010611" />
-              </svg>
-              <div className="search-found"><span className="message-dot mint" />Your business. Found.</div>
-              <Image className="screen-brand-mark" src="/easy-ai-logo-transparent.png" alt="" width={1430} height={290} sizes="180px" />
-            </Iphone>
-          </div>
-          <div className="discovery-brand">
-            <div className="logo-depth"><svg className="easyai-wordmark" viewBox="0 0 1240 280" role="img" aria-label="Easy AI. Business AI Solutions.">
-              <title>Easy AI. Business AI Solutions.</title>
-              {[{ sx:27, sy:10, width:552, height:220, x:0, y:0 },
-                { sx:630, sy:48, width:90, height:126, x:592, y:48 },
-                { sx:756, sy:48, width:114, height:126, x:696, y:48 },
-                { sx:904, sy:48, width:95, height:126, x:824, y:48 },
-                { sx:1030, sy:48, width:111, height:126, x:933, y:48 },
-                { sx:1206, sy:48, width:114, height:126, x:1078, y:48 },
-                { sx:1356, sy:48, width:33, height:126, x:1206, y:48 }].map((part,index) => (
-                  <svg key={index} x={part.x} y={part.y} width={part.width} height={part.height} viewBox={`${part.sx} ${part.sy} ${part.width} ${part.height}`} preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>
-                ))}
-              <svg x="592" y="200" width="647" height="39" viewBox="630 185 760 48" preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>
-            </svg></div>
-            <h1>Get Found. Get Chosen.</h1>
-            <a href="#introduction" className="story-link">Discover what’s possible <span aria-hidden="true">↗</span></a>
-          </div>
-        </div>
+      <section className="discovery-lead" aria-labelledby="opening-headline">
+        <h1 id="opening-headline">Are customers finding your business? We help put you in their path.</h1>
+        <Link href="/assessment" className="btn-green">Free Assessment</Link>
+        <p>Help your business get found, get discovered, and connect with more prospects through Google and AI presence, a helpful website, and timely conversations.</p>
+        <a href="/contact" data-open-gary className="gary-invitation">
+          Need more information? Talk to Gary <span className="gary-invitation-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" focusable="false"><path d="m5 5 14 14M5 19h14V5" /></svg></span>
+        </a>
+        <p className="gary-invitation-note">See AIM, our AI Interaction Manager, in action with Gary.</p>
       </section>
 
       <section id="introduction" className="discovery-intro" data-sc-act="flow">
-        <p data-sc-in>Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Once they find you, we help turn website attention into conversations, captured leads, and real customer opportunities.</p>
+        <h2 data-sc-in>Here’s how</h2>
         <div className="product-identities" aria-label="GAP, SmartSite, and AIM" data-sc-in>
           <svg width="0" height="0" className="logo-mask-definitions" aria-hidden="true" focusable="false"><defs><filter id="gap-paper-mask" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 2.85" result="paperless" /><feComposite in="paperless" in2="SourceAlpha" operator="in" /></filter><filter id="brand-radiance" colorInterpolationFilters="sRGB"><feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncG type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncB type="gamma" amplitude="1" exponent=".55" offset="0" /></feComponentTransfer></filter></defs></svg>
           <div className="product-identity identity-gap">
@@ -171,6 +127,64 @@ export default function HomePage() {
         </section>
       </div>
 
+      <section className="discovery-opening" data-sc-act="flow" aria-label="Get discovered">
+        <div className="discovery-stage">
+          <div className="discovery-reveal" aria-hidden="true" />
+          <div className="opening-seed" aria-hidden="true" />
+          <div className="discovery-orbit story-hero-plane" data-sc-parallax="-0.08" aria-hidden="true">
+            <div className="globe-surface" />
+            <svg viewBox="0 0 600 600" className="globe-map-static">
+              {continentOutlines.map((outline, index) => {
+                let connected = false;
+                const path = outline.map(([longitude, latitude]) => {
+                  const point = projectGlobe(globeVector(longitude, latitude),25);
+                  if (point.z <= 0) { connected = false; return ''; }
+                  const command = connected ? 'L' : 'M'; connected = true;
+                  return `${command}${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+                }).join('');
+                return <path key={index} d={path} />;
+              })}
+            </svg>
+            <canvas aria-hidden="true" className="globe-traces" width="600" height="600" data-light-trace="globe" />
+          </div>
+          <div className="discovery-search" aria-hidden="true">
+            <Iphone className="search-phone">
+              <span className="search-phone-label">Looking for a local expert?</span>
+              <div className="search-field"><span>⌕</span><span className="typed-line">Who should you call?</span></div>
+              <svg className="search-map" viewBox="0 0 260 170">
+                <path className="map-road" d="M0 38H260M0 105H260M55 0V170M180 0V170M0 160L260 0" />
+                <circle className="map-signal" cx="130" cy="80" r="38" />
+                <path className="map-pin" d="M130 45c-18 0-30 13-30 29 0 23 30 48 30 48s30-25 30-48c0-16-12-29-30-29z" />
+                <circle cx="130" cy="74" r="10" fill="#010611" />
+              </svg>
+              <div className="search-found"><span className="message-dot mint" />Your business. Found.</div>
+              <Image className="screen-brand-mark" src="/easy-ai-logo-transparent.png" alt="" width={1430} height={290} sizes="180px" />
+            </Iphone>
+          </div>
+          <div className="discovery-brand">
+            <div className="logo-depth"><svg className="easyai-wordmark" viewBox="0 0 1240 280" role="img" aria-label="Easy AI. Business AI Solutions.">
+              <title>Easy AI. Business AI Solutions.</title>
+              {[{ sx:27, sy:10, width:552, height:220, x:0, y:0 },
+                { sx:630, sy:48, width:90, height:126, x:592, y:48 },
+                { sx:756, sy:48, width:114, height:126, x:696, y:48 },
+                { sx:904, sy:48, width:95, height:126, x:824, y:48 },
+                { sx:1030, sy:48, width:111, height:126, x:933, y:48 },
+                { sx:1206, sy:48, width:114, height:126, x:1078, y:48 },
+                { sx:1356, sy:48, width:33, height:126, x:1206, y:48 }].map((part,index) => (
+                  <svg key={index} x={part.x} y={part.y} width={part.width} height={part.height} viewBox={`${part.sx} ${part.sy} ${part.width} ${part.height}`} preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>
+                ))}
+              <svg x="592" y="200" width="647" height="39" viewBox="630 185 760 48" preserveAspectRatio="none"><image href="/easy-ai-wordmark.webp" width="1430" height="290" /></svg>
+            </svg></div>
+            <p className="brand-tagline">Get Found. Get Chosen.</p>
+            <a href="#free-assessment" className="story-link">Discover what’s possible <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </section>
+
+      <section className="discovery-assessment" aria-label="Free business assessment">
+        <Link href="/assessment" className="btn-green">Free Assessment</Link>
+      </section>
+
       <section className="discovery-human story-guide">
         <div className="human-conversation" role="img" aria-label="A businesswoman having a phone conversation in her office">
           <video muted loop playsInline preload="none" poster="/business-conversation-poster.webp" data-conversation-video>
@@ -184,8 +198,8 @@ export default function HomePage() {
       <section id="free-assessment" className="discovery-close">
         <h2>Your next customer<br />is looking.</h2>
         <p>Let’s help them find you.</p>
-        <a href="/contact" data-open-gary className="btn-green">Start speaking with Gary</a>
-        <Link href="/assessment" className="story-link">Start Your Free Assessment ↗</Link>
+        <Link href="/assessment" className="btn-green">Free Assessment</Link>
+        <a href="/contact" data-open-gary className="story-link">Need more information? Talk to Gary <span aria-hidden="true">↘</span></a>
         <Link href="/assessment?intent=consultation" className="story-link">Start Your Consultation ↗</Link>
       </section>
     </div>
