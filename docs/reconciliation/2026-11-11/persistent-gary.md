@@ -1,6 +1,6 @@
 # Persistent visible Gary, November 11, 2026
 
-Status: implemented for visual review. Physical-cellphone confirmation and production approval remain pending.
+Verdict: PASS WITH WARNING. Public visual/functional checks pass; physical-cellphone confirmation and production approval remain pending.
 
 ## Exact source and reversible changes
 
