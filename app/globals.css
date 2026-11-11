@@ -474,7 +474,7 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 .discovery-brand { position:relative; width:100%; text-align:center; perspective:1000px; transform-style:preserve-3d; }
 .discovery-brand .story-link { position:absolute; top:calc(100% + clamp(4rem,10svh,7rem)); left:0; right:0; width:fit-content; margin-inline:auto; transform:none; font-size:clamp(1.05rem,2vw,1.3rem); white-space:nowrap; }
 .easyai-wordmark { width:min(900px,88vw); height:auto; margin:0 auto .35rem; }
-.discovery-brand h1 { font-size:clamp(1.9rem,5vw,4rem); line-height:1.3; font-weight:400; letter-spacing:.025em; white-space:normal; width:100%; margin:0; text-align:center; }
+.discovery-brand h1, .discovery-brand .brand-tagline { font-size:clamp(1.9rem,5vw,4rem); line-height:1.3; font-weight:400; letter-spacing:.025em; white-space:normal; width:100%; margin:0; text-align:center; }
 .discovery-search { display:none; opacity:0; position:absolute; inset:0; place-items:center; pointer-events:none; }
 .search-phone { width:300px; padding:1rem; border:6px solid #52617a; border-radius:36px; background:linear-gradient(155deg,#14254a,#060b16); box-shadow:20px 20px 50px #000; transform:rotate(-7deg); text-align:center; }
 .phone-camera { width:65px; height:12px; background:#000; border-radius:10px; margin:0 auto 2.5rem; }
@@ -826,8 +826,8 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 .wordmark-subtitle { fill:#d6e4ef; font-family:Arial,sans-serif; font-size:31px; font-weight:500; filter:none; }
 .product-identity { width:100%; text-decoration:none; }
 .identity-gap { --reveal-x:-110px; --reveal-y:0px; }
-.identity-web { --reveal-x:110px; --reveal-y:0px; }
-.identity-aim { --reveal-x:0px; --reveal-y:90px; }
+.identity-web { --reveal-x:0px; --reveal-y:90px; }
+.identity-aim { --reveal-x:110px; --reveal-y:0px; }
 .home-story[data-reveals-active] [data-story-reveal]:focus-visible { opacity:1; transform:none; }
 
 .identity-entry { min-width:0; }
@@ -875,7 +875,6 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 .home-story .btn-green, body:has(.home-story) header .btn-green { background:#14783c; color:#fff; min-height:48px; border-radius:9999px; box-shadow:0 0 10px 2px rgb(34 197 94 / .2),0 0 24px 5px rgb(34 197 94 / .12); }
 .home-story .btn-green:hover { background:#116533; }
 body:has(.home-story) header .btn-green:focus-visible { outline:3px solid #a8d6ff; outline-offset:6px; }
-.discovery-brand .brand-tagline { font-size:clamp(2.8rem,6.4vw,6.2rem); line-height:1.06; margin:1.5rem auto; text-align:center; }
 .discovery-assessment .gary-invitation { display:flex; width:fit-content; margin:2rem auto 0; }
 .discovery-assessment .gary-invitation-note { margin:.75rem auto 0; color:#e0e9f2; }
 .gary-home-slot { display:none; text-align:left; }
