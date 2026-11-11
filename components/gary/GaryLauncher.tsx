@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { createPortal } from 'react-dom';
+import { usePathname } from 'next/navigation';
 import GaryCharacter, { type GaryPose } from './GaryCharacter';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
@@ -26,6 +28,15 @@ function usePrefersReducedMotion(): boolean {
 
 
 export default function GaryLauncher() {
+  const pathname = usePathname();
+  const [homeSlot, setHomeSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const mobile = window.matchMedia('(max-width: 767px)');
+    const locate = () => setHomeSlot(mobile.matches ? document.getElementById('gary-home-slot') : null);
+    locate();
+    mobile.addEventListener('change', locate);
+    return () => mobile.removeEventListener('change', locate);
+  }, [pathname]);
   const [visible, setVisible] = useState(false);
   const [open, setOpen] = useState(false);
   const [pose, setPose] = useState<GaryPose>('seated');
@@ -104,7 +115,7 @@ export default function GaryLauncher() {
   // there is exactly one white message element at every screen size.
   const showIntroBubble = !open && videoPlaying && !reducedMotion && videoTime >= 2 && videoTime < 8;
 
-  return (
+  const launcher = (
     <div
       // gary-launcher--idle disables pointer-events on the whole container (re-enabled only on
       // the button, see globals.css) so an empty area of this box — which extends over both the
@@ -162,4 +173,5 @@ export default function GaryLauncher() {
       {open && <GaryPanel onClose={() => setOpen(false)} />}
     </div>
   );
+  return homeSlot ? createPortal(launcher, homeSlot) : launcher;
 }
