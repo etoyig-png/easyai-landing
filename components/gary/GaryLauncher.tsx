@@ -44,6 +44,18 @@ export default function GaryLauncher() {
   const reducedMotion = usePrefersReducedMotion();
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [videoTime, setVideoTime] = useState(0);
+  const [videoStarted, setVideoStarted] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  async function playGary() {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    if (videoFailed) video.load();
+    setVideoFailed(false);
+    try { await video.play(); } catch { setVideoStarted(false); }
+  }
   const launchTimer = useRef<number>();
 
   function runRoutine() { setVideoPlaying(true); }
@@ -113,7 +125,7 @@ export default function GaryLauncher() {
   // Message behavior follows Gary's pose, never viewport geometry. Real conditional rendering
   // fully removes the intro bubble while Gary is holding or lowering the physical sign, ensuring
   // there is exactly one white message element at every screen size.
-  const showIntroBubble = !open && videoPlaying && !reducedMotion && videoTime >= 2 && videoTime < 8;
+  const showIntroBubble = !open && videoPlaying && videoStarted && !reducedMotion && videoTime >= 2 && videoTime < 8;
 
   const launcher = (
     <div
@@ -151,11 +163,18 @@ export default function GaryLauncher() {
         <div className="gary-decorative-cluster relative">
           {videoPlaying && !reducedMotion ? (
             <div className="gary-video-stage">
-              <video className="gary-concierge-video" src="/gary-concierge.webm?v=tracked2"
+              {!videoStarted && <div className="gary-video-placeholder" aria-hidden="true"><GaryCharacter pose="seated" idleGlanceActive={false} /></div>}
+              <video ref={videoRef} className="gary-concierge-video" data-started={videoStarted} src="/gary-concierge.webm?v=tracked2"
                 autoPlay loop muted playsInline preload="none"
                 aria-label="Gary waves, gets frustrated, and holds a sign pointing to the chat button."
                 onTimeUpdate={(event) => setVideoTime(event.currentTarget.currentTime)}
-                onError={() => { setVideoPlaying(false); setRoutineFinished(true); }} />
+                onPlaying={() => { setVideoStarted(true); setVideoFailed(false); }}
+                onPause={() => setVideoStarted(false)}
+                onError={() => { setVideoStarted(false); setVideoFailed(true); }} />
+              {!videoStarted && <div className="gary-video-recovery">
+                {videoFailed && <p role="status">Animation unavailable. You can still chat with Gary.</p>}
+                <button type="button" onClick={playGary}>{videoFailed ? 'Retry Gary animation' : 'Play Gary'}</button>
+              </div>}
               {showIntroBubble && (
                 <div className="gary-video-bubble" data-testid="gary-speech-bubble">
                   Hey I&apos;m Gary From Accounting, Im here to help.
