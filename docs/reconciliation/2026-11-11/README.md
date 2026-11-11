@@ -1,6 +1,8 @@
 # Approved 1.1 reconciliation, November 11, 2026
 
-Current review: [persistent visible Gary, preserved page motion and final public checks](persistent-gary.md), runtime 6499c7a6bfef2d84c997dd225546c9313c03bf1c.
+Latest reviewed startup correction: [load the site, wait five seconds, then import Gary code/media](gary-deferred-startup.md), runtime 87fa4dee055adc55f0e89058ef8ddd33d6553fd7.
+
+Earlier placement review: [persistent visible Gary, preserved page motion and final public checks](persistent-gary.md), runtime 6499c7a6bfef2d84c997dd225546c9313c03bf1c.
 
 Earlier narrow correction: [brighter halo and mobile Gary recovery](phone-recovery.md), compiled runtime 6924ab35af203c3165d5fbd48850dbf23a7882ba.
 

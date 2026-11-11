@@ -37,16 +37,15 @@ test('motion fallback, accessibility and screenshots', async ({ page }, testInfo
   await page.screenshot({ path: testInfo.outputPath('discovery-full.png'), fullPage: true });
 });
 
-test('opening Gary early cancels the pending entrance routine', async ({ page }) => {
+test('early Gary request waits for deferred loading and cancels the entrance routine', async ({ page }) => {
   await page.route('**/api/gary/message', route => route.fulfill({ json: { sessionId: 'early-test', reply: { text: 'How can I help?' } } }));
-  await page.clock.install();
   await page.goto('/');
   await page.locator('#discovery .story-chapter-copy a[data-open-gary]').click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await page.clock.fastForward(6000);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
   await page.getByRole('button', { name: 'Close chat', exact: true }).click();
   await expect(page.locator('[data-gary-pose]')).toHaveAttribute('data-gary-pose', 'seated');
-  await page.clock.fastForward(5000);
+  await page.waitForTimeout(1000);
   await expect(page.locator('[data-gary-pose]')).toHaveAttribute('data-gary-pose', 'seated');
 });
 
@@ -444,13 +443,14 @@ test('approved 1.1 recovery keeps human Gary and chat available after video fail
   await expect(retry).toHaveCount(0);
 });
 
-test('approved 1.1 persistent Gary stays visible and clear while the page scrolls', async ({ page }) => {
+test('approved 1.1 persistent Gary appears after five seconds then stays clear while the page scrolls', async ({ page }) => {
   await page.route('**/api/**', route => route.abort());
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const frame = page.locator('.site-scroll-frame');
   const gary = page.locator('.gary-launcher');
-  await expect(gary).toBeVisible();
+  await expect(gary).toHaveCount(0);
+  await expect(gary).toBeVisible({ timeout: 8000 });
   await expect(gary).toHaveCSS('position', 'fixed');
   const top = (await gary.boundingBox())!.y;
   for (const fraction of [0, .5, 1]) {
@@ -477,4 +477,30 @@ test('approved 1.1 persistent Gary stays visible and clear while the page scroll
   await expect.poll(() => video.evaluate(video => (video as HTMLVideoElement).paused)).toBe(true);
   await page.getByRole('button', { name: 'Resume motion', exact: true }).click();
   await expect.poll(() => video.evaluate(video => (video as HTMLVideoElement).paused)).toBe(false);
+});
+
+test('Gary payload waits until full page load plus five seconds', async ({ page }) => {
+  await page.route('**/api/**', route => route.abort());
+  const payloadUrls = new Set<string>();
+  const inspections: Promise<void>[] = [];
+  page.on('response', response => {
+    if (!new URL(response.url()).pathname.endsWith('.js')) return;
+    inspections.push(response.text().then(source => {
+      if (['gary-concierge.webm', 'gary-poses.webp', '/api/gary/message'].some(marker => source.includes(marker))) payloadUrls.add(response.url());
+    }).catch(() => {}));
+  });
+  await page.goto('/', { waitUntil: 'load' });
+  await expect(page.locator('.gary-launcher')).toHaveCount(0);
+  await expect(page.locator('.gary-launcher')).toBeVisible({ timeout: 10000 });
+  await expect.poll(() => page.locator('.gary-concierge-video').evaluate(video => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
+  await Promise.all(inspections);
+  expect(payloadUrls.size).toBeGreaterThan(0);
+  const measured = await page.evaluate(urls => {
+    const load = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming).loadEventEnd;
+    const resources = performance.getEntriesByType('resource').filter(resource =>
+      urls.includes(resource.name) || /gary-(poses|concierge)/.test(resource.name));
+    return { load, resources: resources.map(resource => ({ url: resource.name, start: resource.startTime })) };
+  }, Array.from(payloadUrls));
+  expect(measured.resources.length).toBeGreaterThan(0);
+  for (const resource of measured.resources) expect(resource.start).toBeGreaterThanOrEqual(measured.load + 5000);
 });

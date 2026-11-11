@@ -1,4 +1,5 @@
 # Public homepage story
+> Latest explicit startup rule: [deferred Gary code and media](../reconciliation/2026-11-11/gary-deferred-startup.md), runtime 87fa4dee055adc55f0e89058ef8ddd33d6553fd7. Site window load completes, then five seconds pass, then Gary rendering code/media load. Earlier immediate-pose notes are superseded.
 > Current as-built correction: [persistent visible Gary](../reconciliation/2026-11-11/persistent-gary.md), runtime 6499c7a6bfef2d84c997dd225546c9313c03bf1c. Earlier entries below remain decision history.
 > Latest correction: [reviewed PROJECTS, restored copy, headline ratios, CTA pulse and real public Gary checks](../reconciliation/2026-11-11/latest-reviewed-corrections.md), compiled runtime 6b6cf00b20bbd5cbfcf1568e887b4b29903e7628.
 > Current as-built state: see [November 11 reconciliation](../../docs/reconciliation/2026-11-11/README.md) and the current approved section at the end of this map. Earlier dated entries remain as decision history.
@@ -226,3 +227,10 @@ Gary stays fixed in his own responsive viewport area while the full-width page s
 The existing ScrollCraft engine now reads the actual page scroll region and captures every registered scroll handler. Sentences, opposite product entrances, traces and video retain their approved behavior. The existing tablet one-column breakpoint is applied consistently to product children, repairing an observed zero-width logo at 768px. No marketing copy or image/video asset changed.
 
 Twenty targeted public-preview regressions and six viewport/motion profiles passed, plus real construction/Gary playback, refresh, natural Gary looping, scroll-engine progress, keyboard/anchor navigation and assessment route-gate checks. Physical-cellphone approval remains pending. See the current report for evidence, measured cost/size impact and separately reversible commits.
+
+
+## Latest Gary startup correction: actual code/media deferral
+
+The existing small GaryRouteGate is the routing/timer shell. It waits for completed window load, then five seconds, then manually imports GaryLauncher. Root layout no longer statically imports the renderer. GaryLauncher starts motion on mount without an additional delay. No pose/poster/video request or Gary renderer/chat chunk is prefetched before the deadline. The empty reserved viewport area prevents layout shifts. After loading, approved persistent visibility, animation/chat/Play/Retry/Pause/reduced motion remain. Early chat clicks queue until the same deadline; excluded-route navigation cancels them.
+
+Eight public initial/refresh timelines across phone/tablet/desktop/reduced-motion passed; first Gary request was 5001.0–5055.6ms after measured page load. 24 related browser regressions plus four payload timing regressions passed. Privacy exclusions and controlled code/video recovery passed. Actual-cellphone review remains pending. See current report/JSON for exact measurements, limits and rollback.

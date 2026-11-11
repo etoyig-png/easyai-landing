@@ -1,0 +1,546 @@
+{
+  "runtime": "87fa4dee055adc55f0e89058ef8ddd33d6553fd7",
+  "timeline": {
+    "runtime": "87fa4dee055adc55f0e89058ef8ddd33d6553fd7",
+    "url": "https://sb-40v8onjh8v2l.vercel.run/",
+    "physicalPhone": false,
+    "inventory": [
+      {
+        "file": "chunks/792.de834ae8f2979f77.js",
+        "signatures": [
+          "gary-concierge.webm",
+          "gary-poses.webp"
+        ],
+        "bytes": 7479
+      },
+      {
+        "file": "chunks/916.6f2fffa7906164bb.js",
+        "signatures": [
+          "/api/gary/message"
+        ],
+        "bytes": 6358
+      }
+    ],
+    "profiles": [
+      {
+        "width": 390,
+        "height": 844,
+        "reduced": false,
+        "navigations": [
+          {
+            "action": "initial",
+            "loadEventEnd": 452.89999999990687,
+            "firstDom": 5488.699999999953,
+            "resources": [
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+                "start": 5473.199999999953,
+                "duration": 12.5,
+                "initiator": "script",
+                "transferBytes": 3373,
+                "decodedBytes": 7479
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+                "start": 5488.699999999953,
+                "duration": 16.400000000023283,
+                "initiator": "image",
+                "transferBytes": 278214,
+                "decodedBytes": 277914
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+                "start": 5491.599999999977,
+                "duration": 14.199999999953434,
+                "initiator": "video",
+                "transferBytes": 488148,
+                "decodedBytes": 487848
+              }
+            ],
+            "preloadPaths": [],
+            "frameHeight": 634,
+            "video": {
+              "time": 0.503467,
+              "paused": false
+            },
+            "firstRequestAfterLoad": 5020.300000000047,
+            "pass": true
+          },
+          {
+            "action": "refresh",
+            "loadEventEnd": 372.5,
+            "firstDom": 5398.100000000093,
+            "resources": [
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+                "start": 5373.5,
+                "duration": 21.300000000046566,
+                "initiator": "script",
+                "transferBytes": 3373,
+                "decodedBytes": 7479
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+                "start": 5398,
+                "duration": 85.10000000009313,
+                "initiator": "image",
+                "transferBytes": 278214,
+                "decodedBytes": 277914
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+                "start": 5407.900000000023,
+                "duration": 83.90000000002328,
+                "initiator": "video",
+                "transferBytes": 488148,
+                "decodedBytes": 487848
+              }
+            ],
+            "preloadPaths": [],
+            "frameHeight": 634,
+            "video": {
+              "time": 0.412496,
+              "paused": false
+            },
+            "firstRequestAfterLoad": 5001,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "reduced": false,
+        "navigations": [
+          {
+            "action": "initial",
+            "loadEventEnd": 415.0999999999767,
+            "firstDom": 5463.29999999993,
+            "resources": [
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+                "start": 5445.199999999953,
+                "duration": 14.099999999976717,
+                "initiator": "script",
+                "transferBytes": 3373,
+                "decodedBytes": 7479
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+                "start": 5463.199999999953,
+                "duration": 26.599999999976717,
+                "initiator": "image",
+                "transferBytes": 278214,
+                "decodedBytes": 277914
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+                "start": 5470.199999999953,
+                "duration": 23.20000000006985,
+                "initiator": "video",
+                "transferBytes": 488148,
+                "decodedBytes": 487848
+              }
+            ],
+            "preloadPaths": [],
+            "frameHeight": 814,
+            "video": {
+              "time": 0.516598,
+              "paused": false
+            },
+            "firstRequestAfterLoad": 5030.099999999977,
+            "pass": true
+          },
+          {
+            "action": "refresh",
+            "loadEventEnd": 283.79999999993015,
+            "firstDom": 5354.29999999993,
+            "resources": [
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+                "start": 5339.400000000023,
+                "duration": 12.599999999976717,
+                "initiator": "script",
+                "transferBytes": 3373,
+                "decodedBytes": 7479
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+                "start": 5354.199999999953,
+                "duration": 22.20000000006985,
+                "initiator": "image",
+                "transferBytes": 278214,
+                "decodedBytes": 277914
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+                "start": 5356.400000000023,
+                "duration": 30.399999999906868,
+                "initiator": "video",
+                "transferBytes": 488148,
+                "decodedBytes": 487848
+              }
+            ],
+            "preloadPaths": [],
+            "frameHeight": 814,
+            "video": {
+              "time": 0.521374,
+              "paused": false
+            },
+            "firstRequestAfterLoad": 5055.600000000093,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "reduced": false,
+        "navigations": [
+          {
+            "action": "initial",
+            "loadEventEnd": 318.10000000009313,
+            "firstDom": 5359.5,
+            "resources": [
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+                "start": 5342.400000000023,
+                "duration": 14,
+                "initiator": "script",
+                "transferBytes": 3373,
+                "decodedBytes": 7479
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+                "start": 5359.400000000023,
+                "duration": 21.300000000046566,
+                "initiator": "image",
+                "transferBytes": 278214,
+                "decodedBytes": 277914
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+                "start": 5361.70000000007,
+                "duration": 20,
+                "initiator": "video",
+                "transferBytes": 488148,
+                "decodedBytes": 487848
+              }
+            ],
+            "preloadPaths": [],
+            "frameHeight": 690,
+            "video": {
+              "time": 0.496031,
+              "paused": false
+            },
+            "firstRequestAfterLoad": 5024.29999999993,
+            "pass": true
+          },
+          {
+            "action": "refresh",
+            "loadEventEnd": 422.9000000000233,
+            "firstDom": 5460.20000000007,
+            "resources": [
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+                "start": 5438.400000000023,
+                "duration": 19.599999999976717,
+                "initiator": "script",
+                "transferBytes": 3373,
+                "decodedBytes": 7479
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+                "start": 5460.20000000007,
+                "duration": 31.599999999976717,
+                "initiator": "image",
+                "transferBytes": 278214,
+                "decodedBytes": 277914
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+                "start": 5461.900000000023,
+                "duration": 24.900000000023283,
+                "initiator": "video",
+                "transferBytes": 488148,
+                "decodedBytes": 487848
+              }
+            ],
+            "preloadPaths": [],
+            "frameHeight": 690,
+            "video": {
+              "time": 0.471299,
+              "paused": false
+            },
+            "firstRequestAfterLoad": 5015.5,
+            "pass": true
+          }
+        ],
+        "pass": true
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "reduced": true,
+        "navigations": [
+          {
+            "action": "initial",
+            "loadEventEnd": 251.09999999997672,
+            "firstDom": 5326.5,
+            "resources": [
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+                "start": 5299,
+                "duration": 23.800000000046566,
+                "initiator": "script",
+                "transferBytes": 3373,
+                "decodedBytes": 7479
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+                "start": 5326.5,
+                "duration": 40.300000000046566,
+                "initiator": "image",
+                "transferBytes": 278214,
+                "decodedBytes": 277914
+              }
+            ],
+            "preloadPaths": [],
+            "frameHeight": 634,
+            "video": null,
+            "firstRequestAfterLoad": 5047.900000000023,
+            "pass": true
+          },
+          {
+            "action": "refresh",
+            "loadEventEnd": 188,
+            "firstDom": 5241.5,
+            "resources": [
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+                "start": 5215.199999999953,
+                "duration": 23.900000000023283,
+                "initiator": "script",
+                "transferBytes": 3373,
+                "decodedBytes": 7479
+              },
+              {
+                "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+                "start": 5241.400000000023,
+                "duration": 40,
+                "initiator": "image",
+                "transferBytes": 278214,
+                "decodedBytes": 277914
+              }
+            ],
+            "preloadPaths": [],
+            "frameHeight": 634,
+            "video": null,
+            "firstRequestAfterLoad": 5027.199999999953,
+            "pass": true
+          }
+        ],
+        "pass": true
+      }
+    ],
+    "errors": [],
+    "responses": [
+      {
+        "width": 390,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+        "type": "application/javascript; charset=UTF-8"
+      },
+      {
+        "width": 390,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+        "type": "image/webp"
+      },
+      {
+        "width": 390,
+        "status": 206,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+        "type": "video/webm"
+      },
+      {
+        "width": 390,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+        "type": "application/javascript; charset=UTF-8"
+      },
+      {
+        "width": 390,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+        "type": "image/webp"
+      },
+      {
+        "width": 390,
+        "status": 206,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+        "type": "video/webm"
+      },
+      {
+        "width": 768,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+        "type": "application/javascript; charset=UTF-8"
+      },
+      {
+        "width": 768,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+        "type": "image/webp"
+      },
+      {
+        "width": 768,
+        "status": 206,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+        "type": "video/webm"
+      },
+      {
+        "width": 768,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+        "type": "application/javascript; charset=UTF-8"
+      },
+      {
+        "width": 768,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+        "type": "image/webp"
+      },
+      {
+        "width": 768,
+        "status": 206,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+        "type": "video/webm"
+      },
+      {
+        "width": 1440,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+        "type": "application/javascript; charset=UTF-8"
+      },
+      {
+        "width": 1440,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+        "type": "image/webp"
+      },
+      {
+        "width": 1440,
+        "status": 206,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+        "type": "video/webm"
+      },
+      {
+        "width": 1440,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+        "type": "application/javascript; charset=UTF-8"
+      },
+      {
+        "width": 1440,
+        "status": 206,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+        "type": "video/webm"
+      },
+      {
+        "width": 1440,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+        "type": "image/webp"
+      },
+      {
+        "width": 390,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+        "type": "application/javascript; charset=UTF-8"
+      },
+      {
+        "width": 390,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+        "type": "image/webp"
+      },
+      {
+        "width": 390,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+        "type": "application/javascript; charset=UTF-8"
+      },
+      {
+        "width": 390,
+        "status": 200,
+        "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+        "type": "image/webp"
+      }
+    ],
+    "apiBlocked": 0,
+    "pass": true
+  },
+  "privacy": {
+    "runtime": "87fa4dee055adc55f0e89058ef8ddd33d6553fd7",
+    "cases": [
+      {
+        "mode": "initial-assessment",
+        "resources": [],
+        "pass": true
+      },
+      {
+        "mode": "leave-before-deadline",
+        "resources": [],
+        "pass": true
+      },
+      {
+        "mode": "queued-early-chat",
+        "resources": [
+          {
+            "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/792.de834ae8f2979f77.js",
+            "start": 5281.29999999993
+          },
+          {
+            "url": "https://sb-40v8onjh8v2l.vercel.run/_next/static/chunks/916.6f2fffa7906164bb.js",
+            "start": 5309.29999999993
+          }
+        ],
+        "pass": true
+      }
+    ],
+    "fixtures": 1,
+    "pass": true
+  },
+  "retry": {
+    "runtime": "87fa4dee055adc55f0e89058ef8ddd33d6553fd7",
+    "controlledFailure": "Abort renderer chunk, then allow explicit retry",
+    "errors": [],
+    "errorButtonAt": 5742.399999999907,
+    "loadEnd": 350.39999999990687,
+    "video": {
+      "time": 0.029761,
+      "error": null,
+      "ready": 4
+    },
+    "pass": true
+  },
+  "preservation": {
+    "runtime": "87fa4dee055adc55f0e89058ef8ddd33d6553fd7",
+    "privacyPredicateUnchanged": true,
+    "excludedPrefixesUnchanged": true,
+    "preservedScopeDiff": "",
+    "runtimePaths": [
+      "app/layout.tsx",
+      "components/gary/GaryLauncher.tsx",
+      "components/gary/GaryRouteGate.tsx"
+    ]
+  },
+  "regressionTests": 24,
+  "payloadTests": 4,
+  "build": "pass",
+  "lint": "pass",
+  "types": "pass"
+}
