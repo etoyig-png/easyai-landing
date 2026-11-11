@@ -3,7 +3,6 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import GaryRouteGate from '@/components/gary/GaryRouteGate';
-import GaryLauncher from '@/components/gary/GaryLauncher';
 
 export const metadata: Metadata = {
   title: { default: 'Easy AI | Practical AI Guidance for Small and Midsize Businesses', template: '%s | Easy AI' },
@@ -25,9 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main>{children}</main>
           <Footer />
         </div>
-        <GaryRouteGate>
-          <GaryLauncher />
-        </GaryRouteGate>
+        <GaryRouteGate />
       </body>
     </html>
   );
