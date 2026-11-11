@@ -355,8 +355,9 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 .discovery-close h2 { font-size:clamp(3rem,6vw,6rem); line-height:1.05; }
 .discovery-close p { font-size:1.5rem; margin:2rem 0; }
 .discovery-close a { margin:.5rem 1rem; }
-.home-story .btn-green { background:#14783c; color:#fff; min-height:48px; }
+.home-story .btn-green, body:has(.home-story) header .btn-green { background:#14783c; color:#fff; min-height:48px; border-radius:9999px; box-shadow:0 0 10px 2px rgb(34 197 94 / .2),0 0 24px 5px rgb(34 197 94 / .12); }
 .home-story .btn-green:hover { background:#116533; }
+body:has(.home-story) header .btn-green:focus-visible { outline:3px solid #a8d6ff; outline-offset:6px; }
 @media (prefers-reduced-motion:no-preference) {
  .home-story[data-motion-ready]:not([data-opening-complete]) .discovery-opening.scene-visible .discovery-search { display:grid; animation:discovery-search 8.4s both; }
  .home-story[data-motion-ready]:not([data-opening-complete]) .discovery-opening.scene-visible .discovery-brand { animation:discovery-brand 8.4s both; }

@@ -421,6 +421,14 @@ for (const motion of ['no-preference', 'reduce'] as const) {
     await expect(firstAssessment).toBeInViewport();
     await expect(firstAssessment).toHaveAttribute('href', '/assessment');
     await expect(firstAssessment).toHaveCSS('background-color', 'rgb(20, 120, 60)');
+    await expect(firstAssessment).toHaveCSS('border-radius', '9999px');
+    await expect(firstAssessment).not.toHaveCSS('box-shadow', 'none');
+    const headerAssessment = page.locator('header a.btn-green').first();
+    if (await headerAssessment.isVisible()) {
+      await headerAssessment.focus();
+      await expect(headerAssessment).toHaveCSS('outline-style', 'solid');
+      await expect(headerAssessment).toHaveCSS('outline-width', '3px');
+    }
     const order = await page.locator('.home-story > section, .home-story > #how-easy-ai-works').evaluateAll(elements => elements.map(el => el.id === 'how-easy-ai-works' ? el.id : el.classList[0]));
     expect(order).toEqual(['discovery-lead', 'discovery-intro', 'how-easy-ai-works', 'discovery-opening', 'discovery-assessment', 'discovery-human', 'discovery-close']);
     await expect(page.locator('#introduction h2')).toHaveText('Here’s how');
