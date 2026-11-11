@@ -1,4 +1,6 @@
 # Public homepage story
+> Current as-built state: see [November 11 reconciliation](../../docs/reconciliation/2026-11-11/README.md) and the current approved section at the end of this map. Earlier dated entries remain as decision history.
+
 
 Assignment 3 of the existing eight-assignment sequence. This map describes the frontend; it is not a replacement task register or operational completion claim.
 
