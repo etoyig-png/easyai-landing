@@ -5,8 +5,8 @@ import dynamic from 'next/dynamic';
 import GaryCharacter, { type GaryPose } from './GaryCharacter';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
-// initial page rendering never downloads the heavier chat bundle. The approved human pose is
-// visible immediately; the existing launch delay still controls the video routine.
+// initial page rendering never downloads the heavier chat bundle. Gary appears after the
+// existing five-second launch delay, then stays present while the page scrolls.
 const GaryPanel = dynamic(() => import('./GaryPanel'), { ssr: false });
 
 const LAUNCH_DELAY_MS = 5000;
@@ -25,6 +25,7 @@ function usePrefersReducedMotion(): boolean {
 
 
 export default function GaryLauncher() {
+  const [visible, setVisible] = useState(false);
   const [open, setOpen] = useState(false);
   const [pose, setPose] = useState<GaryPose>('seated');
   const [routineFinished, setRoutineFinished] = useState(false);
@@ -60,7 +61,7 @@ export default function GaryLauncher() {
 
   function runRoutine() { setVideoPlaying(true); }
 
-  // Gary is present immediately. After the existing delay, start his approved motion routine
+  // After the existing delay, reveal Gary and start the approved motion routine,
   // unless reduced motion is requested; that preference keeps the human seated pose.
   //
   // Reduced motion is read directly from matchMedia here rather than through the reducedMotion
@@ -74,6 +75,7 @@ export default function GaryLauncher() {
   // page.emulateMedia(), not just a lint nitpick.
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      setVisible(true);
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) {
         setPose('seated');
@@ -110,11 +112,14 @@ export default function GaryLauncher() {
       if (!(target instanceof Element) || !target.closest('a[data-open-gary]')) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
       event.preventDefault();
+      setVisible(true);
       setOpen(true);
     };
     document.addEventListener('click', openFromPage);
     return () => document.removeEventListener('click', openFromPage);
   }, []);
+
+  if (!visible) return null;
 
   const idleGlanceActive = pose === 'seated' && routineFinished && !open && !reducedMotion && !motionPaused;
   // Message behavior follows Gary's pose, never viewport geometry. Real conditional rendering
