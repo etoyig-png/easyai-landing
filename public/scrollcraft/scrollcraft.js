@@ -298,6 +298,8 @@
     var scDead = false;
     var scTickFrame = 0, scPointerFrame = 0;
     function on(type, fn, o) {
+      // Element scrolls do not bubble; capture every registered scroll handler for the viewport frame.
+      if (scroller && type === 'scroll') o = Object.assign({}, o, { capture: true });
       addEventListener(type, fn, o);
       scListeners.push([type, fn, o]);
     }
