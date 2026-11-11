@@ -391,7 +391,8 @@ test.describe('approved 1.1 reconciliation', () => {
         return g.top >= invitation.bottom && g.top >= action.bottom;
       })).toBeTruthy();
     }
-    await video.evaluate(el => { const v = el as HTMLVideoElement; v.pause(); v.currentTime = 3; v.dispatchEvent(new Event('timeupdate')); });
+    await video.scrollIntoViewIfNeeded();
+    await video.evaluate(async el => { const v = el as HTMLVideoElement; v.currentTime = 3; await v.play(); });
     await expect(page.locator('.gary-video-bubble')).toHaveText("Hey I'm Gary From Accounting, Im here to help.");
     await expect(page.locator('.gary-video-bubble')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
     await video.evaluate(el => { const v = el as HTMLVideoElement; v.currentTime = 8.1; v.dispatchEvent(new Event('timeupdate')); });
@@ -409,7 +410,7 @@ test('approved 1.1 reconciliation assessment glow pulses continuously and respec
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
   const button = page.locator('.discovery-lead .btn-green');
-  await expect(button).toHaveCSS('background-color', 'rgb(34, 197, 94)');
+  await expect(button).toHaveCSS('background-color', 'rgb(57, 239, 119)');
   const read = () => button.evaluate(el => {
     const s = getComputedStyle(el, '::before');
     return { name: s.animationName, iterations: s.animationIterationCount, opacity: s.opacity, blur: s.filter };
@@ -424,6 +425,24 @@ test('approved 1.1 reconciliation assessment glow pulses continuously and respec
   await expect.poll(() => button.evaluate(el => getComputedStyle(el, '::before').animationPlayState)).toBe('running');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect.poll(async () => (await read()).name).toBe('none');
-  expect((await read()).blur).toContain('blur(');
-  await expect(button).toHaveCSS('background-color', 'rgb(34, 197, 94)');
+  expect((await read()).blur).toBe('blur(16.9px)');
+  await expect(button).toHaveCSS('background-color', 'rgb(57, 239, 119)');
+});
+
+test('approved 1.1 recovery keeps human Gary and chat available after video failure', async ({ page }) => {
+  await page.route('**/api/**', route => route.abort());
+  await page.route('**/gary-concierge.webm*', route => route.abort());
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  await page.locator('.gary-concierge-video').waitFor();
+  if (page.viewportSize()!.width < 768) await page.locator('#gary-home-slot').scrollIntoViewIfNeeded();
+  const retry = page.getByRole('button', { name: 'Retry Gary animation', exact: true });
+  await expect(retry).toBeVisible();
+  await expect(page.locator('.gary-video-placeholder [data-gary-pose="seated"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Chat with Gary from Accounting', exact: true })).toBeVisible();
+  await page.unroute('**/gary-concierge.webm*');
+  await retry.click();
+  await expect(page.locator('.gary-concierge-video')).toHaveAttribute('data-started', 'true');
+  await expect.poll(() => page.locator('.gary-concierge-video').evaluate(video => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
+  await expect(retry).toHaveCount(0);
 });

@@ -1,6 +1,8 @@
 # Approved 1.1 reconciliation, November 11, 2026
 
-Current review: see [latest copy, sizing, pulse and public Gary checks](latest-reviewed-corrections.md), runtime 6b6cf00b20bbd5cbfcf1568e887b4b29903e7628. Earlier snapshots below are retained as history.
+Latest narrow correction: [brighter halo and mobile Gary recovery](phone-recovery.md), compiled runtime 6924ab35af203c3165d5fbd48850dbf23a7882ba.
+
+Previous review: see [latest copy, sizing, pulse and public Gary checks](latest-reviewed-corrections.md), runtime 6b6cf00b20bbd5cbfcf1568e887b4b29903e7628. Earlier snapshots below are retained as history.
 
 Status: PASS FOR VISUAL PREVIEW. Founder review and production/operational acceptance remain pending. Nothing was pushed, merged or deployed.
 

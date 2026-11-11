@@ -211,3 +211,8 @@ The explicit latest statement uses PROJECTS. Its responsive font size is 80% of 
 Assessment pills use existing bright brand green with a restrained new 3.2-second continuous blurred-halo pulse. This is an implementation choice approved by the latest pulse direction; historical exact timing was not recovered. Reduced motion stays static and the existing Pause motion control pauses it. Earlier notes treating the pulse as blocked are superseded.
 
 Public Android emulation, desktop and tablet all loaded the real transparent human Gary WebM, played it, and played it after refresh without network/decode errors. A real public natural loop wrapped at the actual preserved 20.125-second asset duration. Gary code/assets were unchanged. His physical Android failure is still unconfirmed; on mobile he remains reserved below the product story. See the linked report and JSON for exact evidence, limits and rollback commits.
+
+
+## Brighter halo and Gary loading recovery
+
+See [phone recovery report](../reconciliation/2026-11-11/phone-recovery.md), runtime 6924ab35af203c3165d5fbd48850dbf23a7882ba. Assessment green is brighter; glow dimensions are 30% wider, same button size, pulse/Pause/reduced-motion retained. Native Gary autoplay now has the existing human-pose placeholder plus manual play/retry while unavailable. Actual-device cause remains unconfirmed; approved mobile reserved placement and every asset remain intact.
