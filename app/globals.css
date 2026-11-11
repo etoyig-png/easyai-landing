@@ -896,7 +896,7 @@ body:has(.home-story) header .btn-green:focus-visible { outline:3px solid #a8d6f
 #response .story-chapter-copy, #engagement .story-chapter-copy { grid-column:1; --reveal-x:-110px; --reveal-y:0px; }
 #response .product-section-identity, #engagement .product-section-identity { --reveal-x:110px; --reveal-y:0px; }
 .story-chapter-copy[data-story-reveal] .story-sentence { --reveal-x:0px; --reveal-y:36px; }
-@media(max-width:767px) {
+@media(max-width:1023px) {
  .product-story-visual, #response .product-story-visual, #engagement .product-story-visual { grid-column:1; grid-row:1; }
  .story-chapter-copy[data-story-reveal], #response .story-chapter-copy, #engagement .story-chapter-copy { grid-column:1; grid-row:2; }
 }
