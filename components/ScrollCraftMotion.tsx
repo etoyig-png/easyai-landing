@@ -33,7 +33,7 @@ export default function ScrollCraftMotion() {
       const image = new window.Image();
       image.src = '/devices/phone-photograph-crop.webp';
       try { await image.decode(); } catch { revealStatic(); return; }
-      if (active && !preference.matches && !root?.hasAttribute('data-opening-complete')) setRequested(true);
+      if (active && !preference.matches) setRequested(true);
     };
     request();
     preference.addEventListener('change', request);
@@ -45,7 +45,7 @@ export default function ScrollCraftMotion() {
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
     let instance: ScrollCraftInstance | undefined;
     let traces: ReturnType<typeof mountTraceMotion> | undefined;
-    const scenes = Array.from(root.querySelectorAll('.product-scene, .discovery-intro, .discovery-human'));
+    const scenes = Array.from(root.querySelectorAll('.product-scene, .discovery-intro, .discovery-human, .discovery-opening'));
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => entry.target.classList.toggle('scene-visible', entry.isIntersecting));
     }, { threshold: 0.2 });
@@ -88,7 +88,9 @@ export default function ScrollCraftMotion() {
     root.addEventListener('animationend', finishOpening);
     const movePhone = () => {
       if (preference.matches || paused) return;
-      const progress = Math.min(1, scrollY / Math.max(1, innerHeight));
+      const section = opening?.closest('.discovery-opening');
+      const top = section?.getBoundingClientRect().top ?? 0;
+      const progress = Math.min(1, Math.max(0, (innerHeight - top) / Math.max(1, innerHeight + (section?.clientHeight ?? innerHeight))));
       opening?.style.setProperty('--phone-scroll-x', `${Math.sin(progress * Math.PI * 3) * 22}px`);
       opening?.style.setProperty('--phone-scroll-angle', `${Math.sin(progress * Math.PI * 3) * 8}deg`);
     };
