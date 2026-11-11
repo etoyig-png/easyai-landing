@@ -188,3 +188,11 @@ Gary transparency: exterior black matte removed offline with boundary-connected 
 Gary speech bubble placement restored: white introduction sits left of and above the cheek, anchored by its bottom to 70% of the video height; tail targets mouth. Timing remains 2–8s. CSS-only, no media/JS/dependency/API changes.
 
 2026-10-30: speech pointer overlaps bubble by 14px to eliminate the rounded-corner seam. Sign copy is now perspective-mapped offline to detected board corners in each frame through raise, hold and lowering, replacing fixed lettering. Existing video/alpha pipeline reused; no runtime dependencies or browser tracking added.
+
+## Current approved 1.1 reconciliation, November 11, 2026
+
+This section supersedes historical homepage order, old globe timing and older Gary proposal notes above. The immediate centered customer-finding headline and assessment pill now lead, followed by Get found / Get discovered / Get more prospects, Here's how, grouped existing logos and GAP / AIM / SmartSite. The existing globe and straight metallic wordmark follow the products, with another assessment pill immediately after them. Gary's invitation and reserved mobile portal space follow that action. Desktop Gary remains fixed; mobile chat keeps the existing dialog and contracts.
+
+All 1.1 public assets are unchanged. Sentence reveals, original subtitle placement/colors, construction conversation/frame, actual transparent human Gary video, tracked sign lettering, native loop, refresh playback, 2–8-second white joined bubble and five-second launch delay remain. Globe tracing uses the current 30-second drawing cycle and stable 24-second trail fade. Positional logo entrances are left / right / bottom. Older 4/8/12-second fade notes do not describe current code.
+
+See docs/reconciliation/2026-11-11/README.md, file-comparison.json and browser-acceptance.json for exact preserved/source/build revisions, private-bundle integrity evidence, reversible commits, actual tests and performance measurements. The current visual preview is ready for founder review. Live conversation, complete assessment/report delivery and founder-visible history remain unverified; no production release or real provider/email attempt was made.

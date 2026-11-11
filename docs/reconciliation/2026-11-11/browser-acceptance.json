@@ -1,0 +1,629 @@
+{
+  "buildRevision": "1639b62d77ee1c80c4b630f8b6d784addcd33349",
+  "scenarios": [
+    {
+      "file": "chat-390.json",
+      "mode": "chat",
+      "width": 390,
+      "checks": [
+        {
+          "name": "before opening chat",
+          "video": 1
+        },
+        {
+          "name": "chat opened",
+          "pass": true
+        },
+        {
+          "name": "chat fixture response and close",
+          "pass": true,
+          "fixtureCalls": 2
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 2
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 2,
+      "blockedCalls": []
+    },
+    {
+      "file": "construction-1440.json",
+      "mode": "construction",
+      "width": 1440,
+      "checks": [
+        {
+          "name": "construction plays",
+          "time": 0.039652
+        },
+        {
+          "name": "resume viewport",
+          "top": 4715.4375,
+          "bottom": 5221.6875,
+          "paused": true,
+          "scrollY": 0
+        },
+        {
+          "name": "pause resume construction",
+          "pass": true
+        },
+        {
+          "name": "live reduced motion pauses video",
+          "pass": true
+        },
+        {
+          "name": "globe drawing continues",
+          "pass": true
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 0
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 0,
+      "blockedCalls": []
+    },
+    {
+      "file": "layout-1024.json",
+      "mode": "layout",
+      "width": 1024,
+      "checks": [
+        {
+          "name": "entry layout and primary action",
+          "headline": "Are customers finding your business? We help more of them find you.",
+          "centerError": 0,
+          "cta": "Start Your Free Assessment",
+          "ctaHeight": 48,
+          "ctaHit": true,
+          "overflow": false,
+          "order": [
+            "discovery",
+            "response",
+            "engagement"
+          ],
+          "logoLinks": [
+            "#discovery",
+            "#response",
+            "#engagement"
+          ],
+          "mobilePortal": false,
+          "metrics": {
+            "lcp": 596,
+            "cls": 0.00034631391366322836
+          },
+          "textWidth": 524.75
+        },
+        {
+          "name": "scroll layout",
+          "pass": true
+        },
+        {
+          "name": "assessment navigation",
+          "url": "http://127.0.0.1:8080/assessment"
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 0
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 0,
+      "blockedCalls": []
+    },
+    {
+      "file": "layout-1440.json",
+      "mode": "layout",
+      "width": 1440,
+      "checks": [
+        {
+          "name": "entry layout and primary action",
+          "headline": "Are customers finding your business? We help more of them find you.",
+          "centerError": 0,
+          "cta": "Start Your Free Assessment",
+          "ctaHeight": 48,
+          "ctaHit": true,
+          "overflow": false,
+          "order": [
+            "discovery",
+            "response",
+            "engagement"
+          ],
+          "logoLinks": [
+            "#discovery",
+            "#response",
+            "#engagement"
+          ],
+          "mobilePortal": false,
+          "metrics": {
+            "lcp": 660,
+            "cls": 0.00002123018743569959
+          },
+          "textWidth": 692.6875
+        },
+        {
+          "name": "scroll layout",
+          "pass": true
+        },
+        {
+          "name": "assessment navigation",
+          "url": "http://127.0.0.1:8080/assessment"
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 0
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 0,
+      "blockedCalls": []
+    },
+    {
+      "file": "layout-360.json",
+      "mode": "layout",
+      "width": 360,
+      "checks": [
+        {
+          "name": "entry layout and primary action",
+          "headline": "Are customers finding your business? We help more of them find you.",
+          "centerError": 0,
+          "cta": "Start Your Free Assessment",
+          "ctaHeight": 48,
+          "ctaHit": true,
+          "overflow": false,
+          "order": [
+            "discovery",
+            "response",
+            "engagement"
+          ],
+          "logoLinks": [
+            "#discovery",
+            "#response",
+            "#engagement"
+          ],
+          "mobilePortal": true,
+          "metrics": {
+            "lcp": 624,
+            "cls": 0.00016629501028806584
+          },
+          "textWidth": 215.375
+        },
+        {
+          "name": "scroll layout",
+          "pass": true
+        },
+        {
+          "name": "assessment navigation",
+          "url": "http://127.0.0.1:8080/assessment"
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 0
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 0,
+      "blockedCalls": []
+    },
+    {
+      "file": "layout-390.json",
+      "mode": "layout",
+      "width": 390,
+      "checks": [
+        {
+          "name": "entry layout and primary action",
+          "headline": "Are customers finding your business? We help more of them find you.",
+          "centerError": 0,
+          "cta": "Start Your Free Assessment",
+          "ctaHeight": 48,
+          "ctaHit": true,
+          "overflow": false,
+          "order": [
+            "discovery",
+            "response",
+            "engagement"
+          ],
+          "logoLinks": [
+            "#discovery",
+            "#response",
+            "#engagement"
+          ],
+          "mobilePortal": true,
+          "metrics": {
+            "lcp": 632,
+            "cls": 0.00016826299857549857
+          },
+          "textWidth": 325.125
+        },
+        {
+          "name": "scroll layout",
+          "pass": true
+        },
+        {
+          "name": "assessment navigation",
+          "url": "http://127.0.0.1:8080/assessment"
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 0
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 0,
+      "blockedCalls": []
+    },
+    {
+      "file": "layout-768.json",
+      "mode": "layout",
+      "width": 768,
+      "checks": [
+        {
+          "name": "entry layout and primary action",
+          "headline": "Are customers finding your business? We help more of them find you.",
+          "centerError": 0,
+          "cta": "Start Your Free Assessment",
+          "ctaHeight": 48,
+          "ctaHit": true,
+          "overflow": false,
+          "order": [
+            "discovery",
+            "response",
+            "engagement"
+          ],
+          "logoLinks": [
+            "#discovery",
+            "#response",
+            "#engagement"
+          ],
+          "mobilePortal": false,
+          "metrics": {
+            "lcp": 660,
+            "cls": 0.0007806696887860083
+          },
+          "textWidth": 396.5625
+        },
+        {
+          "name": "scroll layout",
+          "pass": true
+        },
+        {
+          "name": "assessment navigation",
+          "url": "http://127.0.0.1:8080/assessment"
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 0
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 0,
+      "blockedCalls": []
+    },
+    {
+      "file": "motion-1440.json",
+      "mode": "motion",
+      "width": 1440,
+      "checks": [
+        {
+          "name": "offscreen product sentence",
+          "visible": false,
+          "opacity": "1"
+        },
+        {
+          "name": "product sentences reveal in view",
+          "pass": true
+        },
+        {
+          "name": "logo entrance directions",
+          "styles": [
+            {
+              "x": "-110px",
+              "y": "0px"
+            },
+            {
+              "x": "110px",
+              "y": "0px"
+            },
+            {
+              "x": "0px",
+              "y": "90px"
+            }
+          ]
+        },
+        {
+          "name": "approved logo subtitles",
+          "colors": [
+            "rgb(39, 196, 255)",
+            "rgb(214, 228, 239)",
+            "rgb(172, 85, 255)"
+          ],
+          "gapText": "Google + AI Presence"
+        },
+        {
+          "name": "all three product logos navigate",
+          "pass": true
+        },
+        {
+          "name": "Gary invitation clearance",
+          "garyBelowInvitation": true,
+          "ctaNotCovered": true,
+          "overflow": false,
+          "arrowColor": "rgb(255, 255, 255)"
+        },
+        {
+          "name": "Gary video plays when visible",
+          "time": 5.194591,
+          "duration": 20.125,
+          "ready": 4,
+          "loop": true
+        },
+        {
+          "name": "Gary bubble 2-to-8 second timing and joined white tail",
+          "pass": true,
+          "tail": {
+            "white": true,
+            "tailWhite": true,
+            "joinedX": true,
+            "joinedY": true
+          }
+        },
+        {
+          "name": "Gary crosses loop boundary",
+          "time": 1.064683,
+          "paused": false,
+          "ended": false
+        },
+        {
+          "name": "Gary chat opens sends fixture and closes",
+          "fixtureCalls": 2
+        },
+        {
+          "name": "approved construction video plays",
+          "pass": true
+        },
+        {
+          "name": "resume viewport",
+          "top": 4715.4375,
+          "bottom": 5221.6875,
+          "paused": true,
+          "scrollY": 0
+        },
+        {
+          "name": "motion pause and resume",
+          "pass": true
+        },
+        {
+          "name": "globe continues drawing",
+          "pass": true
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 2
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 2,
+      "blockedCalls": []
+    },
+    {
+      "file": "motion-390.json",
+      "mode": "motion",
+      "width": 390,
+      "checks": [
+        {
+          "name": "offscreen product sentence",
+          "visible": false,
+          "opacity": "0.839859"
+        },
+        {
+          "name": "product sentences reveal in view",
+          "pass": true
+        },
+        {
+          "name": "logo entrance directions",
+          "styles": [
+            {
+              "x": "-110px",
+              "y": "0px"
+            },
+            {
+              "x": "110px",
+              "y": "0px"
+            },
+            {
+              "x": "0px",
+              "y": "90px"
+            }
+          ]
+        },
+        {
+          "name": "approved logo subtitles",
+          "colors": [
+            "rgb(39, 196, 255)",
+            "rgb(214, 228, 239)",
+            "rgb(172, 85, 255)"
+          ],
+          "gapText": "Google + AI Presence"
+        },
+        {
+          "name": "all three product logos navigate",
+          "pass": true
+        },
+        {
+          "name": "Gary invitation clearance",
+          "garyBelowInvitation": true,
+          "ctaNotCovered": true,
+          "overflow": false,
+          "arrowColor": "rgb(255, 255, 255)"
+        },
+        {
+          "name": "Gary video plays when visible",
+          "time": 5.988067,
+          "duration": 20.125,
+          "ready": 4,
+          "loop": true
+        },
+        {
+          "name": "Gary bubble 2-to-8 second timing and joined white tail",
+          "pass": true,
+          "tail": {
+            "white": true,
+            "tailWhite": true,
+            "joinedX": true,
+            "joinedY": true
+          }
+        },
+        {
+          "name": "Gary crosses loop boundary",
+          "time": 1.0652,
+          "paused": false,
+          "ended": false
+        },
+        {
+          "name": "Gary chat opens sends fixture and closes",
+          "fixtureCalls": 2
+        },
+        {
+          "name": "approved construction video plays",
+          "pass": true
+        },
+        {
+          "name": "resume viewport",
+          "top": 6609.421875,
+          "bottom": 6801.796875,
+          "paused": true,
+          "scrollY": 0
+        },
+        {
+          "name": "motion pause and resume",
+          "pass": true
+        },
+        {
+          "name": "globe continues drawing",
+          "pass": true
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 2
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 2,
+      "blockedCalls": []
+    },
+    {
+      "file": "nojs-1440.json",
+      "mode": "nojs",
+      "width": 1440,
+      "checks": [
+        {
+          "name": "motion-off readable fallback",
+          "headlineOpacity": "1",
+          "revealsActive": false,
+          "sentences": true,
+          "garyVideo": false,
+          "poster": "/construction-conversation-poster.webp",
+          "videoPaused": true
+        },
+        {
+          "name": "no JavaScript contact fallback",
+          "pass": true
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 0
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 0,
+      "blockedCalls": []
+    },
+    {
+      "file": "reduced-390.json",
+      "mode": "reduced",
+      "width": 390,
+      "checks": [
+        {
+          "name": "motion-off readable fallback",
+          "headlineOpacity": "1",
+          "revealsActive": false,
+          "sentences": true,
+          "garyVideo": false,
+          "poster": "/construction-conversation-poster.webp",
+          "videoPaused": true
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 0
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 0,
+      "blockedCalls": []
+    },
+    {
+      "file": "refresh-1440.json",
+      "mode": "refresh",
+      "width": 1440,
+      "checks": [
+        {
+          "name": "before refresh",
+          "playing": true
+        },
+        {
+          "name": "after actual page refresh",
+          "playing": true
+        },
+        {
+          "name": "completed",
+          "pass": true,
+          "blockedCalls": [],
+          "fixtureCalls": 0
+        }
+      ],
+      "errors": [],
+      "fixtureCalls": 0,
+      "blockedCalls": []
+    }
+  ],
+  "typecheck": {
+    "exit": 0,
+    "signal": null,
+    "durationMs": 3080,
+    "stdout": "",
+    "stderr": ""
+  },
+  "regressionResult": "8 passed",
+  "regressionLog": "\nRunning 8 tests using 1 worker\n\n[WebServer]  ⚠ For production Image Optimization with Next.js, the optional 'sharp' package is strongly recommended. Run 'npm i sharp', and Next.js will use it automatically for Image Optimization.\n[WebServer] Read more: https://nextjs.org/docs/messages/sharp-missing-in-production\n  ✓  1 [desktop-chromium] › tests/e2e/discovery-design.spec.ts:349:7 › approved 1.1 reconciliation › visitor sees the approved opening and can start the assessment (1.6s)\n  ✓  2 [desktop-chromium] › tests/e2e/discovery-design.spec.ts:369:7 › approved 1.1 reconciliation › existing human Gary keeps his bubble timing and mobile invitation clearance (7.3s)\n  ✓  3 [mobile-360x800] › tests/e2e/discovery-design.spec.ts:349:7 › approved 1.1 reconciliation › visitor sees the approved opening and can start the assessment (1.1s)\n  ✓  4 [mobile-360x800] › tests/e2e/discovery-design.spec.ts:369:7 › approved 1.1 reconciliation › existing human Gary keeps his bubble timing and mobile invitation clearance (6.7s)\n  ✓  5 [mobile-390x844] › tests/e2e/discovery-design.spec.ts:349:7 › approved 1.1 reconciliation › visitor sees the approved opening and can start the assessment (974ms)\n  ✓  6 [mobile-390x844] › tests/e2e/discovery-design.spec.ts:369:7 › approved 1.1 reconciliation › existing human Gary keeps his bubble timing and mobile invitation clearance (6.9s)\n  ✓  7 [mobile-412x915] › tests/e2e/discovery-design.spec.ts:349:7 › approved 1.1 reconciliation › visitor sees the approved opening and can start the assessment (1.0s)\n  ✓  8 [mobile-412x915] › tests/e2e/discovery-design.spec.ts:369:7 › approved 1.1 reconciliation › existing human Gary keeps his bubble timing and mobile invitation clearance (6.7s)\n\n  8 passed (37.0s)\n",
+  "preservedArchiveSha256": "f4bf8999adf2c523eb27f5348c243ad574eae9297c1c4e9a3ff46dacf2fef42f",
+  "changedRuntimePaths": [
+    "app/globals.css",
+    "app/page.tsx",
+    "components/ScrollCraftMotion.tsx",
+    "components/gary/GaryLauncher.tsx",
+    "tests/e2e/discovery-design.spec.ts"
+  ]
+}

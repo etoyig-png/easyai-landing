@@ -343,3 +343,58 @@ test('unavailable coastline asset preserves the static globe and business identi
   await expect(page.locator('.discovery-brand')).toHaveCSS('opacity', '1');
   await expect(page.locator('.discovery-reveal')).toHaveCSS('opacity', '0');
 });
+
+
+test.describe('approved 1.1 reconciliation', () => {
+  test('visitor sees the approved opening and can start the assessment', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const headline = page.getByRole('heading', { level: 1 });
+    await expect(headline).toHaveText('Are customers finding your business? We help more of them find you.');
+    await expect(headline).toHaveCSS('opacity', '1');
+    const openingAction = page.locator('.discovery-lead a');
+    await expect(openingAction).toHaveText('Start Your Free Assessment');
+    await expect(openingAction).toHaveAttribute('href', '/assessment');
+    await expect(page.locator('.discovery-lead p')).toHaveText('Get found. Get discovered. Get more prospects.');
+    expect(await page.locator('.product-identities a').evaluateAll(links => links.map(link => link.getAttribute('href')))).toEqual(['#discovery', '#response', '#engagement']);
+    expect(await page.locator('.product-scene').evaluateAll(sections => sections.map(section => section.id))).toEqual(['discovery', 'response', 'engagement']);
+    expect(await page.locator('.discovery-opening').evaluate(el => Boolean(document.querySelector('#engagement')!.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))).toBeTruthy();
+    await expect(page.locator('.discovery-assessment > a').first()).toHaveText('Start Your Free Assessment');
+    expect(await headline.evaluate(el => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect().width; })).toBeGreaterThan(100);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+    await openingAction.click();
+    await expect(page).toHaveURL(/\/assessment$/);
+  });
+
+  test('existing human Gary keeps his bubble timing and mobile invitation clearance', async ({ page }) => {
+    await page.route('**/api/**', route => new URL(route.request().url()).pathname === '/api/gary/message'
+      ? route.fulfill({ json: { sessionId: 'reconciliation-fixture', reply: { text: 'Preview interface fixture.' } } })
+      : route.abort());
+    await page.goto('/');
+    await page.locator('.gary-invitation').scrollIntoViewIfNeeded();
+    const video = page.locator('.gary-concierge-video');
+    await expect(video).toBeAttached({ timeout: 8000 });
+    await expect(video).toHaveAttribute('src', '/gary-concierge.webm?v=tracked2');
+    await expect(video).toHaveAttribute('loop', '');
+    await expect.poll(() => video.evaluate(el => (el as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
+    if (page.viewportSize()!.width < 768) {
+      await expect(page.locator('#gary-home-slot .gary-launcher')).toHaveCount(1);
+      expect(await page.evaluate(() => {
+        const g = document.querySelector('.gary-launcher')!.getBoundingClientRect();
+        const invitation = document.querySelector('.gary-invitation')!.getBoundingClientRect();
+        const action = document.querySelector('.discovery-assessment .btn-green')!.getBoundingClientRect();
+        return g.top >= invitation.bottom && g.top >= action.bottom;
+      })).toBeTruthy();
+    }
+    await video.evaluate(el => { const v = el as HTMLVideoElement; v.pause(); v.currentTime = 3; v.dispatchEvent(new Event('timeupdate')); });
+    await expect(page.locator('.gary-video-bubble')).toHaveText("Hey I'm Gary From Accounting, Im here to help.");
+    await expect(page.locator('.gary-video-bubble')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await video.evaluate(el => { const v = el as HTMLVideoElement; v.currentTime = 8.1; v.dispatchEvent(new Event('timeupdate')); });
+    await expect(page.locator('.gary-video-bubble')).toHaveCount(0);
+    await page.locator('.gary-invitation').click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('dialog')).toContainText('Preview interface fixture.');
+    await page.getByRole('button', { name: 'Close chat', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+});
