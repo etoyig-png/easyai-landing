@@ -41,7 +41,7 @@ export default function HomePage() {
         <h2 data-story-reveal>Here’s how.</h2>
         <div className="product-identities" aria-label="GAP, AIM, and SmartSite">
           <svg width="0" height="0" className="logo-mask-definitions" aria-hidden="true" focusable="false"><defs><filter id="gap-paper-mask" colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  -1 -1 -1 0 2.85" result="paperless" /><feComposite in="paperless" in2="SourceAlpha" operator="in" /></filter><filter id="brand-radiance" colorInterpolationFilters="sRGB"><feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncG type="gamma" amplitude="1" exponent=".55" offset="0" /><feFuncB type="gamma" amplitude="1" exponent=".55" offset="0" /></feComponentTransfer></filter></defs></svg>
-          <div className="identity-entry"><a href="#discovery" aria-label="Explore GAP" className="product-identity identity-gap" data-story-reveal>
+          <div className="identity-entry"><a href="#discovery" aria-label="Explore GAP" className="product-identity identity-gap">
             <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#ffe28a" />
             <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><ellipse cx="180" cy="120" rx="158" ry="104" /></svg>
             <span className="gap-lockup">
@@ -52,12 +52,12 @@ export default function HomePage() {
               </svg>
             </span>
           </a></div>
-          <div className="identity-entry"><a href="#response" aria-label="Explore AIM" className="product-identity identity-aim" data-story-reveal>
+          <div className="identity-entry"><a href="#response" aria-label="Explore AIM" className="product-identity identity-aim">
             <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#bbff91" />
             <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><rect x="22" y="16" width="316" height="208" rx="70" /></svg>
             <AimLogo id="aim-plate-artwork" />
           </a></div>
-          <div className="identity-entry"><a href="#engagement" aria-label="Explore SmartSite" className="product-identity identity-web" data-story-reveal>
+          <div className="identity-entry"><a href="#engagement" aria-label="Explore SmartSite" className="product-identity identity-web">
             <canvas aria-hidden="true" className="identity-traces" width="360" height="240" data-light-trace="product" data-trace-color="#ff9a80" />
             <svg className="identity-context" viewBox="0 0 360 240" aria-hidden="true"><rect x="22" y="16" width="316" height="208" rx="32" /></svg>
             <Image quality={90} className="smartsite-identity" src="/smartsite-logo.webp" alt="SmartSite" width={2048} height={682} sizes="(max-width:767px) 340px, 340px" />
@@ -68,6 +68,14 @@ export default function HomePage() {
 
       <div id="how-easy-ai-works">
         <section id="discovery" className="product-scene story-chapter" data-sc-act="flow">
+          <div className="product-story-visual">
+            <div className="product-section-identity" data-story-reveal><span className="gap-lockup">
+              <svg className="gap-identity" viewBox="0 330 1254 510" role="img" aria-label="GAP">
+                <defs><clipPath id="gap-story-artwork"><path d="M0 0H1254V720H470V1254H0Z" /></clipPath></defs>
+                <image className="gap-artwork" href="/gap-logo.png" width="1254" height="1254" clipPath="url(#gap-story-artwork)" />
+                <text className="gap-subtitle" x="490" y="778" textLength="690" lengthAdjust="spacingAndGlyphs">Google + AI Presence</text>
+              </svg>
+            </span></div>
           <div className="product-art gap-art device-art">
             <div className="color-ribbon" />
             <PhotographicDevice kind="laptop" className="laptop-device" screenClassName="laptop-screen">
@@ -82,7 +90,8 @@ export default function HomePage() {
             <div className="floating-message message-search" data-story-reveal><span className="message-dot" /><span className="typed-line">Who should you call?</span></div>
             <div className="floating-message message-answer" data-story-reveal><span className="message-dot mint" />Get Found. Get Chosen.</div>
           </div>
-          <div className="story-chapter-copy">
+          </div>
+          <div className="story-chapter-copy" data-story-reveal>
             <h2><RevealSentences text="But can your next customer find you?" /></h2>
             <p><RevealSentences text="Customers are searching Google and increasingly asking AI who to call. But is your business showing up?" /></p>
             <p><RevealSentences text="If they can’t find you—or your information is missing or outdated—they could be choosing a competitor without ever knowing you were an option." /></p>
@@ -93,6 +102,8 @@ export default function HomePage() {
         </section>
 
         <section id="response" className="product-scene story-chapter" data-sc-act="flow">
+          <div className="product-story-visual">
+            <div className="product-section-identity" data-story-reveal><AimLogo id="aim-story-artwork" /></div>
           <div className="product-art aim-art device-art" aria-hidden="true">
             <div className="color-ribbon ribbon-mint" />
             <Iphone className="phone-device"><AimLogo id="aim-phone-artwork" className="aim-device-logo" /><p>AI Interaction Manager</p>
@@ -107,7 +118,8 @@ export default function HomePage() {
             <div className="floating-message message-search" data-story-reveal>A question becomes a conversation.</div>
             <div className="floating-message message-answer" data-story-reveal><span className="message-dot mint" />Keep the human connection.</div>
           </div>
-          <div className="story-chapter-copy">
+          </div>
+          <div className="story-chapter-copy" data-story-reveal>
             <h2><RevealSentences text="Be there when interest becomes a question." /></h2>
             <p><RevealSentences text="A potential customer has a question. But what happens when you’re helping someone else or your business is closed?" /></p>
             <p><RevealSentences text="If nobody responds, they may move on before you get a chance to help." /></p>
@@ -118,6 +130,8 @@ export default function HomePage() {
         </section>
 
         <section id="engagement" className="product-scene product-scene-reverse story-chapter" data-sc-act="flow">
+          <div className="product-story-visual">
+            <div className="product-section-identity" data-story-reveal><Image quality={90} src="/smartsite-logo.webp" alt="SmartSite" width={2048} height={682} sizes="340px" /></div>
           <div className="product-art smartsite-art device-art" aria-hidden="true">
             <div className="color-ribbon ribbon-violet" />
             <PhotographicDevice kind="laptop" className="laptop-device" screenClassName="laptop-screen smartsite-screen">
@@ -132,7 +146,8 @@ export default function HomePage() {
             <div className="floating-message message-search" data-story-reveal>I have a question about your service.</div>
             <div className="floating-message message-answer" data-story-reveal><span className="message-dot mint" />Let’s find your next step.</div>
           </div>
-          <div className="story-chapter-copy">
+          </div>
+          <div className="story-chapter-copy" data-story-reveal>
             <h2><RevealSentences text="They found you. Now give them a reason to stay." /></h2>
             <p><RevealSentences text="Someone found your business and clicked your website. What happens next?" /></p>
             <p><RevealSentences text="If they can’t find answers or figure out the next step, they may leave before you ever know they were interested." /></p>
