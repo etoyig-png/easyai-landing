@@ -867,7 +867,7 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 
 /* Approved homepage reconciliation from 10480e7; preserve 1.1 art and motion. */
 .discovery-lead { max-width:1000px; margin:auto; padding:5rem 1.5rem 2rem; text-align:center; }
-.discovery-lead h1 { font-size:clamp(2rem,4.8vw,4rem); line-height:1.15; margin:0 auto 2rem; max-width:25ch; }
+.discovery-lead h1 { font-size:var(--opening-headline-size); line-height:1.15; margin:0 auto 2rem; max-width:25ch; }
 .discovery-lead > p { max-width:760px; margin:1.75rem auto; font-size:clamp(1.05rem,2vw,1.35rem); line-height:1.65; color:#e0e9f2; }
 .gary-invitation { display:inline-flex; align-items:center; justify-content:center; gap:.75rem; min-height:48px; padding:.75rem 1rem; border:1px solid #83b8ff; border-radius:12px; background:#0d1d37; color:#fff; font-weight:600; }
 .gary-invitation-arrow { display:inline-block; font-size:1.75rem; flex-shrink:0; }
@@ -906,3 +906,8 @@ body:has(.home-story) header .btn-green:focus-visible { outline:3px solid #a8d6f
  .product-story-visual, #response .product-story-visual, #engagement .product-story-visual { grid-column:1; grid-row:1; }
  .story-chapter-copy[data-story-reveal], #response .story-chapter-copy, #engagement .story-chapter-copy { grid-column:1; grid-row:2; }
 }
+
+/* Latest reviewed text proportions share the opening headline scale. */
+.home-story { --opening-headline-size:clamp(2rem,4.8vw,4rem); }
+.discovery-lead > .discovery-promise { font-size:calc(var(--opening-headline-size) * .8); line-height:1.2; font-weight:600; max-width:100%; }
+.discovery-intro > .discovery-how { font-size:calc(var(--opening-headline-size) * .75); line-height:1.2; font-weight:700; margin:0 auto 2rem; }
