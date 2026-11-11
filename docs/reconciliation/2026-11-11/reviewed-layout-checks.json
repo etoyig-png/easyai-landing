@@ -1,0 +1,134 @@
+[
+  {
+    "width": 390,
+    "reduced": false,
+    "stack": [
+      {
+        "x": 195,
+        "y": 667.59375,
+        "w": 240,
+        "h": 160,
+        "reveal": false
+      },
+      {
+        "x": 195,
+        "y": 847.59375,
+        "w": 240,
+        "h": 160,
+        "reveal": false
+      },
+      {
+        "x": 195,
+        "y": 1027.59375,
+        "w": 240,
+        "h": 160,
+        "reveal": false
+      }
+    ],
+    "directions": [
+      [
+        "-110px",
+        "110px"
+      ],
+      [
+        "110px",
+        "-110px"
+      ],
+      [
+        "110px",
+        "-110px"
+      ]
+    ],
+    "paragraphs": 12,
+    "pass": true,
+    "buttonPulse": "BLOCKED: exact original unavailable; unchanged"
+  },
+  {
+    "width": 1440,
+    "reduced": false,
+    "stack": [
+      {
+        "x": 720,
+        "y": 753.40625,
+        "w": 240,
+        "h": 160,
+        "reveal": false
+      },
+      {
+        "x": 720,
+        "y": 933.40625,
+        "w": 240,
+        "h": 160,
+        "reveal": false
+      },
+      {
+        "x": 720,
+        "y": 1113.40625,
+        "w": 240,
+        "h": 160,
+        "reveal": false
+      }
+    ],
+    "directions": [
+      [
+        "-110px",
+        "110px"
+      ],
+      [
+        "110px",
+        "-110px"
+      ],
+      [
+        "110px",
+        "-110px"
+      ]
+    ],
+    "paragraphs": 12,
+    "pass": true,
+    "buttonPulse": "BLOCKED: exact original unavailable; unchanged"
+  },
+  {
+    "width": 390,
+    "reduced": true,
+    "stack": [
+      {
+        "x": 195,
+        "y": 667.59375,
+        "w": 240,
+        "h": 160,
+        "reveal": false
+      },
+      {
+        "x": 195,
+        "y": 847.59375,
+        "w": 240,
+        "h": 160,
+        "reveal": false
+      },
+      {
+        "x": 195,
+        "y": 1027.59375,
+        "w": 240,
+        "h": 160,
+        "reveal": false
+      }
+    ],
+    "directions": [
+      [
+        "-110px",
+        "110px"
+      ],
+      [
+        "110px",
+        "-110px"
+      ],
+      [
+        "110px",
+        "-110px"
+      ]
+    ],
+    "paragraphs": 12,
+    "pass": true,
+    "buttonPulse": "BLOCKED: exact original unavailable; unchanged"
+  }
+]
