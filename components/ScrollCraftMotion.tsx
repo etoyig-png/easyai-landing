@@ -108,6 +108,36 @@ export default function ScrollCraftMotion() {
       root.removeAttribute('data-motion-ready');
     };
   }, [ready, paused]);
+
+  useEffect(() => {
+    const root = document.querySelector('.home-story');
+    if (!root || !('IntersectionObserver' in window)) return;
+    const preference = matchMedia('(prefers-reduced-motion: reduce)');
+    const statements = root.querySelectorAll('[data-story-reveal]');
+    let observer: IntersectionObserver | undefined;
+    const update = () => {
+      observer?.disconnect();
+      root.removeAttribute('data-reveals-active');
+      if (preference.matches || paused) return;
+      root.setAttribute('data-reveals-active', 'true');
+      observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          const statement = entry.target.matches('[data-story-reveal]') ? entry.target : entry.target.querySelector('[data-story-reveal]');
+          statement?.classList.add('statement-visible');
+          observer?.unobserve(entry.target);
+        });
+      }, { threshold: .2, rootMargin: '0px 0px -18% 0px' });
+      statements.forEach(statement => observer?.observe(statement.closest('.identity-entry') ?? statement));
+    };
+    update();
+    preference.addEventListener('change', update);
+    return () => {
+      observer?.disconnect();
+      preference.removeEventListener('change', update);
+      root.removeAttribute('data-reveals-active');
+    };
+  }, [paused]);
   return requested ? <>
     <Script src="/scrollcraft/scrollcraft.js" strategy="afterInteractive" onReady={() => setReady(true)} />
     <button type="button" className="motion-toggle" onClick={() => setPaused(value => !value)} aria-pressed={paused}>

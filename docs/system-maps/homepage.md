@@ -151,3 +151,40 @@ Performance comparison to immediate predecessor: route/layout gzipJS107372→108
 Controlled LCP negative comparison (same Chromium binary/automatic graphics,1280×720,10s observation, two fresh contexts each): exact prior e65ee4c baseline8956/8824ms; current8792/8720ms. Candidate is the H1 after the unchanged8.4s opening, not the coastline fetch. This is an inherited timing/UX tradeoff, not evidence of a new slowdown or a speed improvement. Both exceed the2.5s production target. Performance release approval remains OPEN; do not report full performance PASS. No field INP/Safari conclusion. Existing preview-only authorization does not authorize a production merge or budget increase.
 
 Validation: build/TypeScript, lint,419unit tests (including4s cutoff and front/back projection) pass. Desktop26/26 plusmobile33/33=59browser checks pass at360/390/412 with hero clearance through768/1440. After adding the AIM cache-version URL, focused branding/accessibility/motion rerun12/12 passes. Tests now check actual canvas repaint while logo orientation is unchanged, pause/static fallback and unavailable coastline asset. No assertions, timeouts or budgets relaxed. Independent visual/lifecycle review: offscreen0draws/1.1s; visible renderer active, Pause clears render flags; fixed-front logo, globe depth, contrasting traces and radiance checked. Exact final tree signoff is in PR17. Overall scoped verdict PASS WITH WARNING: inherited production performance/acceptance gates and canonical closure remain pending.
+
+## Quiet product plates and straight identity correction
+
+Founder superseded cylindrical lettering with a straight, visitor-facing Easy AI mark. Reuses original glyph pixels, tight spacing and raised lighting/shadow; removes cylindrical slicing/projection and the persistent translateZ enlargement. The rotating lit globe remains. Geographic traces now have one leading point per outline, sampled at40ms rather than80ms to reduce coarse trail corners, retaining the existing independently aged4000ms fade and offscreen/Pause lifecycle.
+
+Only the three sublogos use quiet perimeter motion: one outline per GAP/SmartSite/AIM plate and one dot completing it in12seconds, without interior circuits or product trails. Copper, plum and olive gradient base colors contrast with navy and the silver/cyan artwork. GAP's supplied square canvas is fitted to a responsive1.8aspect display window, increasing visible artwork without replacing source pixels; avoids tablet cropping from a fixed240px cover height. Other site content, device photographs, screen workups, intro timing, Gary and backend contracts stay unchanged.
+
+Codex implemented and visually inspected. Production build with type/lint checks passes; prior419unit tests passed for this increment before the final equivalent loop simplification/CSS fit. Final focused browser suite20/20 passes on360/390/412/desktop; supplementary checks at360/390/768/1440 confirm distinct base colors, one perimeter shape per plate, no persistent wordmark transform and no horizontal overflow. Independent review of this new correction is not claimed. Previous independent signoff applies only to the preceding tree.
+
+Final manifest gzipJS108906+CSS13928=122834bytes versus preceding122686 (+148bytes,+0.12%). Same assets and separate unchanged Scrollcraft engine; no new runtime dependencies or database/API work. No new field/Core Web Vitals claim. Inherited long-opening LCP gate remains unresolved; preview only, no merge or production release. Scoped verdict PASS WITH WARNING for inherited performance and pending independent/founder visual acceptance.
+
+## Preview feedback — October 27, 2026
+Doubled hero headline font scale and centered the headline and discovery link. Product copy uses server-rendered sentence spans with an independent IntersectionObserver reveal, disabled for reduced motion and pause. No new application dependency.
+Video: Mikael Blomkvist / Pexels, https://www.pexels.com/video/a-man-and-woman-talking-while-using-tablet-8964795/ ; https://www.pexels.com/license/ . Illustrative construction-site tablet conversation, not a customer endorsement. Six-second muted 1280px H.264 clip, about 557 KiB, lazy loaded; existing frame preserved.
+
+## Interaction feedback — October 27 evening
+Product identity plates are native links to discovery, engagement, and response. GAP enters from left, SmartSite from right, AIM from below. The existing one-time reveal observer now covers plates, individual speech bubbles, and closing-page statements; its trigger is 18% above the viewport bottom. Removed competing scene-level plate/bubble animations so scrolling away does not replay an entrance. Business AI Solutions uses flat SVG text, separate from the shaded icon/wordmark artwork. No runtime dependencies added. Preview only.
+
+Verification: production build/lint/type checks passed. Browser checks passed at 1440, 768, 390, and 360px for logo directions, all three anchor links, bubble hidden-before-entry and remaining visible on revisit, closing-text reveal, flat subtitle, and no horizontal overflow. Reduced motion keeps all reveal content visible. Logo observers use stationary layout slots to prevent offscreen transforms blocking mobile entrances.
+
+Globe trail fade updated from four to eight seconds at Toy’s request.
+
+October 28: globe trails fade over 12 seconds; each line circuit takes 10.5 seconds instead of 10 seconds for a slight slowdown.
+
+GAP readability: preserve original icon and GAP artwork through an SVG presentation clip, replacing its embedded subtitle with responsive HTML Google + AI Presence text in light silver with a subtle dark shadow.
+
+Gary redesign preview (2026-10-28): approved illustrated human, navy jacket/glasses, 11 pose sprites in one 277914-byte WebP. Original routineSteps timings unchanged. Three expressions retained. Pose transitions use whole-character CSS gestures rather than the previous articulated SVG arms. Sign text is drawn on the illustrated board; original DOM copy remains screen-reader accessible. No chat API or panel changes. Desktop/mobile observed all eleven states without overflow. Native-browser chat open/close confirmed; live sandbox replies return an existing service error.
+
+Gary preview: approved 16-second MP4; speech at 2–8s ends help. Native video; no new dependencies or API calls. Reduced motion/repeat visits retain static Gary. Video ends on approved sign frame.
+
+2026-10-28 Gary loop correction: refresh no longer gated by sessionStorage; native video loop enabled. New clean wave and return-to-start clip replace red-fringed opening and abrupt end. Chat glyph centered via scoped grid/padding reset. Media 637259 -> 626451 bytes; home First Load JS remains 104 kB, shared 87.1 kB. No dependencies, API/database changes or production deployment. Existing chat and reduced-motion fallback reused.
+
+Gary transparency: exterior black matte removed offline with boundary-connected alpha to preserve dark interior features. VP9 WebM 360px/24fps, 569962 bytes versus MP4 626451. No browser processing, new dependencies, API/database changes; existing native looping/timing and static error fallback reused.
+
+Gary speech bubble placement restored: white introduction sits left of and above the cheek, anchored by its bottom to 70% of the video height; tail targets mouth. Timing remains 2–8s. CSS-only, no media/JS/dependency/API changes.
+
+2026-10-30: speech pointer overlaps bubble by 14px to eliminate the rounded-corner seam. Sign copy is now perspective-mapped offline to detected board corners in each frame through raise, hold and lowering, replacing fixed lettering. Existing video/alpha pipeline reused; no runtime dependencies or browser tracking added.

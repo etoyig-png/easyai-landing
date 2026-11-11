@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { globeVector, projectGlobe, trailOpacity } from './trace-motion';
 
 describe('light-trace visual contract', () => {
-  it('retires every trail segment four seconds after its head passed', () => {
+  it('retires every trail segment twenty-four seconds after its head passed', () => {
     expect(trailOpacity(0)).toBe(1);
-    expect(trailOpacity(1000)).toBe(.75);
-    expect(trailOpacity(2000)).toBe(.5);
-    expect(trailOpacity(3999)).toBeGreaterThan(0);
-    expect(trailOpacity(4000)).toBe(0);
-    expect(trailOpacity(5000)).toBe(0);
+    expect(trailOpacity(6000)).toBe(.75);
+    expect(trailOpacity(12000)).toBe(.5);
+    expect(trailOpacity(23999)).toBeGreaterThan(0);
+    expect(trailOpacity(24000)).toBe(0);
+    expect(trailOpacity(25000)).toBe(0);
     expect(trailOpacity(-10)).toBe(1);
   });
   it('rotates geographic surface points onto the front and hides the far hemisphere', () => {
