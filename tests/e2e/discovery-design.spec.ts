@@ -347,6 +347,7 @@ test('unavailable coastline asset preserves the static globe and business identi
 
 test.describe('approved 1.1 reconciliation', () => {
   test('visitor sees the approved opening and can start the assessment', async ({ page }) => {
+    await page.route('**/api/**', route => route.abort());
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     const headline = page.getByRole('heading', { level: 1 });
@@ -355,7 +356,11 @@ test.describe('approved 1.1 reconciliation', () => {
     const openingAction = page.locator('.discovery-lead a');
     await expect(openingAction).toHaveText('Start Your Free Assessment');
     await expect(openingAction).toHaveAttribute('href', '/assessment');
-    await expect(page.locator('.discovery-lead p')).toHaveText('Get found. Get discovered. Get more prospects.');
+    await expect(page.locator('.discovery-lead p')).toHaveText('GET FOUND. GET DISCOVERED. GET MORE PROJECTS.');
+    const sizes = await page.evaluate(() => ['#opening-headline', '.discovery-promise', '.discovery-how'].map(selector => parseFloat(getComputedStyle(document.querySelector(selector)!).fontSize)));
+    expect(sizes[1] / sizes[0]).toBeCloseTo(.8, 2);
+    expect(sizes[2] / sizes[0]).toBeCloseTo(.75, 2);
+    await expect(page.locator('.discovery-description')).toContainText('Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call.');
     expect(await page.locator('.product-identities a').evaluateAll(links => links.map(link => link.getAttribute('href')))).toEqual(['#discovery', '#response', '#engagement']);
     expect(await page.locator('.product-scene').evaluateAll(sections => sections.map(section => section.id))).toEqual(['discovery', 'response', 'engagement']);
     expect(await page.locator('.discovery-opening').evaluate(el => Boolean(document.querySelector('#engagement')!.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))).toBeTruthy();
@@ -397,4 +402,28 @@ test.describe('approved 1.1 reconciliation', () => {
     await page.getByRole('button', { name: 'Close chat', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
   });
+});
+
+test('approved 1.1 reconciliation assessment glow pulses continuously and respects reduced motion', async ({ page }) => {
+  await page.route('**/api/**', route => route.abort());
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  const button = page.locator('.discovery-lead .btn-green');
+  await expect(button).toHaveCSS('background-color', 'rgb(34, 197, 94)');
+  const read = () => button.evaluate(el => {
+    const s = getComputedStyle(el, '::before');
+    return { name: s.animationName, iterations: s.animationIterationCount, opacity: s.opacity, blur: s.filter };
+  });
+  expect((await read()).name).toBe('assessment-halo-pulse');
+  expect((await read()).iterations).toBe('infinite');
+  const opacity = (await read()).opacity;
+  await expect.poll(async () => (await read()).opacity).not.toBe(opacity);
+  await page.getByRole('button', { name: 'Pause motion', exact: true }).click();
+  await expect.poll(() => button.evaluate(el => getComputedStyle(el, '::before').animationPlayState)).toBe('paused');
+  await page.getByRole('button', { name: 'Resume motion', exact: true }).click();
+  await expect.poll(() => button.evaluate(el => getComputedStyle(el, '::before').animationPlayState)).toBe('running');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(async () => (await read()).name).toBe('none');
+  expect((await read()).blur).toContain('blur(');
+  await expect(button).toHaveCSS('background-color', 'rgb(34, 197, 94)');
 });

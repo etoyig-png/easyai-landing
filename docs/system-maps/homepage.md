@@ -1,4 +1,5 @@
 # Public homepage story
+> Latest correction: [reviewed PROJECTS, restored copy, headline ratios, CTA pulse and real public Gary checks](../reconciliation/2026-11-11/latest-reviewed-corrections.md), compiled runtime 6b6cf00b20bbd5cbfcf1568e887b4b29903e7628.
 > Current as-built state: see [November 11 reconciliation](../../docs/reconciliation/2026-11-11/README.md) and the current approved section at the end of this map. Earlier dated entries remain as decision history.
 
 
@@ -201,3 +202,12 @@ See docs/reconciliation/2026-11-11/README.md, file-comparison.json and browser-a
 
 ## Latest reviewed correction: vertical introductory logos and opposing product entrances
 See docs/reconciliation/2026-11-11/reviewed-layout-correction.md. Small logos now stack vertically; GAP logo/copy enter left/right, AIM and SmartSite enter right/left. Existing paragraphs and demonstrations remain. Exact original assessment-button pulse is blocked on source evidence; button unchanged. This section supersedes the earlier arrangement.
+
+
+## Latest reviewed correction: PROJECTS, copy restoration and CTA pulse
+
+The explicit latest statement uses PROJECTS. Its responsive font size is 80% of the main opening headline; HERE'S HOW is 75%. The preserved introductory RevealSentences block is restored; all 16 baseline text blocks and 12 product paragraphs remain. Three small logos stay vertically stacked; opposing GAP/AIM/SmartSite entrances are unchanged.
+
+Assessment pills use existing bright brand green with a restrained new 3.2-second continuous blurred-halo pulse. This is an implementation choice approved by the latest pulse direction; historical exact timing was not recovered. Reduced motion stays static and the existing Pause motion control pauses it. Earlier notes treating the pulse as blocked are superseded.
+
+Public Android emulation, desktop and tablet all loaded the real transparent human Gary WebM, played it, and played it after refresh without network/decode errors. A real public natural loop wrapped at the actual preserved 20.125-second asset duration. Gary code/assets were unchanged. His physical Android failure is still unconfirmed; on mobile he remains reserved below the product story. See the linked report and JSON for exact evidence, limits and rollback commits.

@@ -1,0 +1,572 @@
+{
+  "runtime": "6b6cf00b20bbd5cbfcf1568e887b4b29903e7628",
+  "url": "https://sb-40v8onjh8v2l.vercel.run/",
+  "publicScenarios": [
+    {
+      "mode": "android",
+      "physicalDevice": false,
+      "url": "https://sb-40v8onjh8v2l.vercel.run/",
+      "errors": [],
+      "failedRequests": [],
+      "mediaResponses": [
+        {
+          "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+          "status": 206,
+          "type": "video/webm",
+          "range": "bytes 0-487847/487848"
+        },
+        {
+          "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+          "status": 206,
+          "type": "video/webm",
+          "range": "bytes 0-487847/487848"
+        }
+      ],
+      "apiBlocked": 0,
+      "checks": [
+        {
+          "text": {
+            "headline": "Are customers finding your business? We help more of them find you.",
+            "promise": "GET FOUND. GET DISCOVERED. GET MORE PROJECTS.",
+            "how": "HERE'S HOW",
+            "sizes": [
+              32,
+              25.6,
+              24
+            ],
+            "intro": "Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Once they find you, we help turn website attention into conversations, captured leads, and real customer opportunities.",
+            "overflow": false
+          }
+        },
+        {
+          "pulseOpacitySamples": [
+            0.367101,
+            0.575913,
+            0.84057,
+            0.892532,
+            0.712002
+          ]
+        },
+        {
+          "button": {
+            "animation": "assessment-halo-pulse",
+            "iterations": "infinite",
+            "duration": "3.2s",
+            "opacity": 0.367101,
+            "blur": "blur(13px)",
+            "background": "rgb(34, 197, 94)",
+            "label": "rgb(5, 14, 28)"
+          }
+        },
+        {
+          "label": "initial location",
+          "video": {
+            "time": 0,
+            "ready": 4,
+            "paused": true,
+            "width": 360,
+            "height": 360,
+            "loop": true,
+            "error": null,
+            "top": 6997.4375
+          }
+        },
+        {
+          "label": "visible public video",
+          "video": {
+            "time": 1.567214,
+            "ready": 4,
+            "paused": false,
+            "width": 360,
+            "height": 360,
+            "loop": true,
+            "error": null,
+            "top": 393.4375
+          }
+        },
+        {
+          "label": "public refresh",
+          "video": {
+            "time": 0.494809,
+            "ready": 4,
+            "paused": false,
+            "width": 360,
+            "height": 360,
+            "loop": true,
+            "error": null,
+            "top": 214.4375
+          }
+        }
+      ],
+      "pass": true
+    },
+    {
+      "mode": "desktop",
+      "physicalDevice": false,
+      "url": "https://sb-40v8onjh8v2l.vercel.run/",
+      "errors": [],
+      "failedRequests": [],
+      "mediaResponses": [
+        {
+          "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+          "status": 206,
+          "type": "video/webm",
+          "range": "bytes 0-487847/487848"
+        },
+        {
+          "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+          "status": 206,
+          "type": "video/webm",
+          "range": "bytes 0-487847/487848"
+        }
+      ],
+      "apiBlocked": 0,
+      "checks": [
+        {
+          "text": {
+            "headline": "Are customers finding your business? We help more of them find you.",
+            "promise": "GET FOUND. GET DISCOVERED. GET MORE PROJECTS.",
+            "how": "HERE'S HOW",
+            "sizes": [
+              64,
+              51.2,
+              48
+            ],
+            "intro": "Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Once they find you, we help turn website attention into conversations, captured leads, and real customer opportunities.",
+            "overflow": false
+          }
+        },
+        {
+          "pulseOpacitySamples": [
+            0.361795,
+            0.566262,
+            0.834878,
+            0.894302,
+            0.721129
+          ]
+        },
+        {
+          "button": {
+            "animation": "assessment-halo-pulse",
+            "iterations": "infinite",
+            "duration": "3.2s",
+            "opacity": 0.357487,
+            "blur": "blur(13px)",
+            "background": "rgb(34, 197, 94)",
+            "label": "rgb(5, 14, 28)"
+          }
+        },
+        {
+          "label": "initial location",
+          "video": {
+            "time": 0.472337,
+            "ready": 4,
+            "paused": false,
+            "width": 360,
+            "height": 360,
+            "loop": true,
+            "error": null,
+            "top": 608
+          }
+        },
+        {
+          "label": "visible public video",
+          "video": {
+            "time": 1.986624,
+            "ready": 4,
+            "paused": false,
+            "width": 360,
+            "height": 360,
+            "loop": true,
+            "error": null,
+            "top": 608
+          }
+        },
+        {
+          "label": "public refresh",
+          "video": {
+            "time": 0.368787,
+            "ready": 4,
+            "paused": false,
+            "width": 360,
+            "height": 360,
+            "loop": true,
+            "error": null,
+            "top": 608
+          }
+        }
+      ],
+      "pass": true
+    },
+    {
+      "mode": "tablet",
+      "physicalDevice": false,
+      "url": "https://sb-40v8onjh8v2l.vercel.run/",
+      "errors": [],
+      "failedRequests": [],
+      "mediaResponses": [
+        {
+          "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+          "status": 206,
+          "type": "video/webm",
+          "range": "bytes 0-487847/487848"
+        },
+        {
+          "url": "https://sb-40v8onjh8v2l.vercel.run/gary-concierge.webm?v=tracked2",
+          "status": 206,
+          "type": "video/webm",
+          "range": "bytes 0-487847/487848"
+        }
+      ],
+      "apiBlocked": 0,
+      "checks": [
+        {
+          "text": {
+            "headline": "Are customers finding your business? We help more of them find you.",
+            "promise": "GET FOUND. GET DISCOVERED. GET MORE PROJECTS.",
+            "how": "HERE'S HOW",
+            "sizes": [
+              36.864,
+              29.4912,
+              27.648
+            ],
+            "intro": "Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Once they find you, we help turn website attention into conversations, captured leads, and real customer opportunities.",
+            "overflow": false
+          }
+        },
+        {
+          "pulseOpacitySamples": [
+            0.364313,
+            0.566301,
+            0.834867,
+            0.894305,
+            0.721146
+          ]
+        },
+        {
+          "button": {
+            "animation": "assessment-halo-pulse",
+            "iterations": "infinite",
+            "duration": "3.2s",
+            "opacity": 0.359515,
+            "blur": "blur(13px)",
+            "background": "rgb(34, 197, 94)",
+            "label": "rgb(5, 14, 28)"
+          }
+        },
+        {
+          "label": "initial location",
+          "video": {
+            "time": 0.466572,
+            "ready": 4,
+            "paused": false,
+            "width": 360,
+            "height": 360,
+            "loop": true,
+            "error": null,
+            "top": 643.6875
+          }
+        },
+        {
+          "label": "visible public video",
+          "video": {
+            "time": 1.97973,
+            "ready": 4,
+            "paused": false,
+            "width": 360,
+            "height": 360,
+            "loop": true,
+            "error": null,
+            "top": 643.6875
+          }
+        },
+        {
+          "label": "public refresh",
+          "video": {
+            "time": 0.386005,
+            "ready": 4,
+            "paused": false,
+            "width": 360,
+            "height": 360,
+            "loop": true,
+            "error": null,
+            "top": 643.6875
+          }
+        }
+      ],
+      "pass": true
+    },
+    {
+      "mode": "reduced",
+      "physicalDevice": false,
+      "url": "https://sb-40v8onjh8v2l.vercel.run/",
+      "errors": [],
+      "failedRequests": [],
+      "mediaResponses": [
+        {
+          "url": "https://sb-40v8onjh8v2l.vercel.run/gary-poses.webp",
+          "status": 200,
+          "type": "image/webp"
+        }
+      ],
+      "apiBlocked": 0,
+      "checks": [
+        {
+          "text": {
+            "headline": "Are customers finding your business? We help more of them find you.",
+            "promise": "GET FOUND. GET DISCOVERED. GET MORE PROJECTS.",
+            "how": "HERE'S HOW",
+            "sizes": [
+              32,
+              25.6,
+              24
+            ],
+            "intro": "Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Once they find you, we help turn website attention into conversations, captured leads, and real customer opportunities.",
+            "overflow": false
+          }
+        },
+        {
+          "button": {
+            "animation": "none",
+            "iterations": "1",
+            "duration": "0s",
+            "opacity": 0.55,
+            "blur": "blur(13px)",
+            "background": "rgb(34, 197, 94)",
+            "label": "rgb(5, 14, 28)"
+          }
+        },
+        {
+          "reducedMotionStaticGary": true
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "publicVideoIntegrity": {
+    "status": 200,
+    "bytes": 487848,
+    "sha256": "7d688e315ce79cf3538d3bd196b38d9e65ff322474e0233a71ed9a5ce113f2e9",
+    "matchesPreservedAsset": true
+  },
+  "layoutAndNaturalLoop": {
+    "url": "https://sb-40v8onjh8v2l.vercel.run/",
+    "runtime": "6b6cf00b20bbd5cbfcf1568e887b4b29903e7628",
+    "profiles": [
+      {
+        "width": 390,
+        "reduced": false,
+        "stack": [
+          {
+            "x": 195,
+            "y": 1007.21875,
+            "w": 240,
+            "h": 160,
+            "href": "#discovery"
+          },
+          {
+            "x": 195,
+            "y": 1187.21875,
+            "w": 240,
+            "h": 160,
+            "href": "#response"
+          },
+          {
+            "x": 195,
+            "y": 1367.21875,
+            "w": 240,
+            "h": 160,
+            "href": "#engagement"
+          }
+        ],
+        "directions": [
+          [
+            "-110px",
+            "110px"
+          ],
+          [
+            "110px",
+            "-110px"
+          ],
+          [
+            "110px",
+            "-110px"
+          ]
+        ],
+        "paragraphs": 12,
+        "hiddenReveals": 0,
+        "overflow": false,
+        "pass": true
+      },
+      {
+        "width": 1440,
+        "reduced": false,
+        "stack": [
+          {
+            "x": 720,
+            "y": 1175,
+            "w": 240,
+            "h": 160,
+            "href": "#discovery"
+          },
+          {
+            "x": 720,
+            "y": 1355,
+            "w": 240,
+            "h": 160,
+            "href": "#response"
+          },
+          {
+            "x": 720,
+            "y": 1535,
+            "w": 240,
+            "h": 160,
+            "href": "#engagement"
+          }
+        ],
+        "directions": [
+          [
+            "-110px",
+            "110px"
+          ],
+          [
+            "110px",
+            "-110px"
+          ],
+          [
+            "110px",
+            "-110px"
+          ]
+        ],
+        "paragraphs": 12,
+        "hiddenReveals": 0,
+        "overflow": false,
+        "pass": true
+      },
+      {
+        "width": 390,
+        "reduced": true,
+        "stack": [
+          {
+            "x": 195,
+            "y": 1007.21875,
+            "w": 240,
+            "h": 160,
+            "href": "#discovery"
+          },
+          {
+            "x": 195,
+            "y": 1187.21875,
+            "w": 240,
+            "h": 160,
+            "href": "#response"
+          },
+          {
+            "x": 195,
+            "y": 1367.21875,
+            "w": 240,
+            "h": 160,
+            "href": "#engagement"
+          }
+        ],
+        "directions": [
+          [
+            "-110px",
+            "110px"
+          ],
+          [
+            "110px",
+            "-110px"
+          ],
+          [
+            "110px",
+            "-110px"
+          ]
+        ],
+        "paragraphs": 12,
+        "hiddenReveals": 0,
+        "overflow": false,
+        "pass": true
+      }
+    ],
+    "naturalPublicVideoLoop": {
+      "before": {
+        "time": 0.050041,
+        "duration": 20.125,
+        "loop": true
+      },
+      "samples": [
+        0.557035,
+        1.06538,
+        1.571599,
+        2.077233,
+        2.583265,
+        3.089844,
+        3.599269,
+        4.105399,
+        4.611513,
+        5.117201,
+        5.623685,
+        6.132099,
+        6.640967,
+        7.146965,
+        7.652518,
+        8.158027,
+        8.665622,
+        9.171511,
+        9.677664,
+        10.184826,
+        10.690654,
+        11.200036,
+        11.705802,
+        12.210395,
+        12.715764,
+        13.221265,
+        13.732148,
+        14.238309,
+        14.744572,
+        15.250043,
+        15.756588,
+        16.268171,
+        16.775816,
+        17.28126,
+        17.787245,
+        18.294368,
+        18.799289,
+        19.306396,
+        19.811852,
+        0.188798
+      ],
+      "wrapped": true
+    },
+    "errors": [],
+    "pass": true
+  },
+  "preservation": {
+    "backupFiles": 195,
+    "backupArchiveSha256": "f4bf8999adf2c523eb27f5348c243ad574eae9297c1c4e9a3ff46dacf2fef42f",
+    "publicFiles": 32,
+    "assetMismatches": [],
+    "copyMatch": true,
+    "preservedRevealTextBlocks": 16,
+    "changedPaths": [
+      "app/globals.css",
+      "app/page.tsx",
+      "tests/e2e/discovery-design.spec.ts"
+    ],
+    "noProtectedSourceChanges": true,
+    "runtime": "6b6cf00b20bbd5cbfcf1568e887b4b29903e7628"
+  },
+  "verification": {
+    "publicRegressionCount": 12,
+    "publicRegressionPass": true,
+    "typecheck": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "unitTests": 2,
+    "lint": "pass",
+    "build": "pass"
+  }
+}
