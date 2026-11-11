@@ -533,8 +533,6 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 .discovery-close h2 { font-size:clamp(3rem,6vw,6rem); line-height:1.05; }
 .discovery-close p { font-size:1.5rem; margin:2rem 0; }
 .discovery-close a { margin:.5rem 1rem; }
-.home-story .btn-green { background:#14783c; color:#fff; min-height:48px; }
-.home-story .btn-green:hover { background:#116533; }
 @media (prefers-reduced-motion:no-preference) {
  .home-story[data-motion-ready]:not([data-opening-complete]) .discovery-search { display:grid; animation:discovery-search 8.4s both; }
  .home-story[data-motion-ready]:not([data-opening-complete]) .discovery-brand { animation:discovery-brand 8.4s both; }
@@ -872,8 +870,7 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 .gary-invitation { display:inline-flex; align-items:center; justify-content:center; gap:.75rem; min-height:48px; padding:.75rem 1rem; border:1px solid #83b8ff; border-radius:12px; background:#0d1d37; color:#fff; font-weight:600; }
 .gary-invitation-arrow { display:inline-block; font-size:1.75rem; flex-shrink:0; }
 .discovery-assessment { padding:2rem 1.5rem 4rem; text-align:center; }
-.home-story .btn-green, body:has(.home-story) header .btn-green { background:#14783c; color:#fff; min-height:48px; border-radius:9999px; box-shadow:0 0 10px 2px rgb(34 197 94 / .2),0 0 24px 5px rgb(34 197 94 / .12); }
-.home-story .btn-green:hover { background:#116533; }
+.home-story .btn-green, body:has(.home-story) header .btn-green { position:relative; isolation:isolate; background:#22c55e; color:#050e1c; min-height:48px; border-radius:9999px; box-shadow:0 0 12px 2px rgb(34 197 94 / .25),0 0 28px 6px rgb(34 197 94 / .15); }
 body:has(.home-story) header .btn-green:focus-visible { outline:3px solid #a8d6ff; outline-offset:6px; }
 .discovery-assessment .gary-invitation { display:flex; width:fit-content; margin:2rem auto 0; }
 .discovery-assessment .gary-invitation-note { margin:.75rem auto 0; color:#e0e9f2; }
@@ -911,3 +908,11 @@ body:has(.home-story) header .btn-green:focus-visible { outline:3px solid #a8d6f
 .home-story { --opening-headline-size:clamp(2rem,4.8vw,4rem); }
 .discovery-lead > .discovery-promise { font-size:calc(var(--opening-headline-size) * .8); line-height:1.2; font-weight:600; max-width:100%; }
 .discovery-intro > .discovery-how { font-size:calc(var(--opening-headline-size) * .75); line-height:1.2; font-weight:700; margin:0 auto 2rem; }
+
+/* Toy approved a continuous pulse; 3.2s is a new setting, not recovered history. */
+.home-story .btn-green::before, body:has(.home-story) header .btn-green::before { content:""; position:absolute; inset:-6px; z-index:-1; border-radius:inherit; background:rgb(34 197 94 / .35); filter:blur(13px); pointer-events:none; opacity:.55; }
+.home-story .btn-green:hover, body:has(.home-story) header .btn-green:hover { background:#16a34a; color:#050e1c; }
+@media(prefers-reduced-motion:no-preference) {
+ .home-story .btn-green::before, body:has(.home-story) header .btn-green::before { animation:assessment-halo-pulse 3.2s ease-in-out infinite; }
+}
+@keyframes assessment-halo-pulse { 0%,100% { opacity:.35; } 50% { opacity:.9; } }
