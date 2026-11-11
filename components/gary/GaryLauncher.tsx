@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { hasPlayedLaunchAnimation, markLaunchAnimationPlayed } from '@/lib/gary/clientSession';
 import GaryCharacter from './GaryCharacter';
@@ -27,6 +29,17 @@ function usePrefersReducedMotion(): boolean {
 }
 
 export default function GaryLauncher() {
+  const pathname = usePathname();
+  const [homeSlot, setHomeSlot] = useState<HTMLElement | null>(null);
+  // Keep the existing launcher in reserved page space on phones, including while its fixed
+  // chat panel is open. One portal target preserves the button and its keyboard focus.
+  useEffect(() => {
+    const mobile = window.matchMedia('(max-width: 767px)');
+    const locate = () => setHomeSlot(mobile.matches ? document.getElementById('gary-home-slot') : null);
+    locate();
+    mobile.addEventListener('change', locate);
+    return () => mobile.removeEventListener('change', locate);
+  }, [pathname]);
   const [visible, setVisible] = useState(false);
   const [entering, setEntering] = useState(false);
   const [open, setOpen] = useState(false);
@@ -131,7 +144,7 @@ export default function GaryLauncher() {
   // The approved video already contains its sign; never overlay a second message on it.
   const showIntroBubble = !open && (!playIntro || reducedMotion);
 
-  return (
+  const launcher = (
     <div
       // gary-launcher--idle disables pointer-events on the whole container (re-enabled only on
       // the button, see globals.css) so an empty area of this box — which extends over both the
@@ -202,4 +215,5 @@ export default function GaryLauncher() {
       )}
     </div>
   );
+  return homeSlot ? createPortal(launcher, homeSlot) : launcher;
 }

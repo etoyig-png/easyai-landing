@@ -651,3 +651,10 @@ body:has(.home-story) header .btn-green:focus-visible { outline:3px solid #a8d6f
 .identity-aim::before { background:radial-gradient(ellipse at 35% 25%,#5b7550,#2d4437 75%); }
 .product-identity .identity-context { opacity:.6; }
 .product-identities .gap-identity { width:340px; height:auto; aspect-ratio:1.8; object-fit:cover; object-position:center 47%; }
+
+/* Reserve mobile homepage space for the unchanged Gary media instead of covering the copy. */
+.gary-home-slot { display:none; text-align:left; }
+@media (max-width:767px) {
+ .gary-home-slot { display:flex; justify-content:center; min-height:252px; margin-top:1rem; }
+ .gary-home-slot .gary-launcher { position:relative; right:auto!important; bottom:auto!important; max-width:100%; }
+}

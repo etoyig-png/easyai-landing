@@ -25,6 +25,7 @@ export default function HomePage() {
           Need more information? Talk to Gary <span className="gary-invitation-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" focusable="false"><path d="m5 5 14 14M5 19h14V5" /></svg></span>
         </a>
         <p className="gary-invitation-note">See AIM, our AI Interaction Manager, in action with Gary.</p>
+        <div id="gary-home-slot" className="gary-home-slot" />
       </section>
 
       <section id="introduction" className="discovery-intro" data-sc-act="flow">

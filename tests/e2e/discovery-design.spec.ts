@@ -443,6 +443,16 @@ for (const motion of ['no-preference', 'reduce'] as const) {
     await expect(invitation.locator('svg')).toBeVisible();
     if (motion === 'reduce') await expect(invitation.locator('span')).toHaveCSS('animation-name', 'none');
     else await expect(invitation.locator('span')).toHaveCSS('animation-iteration-count', '3');
+    await expect(page.locator('.gary-launcher')).toBeVisible({ timeout: 8000 });
+    if (page.viewportSize()!.width < 768) {
+      const slot = page.locator('#gary-home-slot');
+      await expect(slot.locator('.gary-launcher')).toBeVisible();
+      const invitationBox = await invitation.boundingBox(), note = await lead.locator('.gary-invitation-note').boundingBox();
+      const gary = await page.locator('.gary-launcher').boundingBox(), nextHeading = await page.locator('#introduction h2').boundingBox();
+      expect(gary!.y).toBeGreaterThanOrEqual(invitationBox!.y + invitationBox!.height);
+      expect(gary!.y).toBeGreaterThanOrEqual(note!.y + note!.height);
+      expect(gary!.y + gary!.height).toBeLessThanOrEqual(nextHeading!.y);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: info.outputPath('homepage-opening.png') });
     for (let cycle = 0; cycle < 2; cycle++) {
@@ -451,6 +461,11 @@ for (const motion of ['no-preference', 'reduce'] as const) {
       const dialog = page.getByRole('dialog');
       await expect(dialog.getByText('Synthetic Gary introduction.', { exact: true })).toBeVisible();
       await expect(dialog.getByTestId('gary-chat-character')).toBeVisible();
+      if (page.viewportSize()!.width < 768) {
+        const box = await dialog.boundingBox();
+        expect(box!.x).toBe(0); expect(box!.y).toBe(0);
+        expect(box!.width).toBe(page.viewportSize()!.width);
+      }
       if (cycle === 0) await page.screenshot({ path: info.outputPath('gary-open.png') });
       await page.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);
