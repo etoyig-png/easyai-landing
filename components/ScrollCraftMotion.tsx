@@ -7,7 +7,7 @@ import { mountTraceMotion } from '@/lib/trace-motion';
 type ScrollCraftInstance = { destroy: () => void };
 declare global {
   interface Window {
-    ScrollCraft?: { mount: (root: Element, options: Record<string, never>) => ScrollCraftInstance };
+    ScrollCraft?: { mount: (root: Element, options: { scroller?: HTMLElement }) => ScrollCraftInstance };
   }
 }
 
@@ -16,6 +16,10 @@ export default function ScrollCraftMotion() {
   const [paused, setPaused] = useState(false);
   const [ready, setReady] = useState(false);
   const [requested, setRequested] = useState(false);
+  useEffect(() => {
+    document.dispatchEvent(new CustomEvent('easyai:motion-paused', { detail: paused }));
+    return () => { if (paused) document.dispatchEvent(new CustomEvent('easyai:motion-paused', { detail: false })); };
+  }, [paused]);
   useEffect(() => {
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
     let active = true;
@@ -42,13 +46,14 @@ export default function ScrollCraftMotion() {
   useEffect(() => {
     const root = document.querySelector('.home-story');
     if (!ready || !root || !window.ScrollCraft) return;
+    const scroller = root.closest<HTMLElement>('.site-scroll-frame') ?? undefined;
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
     let instance: ScrollCraftInstance | undefined;
     let traces: ReturnType<typeof mountTraceMotion> | undefined;
     const scenes = Array.from(root.querySelectorAll('.product-scene, .discovery-intro, .discovery-human, .discovery-opening'));
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => entry.target.classList.toggle('scene-visible', entry.isIntersecting));
-    }, { threshold: 0.2 });
+    }, { root: scroller, threshold: 0.2 });
     scenes.forEach(scene => observer.observe(scene));
     const video = root.querySelector<HTMLVideoElement>('[data-conversation-video]');
     let videoVisible = false;
@@ -63,7 +68,7 @@ export default function ScrollCraftMotion() {
     const videoObserver = new IntersectionObserver(entries => {
       videoVisible = entries.some(entry => entry.isIntersecting);
       syncVideo();
-    }, { threshold: .15 });
+    }, { root: scroller, threshold: .15 });
     if (video) videoObserver.observe(video);
     const update = () => {
       syncVideo();
@@ -76,7 +81,7 @@ export default function ScrollCraftMotion() {
       if (preference.matches || paused) root.setAttribute('data-opening-complete', 'true');
       // Do not mount the engine for motion-off visitors, including live preference changes.
       if (!preference.matches && !paused) {
-        instance = window.ScrollCraft?.mount(root, {});
+        instance = window.ScrollCraft?.mount(root, { scroller });
         root.setAttribute('data-motion-ready', 'true');
         traces = mountTraceMotion(root);
       }
@@ -90,16 +95,17 @@ export default function ScrollCraftMotion() {
       if (preference.matches || paused) return;
       const section = opening?.closest('.discovery-opening');
       const top = section?.getBoundingClientRect().top ?? 0;
-      const progress = Math.min(1, Math.max(0, (innerHeight - top) / Math.max(1, innerHeight + (section?.clientHeight ?? innerHeight))));
+      const viewportHeight = scroller?.clientHeight ?? innerHeight;
+      const progress = Math.min(1, Math.max(0, (viewportHeight - top) / Math.max(1, viewportHeight + (section?.clientHeight ?? viewportHeight))));
       opening?.style.setProperty('--phone-scroll-x', `${Math.sin(progress * Math.PI * 3) * 22}px`);
       opening?.style.setProperty('--phone-scroll-angle', `${Math.sin(progress * Math.PI * 3) * 8}deg`);
     };
-    window.addEventListener('scroll', movePhone, { passive: true });
+    window.addEventListener('scroll', movePhone, { passive: true, capture: true });
     update();
     preference.addEventListener('change', update);
     return () => {
       root.removeEventListener('animationend', finishOpening);
-      window.removeEventListener('scroll', movePhone);
+      window.removeEventListener('scroll', movePhone, true);
       preference.removeEventListener('change', update);
       observer.disconnect();
       videoObserver.disconnect();
@@ -129,7 +135,7 @@ export default function ScrollCraftMotion() {
           statement?.classList.add('statement-visible');
           observer?.unobserve(entry.target);
         });
-      }, { threshold: .2, rootMargin: '0px 0px -18% 0px' });
+      }, { root: root.closest('.site-scroll-frame'), threshold: .2, rootMargin: '0px 0px -18% 0px' });
       statements.forEach(statement => observer?.observe(statement.closest('.identity-entry') ?? statement));
     };
     update();

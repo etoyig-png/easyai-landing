@@ -2,14 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { createPortal } from 'react-dom';
-import { usePathname } from 'next/navigation';
 import GaryCharacter, { type GaryPose } from './GaryCharacter';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
-// initial page rendering never downloads the heavier chat bundle. Gary's own character is plain
-// a cached illustrated sprite sheet displayed after the existing launch delay, with no extra lazy
-// boundary — it renders as soon as the launch delay elapses, same as before.
+// initial page rendering never downloads the heavier chat bundle. The approved human pose is
+// visible immediately; the existing launch delay still controls the video routine.
 const GaryPanel = dynamic(() => import('./GaryPanel'), { ssr: false });
 
 const LAUNCH_DELAY_MS = 5000;
@@ -28,16 +25,6 @@ function usePrefersReducedMotion(): boolean {
 
 
 export default function GaryLauncher() {
-  const pathname = usePathname();
-  const [homeSlot, setHomeSlot] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    const mobile = window.matchMedia('(max-width: 767px)');
-    const locate = () => setHomeSlot(mobile.matches ? document.getElementById('gary-home-slot') : null);
-    locate();
-    mobile.addEventListener('change', locate);
-    return () => mobile.removeEventListener('change', locate);
-  }, [pathname]);
-  const [visible, setVisible] = useState(false);
   const [open, setOpen] = useState(false);
   const [pose, setPose] = useState<GaryPose>('seated');
   const [routineFinished, setRoutineFinished] = useState(false);
@@ -47,6 +34,19 @@ export default function GaryLauncher() {
   const [videoStarted, setVideoStarted] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [motionPaused, setMotionPaused] = useState(false);
+  useEffect(() => {
+    const sync = (event: Event) => setMotionPaused((event as CustomEvent<boolean>).detail);
+    setMotionPaused(document.querySelector('.motion-toggle')?.getAttribute('aria-pressed') === 'true');
+    document.addEventListener('easyai:motion-paused', sync);
+    return () => document.removeEventListener('easyai:motion-paused', sync);
+  }, []);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (motionPaused) video.pause();
+    else if (videoPlaying && !reducedMotion && !open) video.play().catch(() => {});
+  }, [motionPaused, videoPlaying, reducedMotion, open]);
 
   async function playGary() {
     const video = videoRef.current;
@@ -60,9 +60,8 @@ export default function GaryLauncher() {
 
   function runRoutine() { setVideoPlaying(true); }
 
-  // Runs once, LAUNCH_DELAY_MS after mount: reveal the button + Gary, then either play the full
-  // locked routine (first time this session, motion allowed) or go straight to the seated
-  // resting state (repeat page load this session, or prefers-reduced-motion).
+  // Gary is present immediately. After the existing delay, start his approved motion routine
+  // unless reduced motion is requested; that preference keeps the human seated pose.
   //
   // Reduced motion is read directly from matchMedia here rather than through the reducedMotion
   // state/closure above: this effect has an empty dependency array (runs once, at mount), so its
@@ -75,7 +74,6 @@ export default function GaryLauncher() {
   // page.emulateMedia(), not just a lint nitpick.
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setVisible(true);
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) {
         setPose('seated');
@@ -112,20 +110,17 @@ export default function GaryLauncher() {
       if (!(target instanceof Element) || !target.closest('a[data-open-gary]')) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
       event.preventDefault();
-      setVisible(true);
       setOpen(true);
     };
     document.addEventListener('click', openFromPage);
     return () => document.removeEventListener('click', openFromPage);
   }, []);
 
-  if (!visible) return null;
-
-  const idleGlanceActive = pose === 'seated' && routineFinished && !open && !reducedMotion;
+  const idleGlanceActive = pose === 'seated' && routineFinished && !open && !reducedMotion && !motionPaused;
   // Message behavior follows Gary's pose, never viewport geometry. Real conditional rendering
   // fully removes the intro bubble while Gary is holding or lowering the physical sign, ensuring
   // there is exactly one white message element at every screen size.
-  const showIntroBubble = !open && videoPlaying && videoStarted && !reducedMotion && videoTime >= 2 && videoTime < 8;
+  const showIntroBubble = !open && videoPlaying && videoStarted && !reducedMotion && !motionPaused && videoTime >= 2 && videoTime < 8;
 
   const launcher = (
     <div
@@ -165,13 +160,13 @@ export default function GaryLauncher() {
             <div className="gary-video-stage">
               {!videoStarted && <div className="gary-video-placeholder" aria-hidden="true"><GaryCharacter pose="seated" idleGlanceActive={false} /></div>}
               <video ref={videoRef} className="gary-concierge-video" data-started={videoStarted} src="/gary-concierge.webm?v=tracked2"
-                autoPlay loop muted playsInline preload="none"
+                autoPlay={!motionPaused} loop muted playsInline preload="none"
                 aria-label="Gary waves, gets frustrated, and holds a sign pointing to the chat button."
                 onTimeUpdate={(event) => setVideoTime(event.currentTarget.currentTime)}
                 onPlaying={() => { setVideoStarted(true); setVideoFailed(false); }}
-                onPause={() => setVideoStarted(false)}
+                onPause={() => { if (!motionPaused) setVideoStarted(false); }}
                 onError={() => { setVideoStarted(false); setVideoFailed(true); }} />
-              {!videoStarted && <div className="gary-video-recovery">
+              {!videoStarted && !motionPaused && <div className="gary-video-recovery">
                 {videoFailed && <p role="status">Animation unavailable. You can still chat with Gary.</p>}
                 <button type="button" onClick={playGary}>{videoFailed ? 'Retry Gary animation' : 'Play Gary'}</button>
               </div>}
@@ -192,5 +187,5 @@ export default function GaryLauncher() {
       {open && <GaryPanel onClose={() => setOpen(false)} />}
     </div>
   );
-  return homeSlot ? createPortal(launcher, homeSlot) : launcher;
+  return launcher;
 }

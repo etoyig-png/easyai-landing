@@ -282,6 +282,9 @@
   function mount(root, opts) {
     root = typeof root === 'string' ? document.querySelector(root) : (root || document);
     opts = opts || {};
+    var scroller = opts.scroller;
+    function scrollPosition() { return scroller ? scroller.scrollTop : (scrollY || pageYOffset); }
+    function viewportHeight() { return scroller ? scroller.clientHeight : innerHeight; }
 
     // Teardown for client-side routers (issue #6). mount() registers window
     // listeners, starts two self-rescheduling rAF loops, and pushes onto
@@ -304,7 +307,7 @@
     var drifts = [];
     var playheads = [];
     var scrollEls = [];
-    var vh = innerHeight, vw = innerWidth;
+    var vh = viewportHeight(), vw = innerWidth;
     var y = 0, needsLayout = true;
     var progressBar = root.querySelector('[data-sc-progress]');
     var docEl = document.documentElement;
@@ -577,7 +580,7 @@
       // layout() and read() are both on the returned api, so a framework's
       // updated() arriving after destroyed() enters them directly.
       if (scDead) return;
-      vh = innerHeight; vw = innerWidth;
+      vh = viewportHeight(); vw = innerWidth;
       acts.forEach(function (a) {
         if (a.pinned) a.el.style.height = (a.span * 100) + 'vh';
       });
@@ -592,7 +595,7 @@
       });
       acts.forEach(function (a) {
         var r = a.el.getBoundingClientRect();
-        a.top = r.top + scrollY;
+        a.top = r.top + scrollPosition();
         a.height = r.height;
       });
       if (acts.length) {
@@ -621,7 +624,7 @@
       });
 
       worlds.forEach(function (W) {
-        W.top = W.el.getBoundingClientRect().top + scrollY;
+        W.top = W.el.getBoundingClientRect().top + scrollPosition();
         if (W.checked) return;
         W.checked = true;
         if (!W.stage) {
@@ -847,9 +850,9 @@
     // ---- per-frame scroll read -------------------------------------------
     function read() {
       if (scDead) return;
-      y = scrollY || pageYOffset;
+      y = scrollPosition();
       var driftA = null, driftB = null, driftT = 0;
-      var maxY = Math.max((document.documentElement.scrollHeight || 0) - vh, 1);
+      var maxY = Math.max(((scroller || document.documentElement).scrollHeight || 0) - vh, 1);
 
       for (var i = 0; i < acts.length; i++) {
         var a = acts[i];
@@ -1121,7 +1124,7 @@
     on('touchend', prime, { passive: true });
     on('pointerdown', prime, { passive: true });
     on('click', prime, { passive: true });
-    on('scroll', prime, { passive: true });
+    on('scroll', prime, { passive: true, capture: true });
 
     // ---- pointer devices --------------------------------------------------
     var tilts = [], magnets = [], spots = [];
@@ -1216,7 +1219,7 @@
       // Ignore URL-bar-only height changes on phones. Relaying out on those
       // makes the page jump under the reader's thumb for no reason.
       if (scDead) return;
-      if (innerWidth === lastW && isMobile()) { vh = innerHeight; return; }
+      if (innerWidth === lastW && isMobile()) { vh = viewportHeight(); return; }
       lastW = innerWidth;
       layout();
     }, { passive: true });
