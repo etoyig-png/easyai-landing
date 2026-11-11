@@ -18,7 +18,7 @@ export default function HomePage() {
       <noscript><style>{'.home-story[data-opening-pending] .discovery-brand{opacity:1!important}'}</style></noscript>
       <ScrollCraftMotion />
       <section className="discovery-lead" aria-labelledby="opening-headline">
-        <h1 id="opening-headline">Are customers finding your business? We help put you in their path.</h1>
+        <h1 id="opening-headline">Are customers finding your business? We help more of them find you.</h1>
         <Link href="/assessment" className="btn-green">Free Assessment</Link>
         <p>Help your business get found, get discovered, and connect with more prospects through Google and AI presence, a helpful website, and timely conversations.</p>
         <a href="/contact" data-open-gary className="gary-invitation">

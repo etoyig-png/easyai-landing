@@ -409,7 +409,7 @@ for (const motion of ['no-preference', 'reduce'] as const) {
     });
     await page.goto('/');
     const lead = page.locator('.discovery-lead');
-    await expect(lead.getByRole('heading', { level: 1 })).toHaveText('Are customers finding your business? We help put you in their path.');
+    await expect(lead.getByRole('heading', { level: 1 })).toHaveText('Are customers finding your business? We help more of them find you.');
     await expect(lead.getByRole('heading', { level: 1 })).toBeInViewport();
     const pause = page.getByRole('button', { name: 'Pause motion', exact: true });
     if (motion === 'no-preference') {
