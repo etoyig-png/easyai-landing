@@ -1,6 +1,8 @@
 # Approved 1.1 reconciliation, November 11, 2026
 
-Latest narrow correction: [brighter halo and mobile Gary recovery](phone-recovery.md), compiled runtime 6924ab35af203c3165d5fbd48850dbf23a7882ba.
+Current review: [persistent visible Gary, preserved page motion and final public checks](persistent-gary.md), runtime 6499c7a6bfef2d84c997dd225546c9313c03bf1c.
+
+Earlier narrow correction: [brighter halo and mobile Gary recovery](phone-recovery.md), compiled runtime 6924ab35af203c3165d5fbd48850dbf23a7882ba.
 
 Previous review: see [latest copy, sizing, pulse and public Gary checks](latest-reviewed-corrections.md), runtime 6b6cf00b20bbd5cbfcf1568e887b4b29903e7628. Earlier snapshots below are retained as history.
 

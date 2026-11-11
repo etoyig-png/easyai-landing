@@ -116,9 +116,9 @@ test('tablet scroll choreography does not create sideways overflow', async ({ pa
     await page.goto('/');
     await expect(page.locator('.home-story')).toHaveAttribute('data-motion-ready', 'true');
     for (const id of ['discovery', 'engagement', 'response']) {
-      const top = await page.locator(`#${id}`).evaluate(el => el.getBoundingClientRect().top + scrollY);
+      const top = await page.locator(`#${id}`).evaluate(el => el.getBoundingClientRect().top + (document.querySelector('.site-scroll-frame')?.scrollTop ?? scrollY));
       for (const offset of [-450, 0, 450]) {
-        await page.evaluate(y => scrollTo(0, y), top + offset);
+        await page.evaluate(y => document.querySelector('.site-scroll-frame')!.scrollTo(0, y), top + offset);
         await page.waitForTimeout(100);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
       }
@@ -260,7 +260,7 @@ test('phone entrance is gradual and reacts to scrolling before brand handoff', a
   await expect(page.locator('.discovery-search')).toHaveCSS('opacity', '1');
   const phone = page.locator('.discovery-search .photograph-phone');
   const before = await phone.evaluate(el => getComputedStyle(el).transform);
-  await page.evaluate(() => scrollTo({ top: 100, behavior: 'instant' }));
+  await page.evaluate(() => document.querySelector('.site-scroll-frame')!.scrollTo({ top: 100, behavior: 'instant' }));
   await expect.poll(() => phone.evaluate(el => getComputedStyle(el).transform)).not.toBe(before);
 });
 
@@ -382,15 +382,12 @@ test.describe('approved 1.1 reconciliation', () => {
     await expect(video).toHaveAttribute('src', '/gary-concierge.webm?v=tracked2');
     await expect(video).toHaveAttribute('loop', '');
     await expect.poll(() => video.evaluate(el => (el as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
-    if (page.viewportSize()!.width < 768) {
-      await expect(page.locator('#gary-home-slot .gary-launcher')).toHaveCount(1);
-      expect(await page.evaluate(() => {
-        const g = document.querySelector('.gary-launcher')!.getBoundingClientRect();
-        const invitation = document.querySelector('.gary-invitation')!.getBoundingClientRect();
-        const action = document.querySelector('.discovery-assessment .btn-green')!.getBoundingClientRect();
-        return g.top >= invitation.bottom && g.top >= action.bottom;
-      })).toBeTruthy();
-    }
+    await expect(page.locator('.gary-launcher')).toHaveCSS('position', 'fixed');
+    expect(await page.evaluate(() => {
+      const g = document.querySelector('.gary-launcher')!.getBoundingClientRect();
+      const frame = document.querySelector('.site-scroll-frame')!.getBoundingClientRect();
+      return g.top >= frame.bottom && g.bottom <= innerHeight;
+    })).toBeTruthy();
     await video.scrollIntoViewIfNeeded();
     await video.evaluate(async el => { const v = el as HTMLVideoElement; v.currentTime = 3; await v.play(); });
     await expect(page.locator('.gary-video-bubble')).toHaveText("Hey I'm Gary From Accounting, Im here to help.");
@@ -435,7 +432,7 @@ test('approved 1.1 recovery keeps human Gary and chat available after video fail
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
   await page.locator('.gary-concierge-video').waitFor();
-  if (page.viewportSize()!.width < 768) await page.locator('#gary-home-slot').scrollIntoViewIfNeeded();
+  await expect(page.locator('.gary-launcher')).toBeVisible();
   const retry = page.getByRole('button', { name: 'Retry Gary animation', exact: true });
   await expect(retry).toBeVisible();
   await expect(page.locator('.gary-video-placeholder [data-gary-pose="seated"]')).toBeVisible();
@@ -445,4 +442,39 @@ test('approved 1.1 recovery keeps human Gary and chat available after video fail
   await expect(page.locator('.gary-concierge-video')).toHaveAttribute('data-started', 'true');
   await expect.poll(() => page.locator('.gary-concierge-video').evaluate(video => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
   await expect(retry).toHaveCount(0);
+});
+
+test('approved 1.1 persistent Gary stays visible and clear while the page scrolls', async ({ page }) => {
+  await page.route('**/api/**', route => route.abort());
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const frame = page.locator('.site-scroll-frame');
+  const gary = page.locator('.gary-launcher');
+  await expect(gary).toBeVisible();
+  await expect(gary).toHaveCSS('position', 'fixed');
+  const top = (await gary.boundingBox())!.y;
+  for (const fraction of [0, .5, 1]) {
+    await frame.evaluate((element, fraction) => { element.scrollTop = (element.scrollHeight - element.clientHeight) * fraction; }, fraction);
+    expect(await gary.evaluate(element => element.getBoundingClientRect().top)).toBeCloseTo(top, 0);
+    expect(await page.evaluate(() => {
+      const frame = document.querySelector('.site-scroll-frame')!.getBoundingClientRect();
+      const gary = document.querySelector('.gary-launcher')!.getBoundingClientRect();
+      return gary.top >= frame.bottom && gary.bottom <= innerHeight;
+    })).toBeTruthy();
+  }
+  for (const action of await page.locator('.home-story a.btn-green').all()) {
+    await action.scrollIntoViewIfNeeded();
+    expect(await action.evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      return element.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+    })).toBeTruthy();
+  }
+  const video = page.locator('.gary-concierge-video');
+  await expect(video).toHaveAttribute('data-started', 'true', { timeout: 10000 });
+  const time = await video.evaluate(video => (video as HTMLVideoElement).currentTime);
+  await expect.poll(() => video.evaluate((video, time) => Math.abs((video as HTMLVideoElement).currentTime - time), time)).toBeGreaterThan(.1);
+  await page.getByRole('button', { name: 'Pause motion', exact: true }).click();
+  await expect.poll(() => video.evaluate(video => (video as HTMLVideoElement).paused)).toBe(true);
+  await page.getByRole('button', { name: 'Resume motion', exact: true }).click();
+  await expect.poll(() => video.evaluate(video => (video as HTMLVideoElement).paused)).toBe(false);
 });

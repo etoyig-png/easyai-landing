@@ -1,4 +1,5 @@
 # Public homepage story
+> Current as-built correction: [persistent visible Gary](../reconciliation/2026-11-11/persistent-gary.md), runtime 6499c7a6bfef2d84c997dd225546c9313c03bf1c. Earlier entries below remain decision history.
 > Latest correction: [reviewed PROJECTS, restored copy, headline ratios, CTA pulse and real public Gary checks](../reconciliation/2026-11-11/latest-reviewed-corrections.md), compiled runtime 6b6cf00b20bbd5cbfcf1568e887b4b29903e7628.
 > Current as-built state: see [November 11 reconciliation](../../docs/reconciliation/2026-11-11/README.md) and the current approved section at the end of this map. Earlier dated entries remain as decision history.
 
@@ -216,3 +217,12 @@ Public Android emulation, desktop and tablet all loaded the real transparent hum
 ## Brighter halo and Gary loading recovery
 
 See [phone recovery report](../reconciliation/2026-11-11/phone-recovery.md), runtime 6924ab35af203c3165d5fbd48850dbf23a7882ba. Assessment green is brighter; glow dimensions are 30% wider, same button size, pulse/Pause/reduced-motion retained. Native Gary autoplay now has the existing human-pose placeholder plus manual play/retry while unavailable. Actual-device cause remains unconfirmed; approved mobile reserved placement and every asset remain intact.
+
+
+## Persistent visible Gary, approved current correction
+
+Gary stays fixed in his own responsive viewport area while the full-width page scrolls above. His existing human pose is present immediately; the approved five-second video entrance delay and actual 20.125s native loop are preserved. The existing page Pause control also pauses/resumes Gary; reduced motion and Play/Retry fallback remain accessible. The below-products mobile portal is removed.
+
+The existing ScrollCraft engine now reads the actual page scroll region and captures every registered scroll handler. Sentences, opposite product entrances, traces and video retain their approved behavior. The existing tablet one-column breakpoint is applied consistently to product children, repairing an observed zero-width logo at 768px. No marketing copy or image/video asset changed.
+
+Twenty targeted public-preview regressions and six viewport/motion profiles passed, plus real construction/Gary playback, refresh, natural Gary looping, scroll-engine progress, keyboard/anchor navigation and assessment route-gate checks. Physical-cellphone approval remains pending. See the current report for evidence, measured cost/size impact and separately reversible commits.
