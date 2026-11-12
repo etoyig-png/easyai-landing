@@ -1,3 +1,6 @@
+// Provider activation is separately fail-closed in previewIsolation.test.ts.
+// This suite mocks that gate to retain the existing recipient/sender/reply-to contract tests.
+vi.mock('./previewIsolation', () => ({ assertPreviewProviderIsolation: vi.fn() }));
 import fs from 'fs';
 import path from 'path';
 import type { AssessmentSubmission } from './validation';
@@ -262,5 +265,33 @@ describe('address hygiene across the active repository', () => {
         expect(source, `${rel} is a client component importing emailRouting`).not.toMatch(/from '@?\/?\.*lib\/emailRouting'/);
       }
     }
+  });
+});
+
+
+describe('owner full assessment report', () => {
+  it('routes the same full report with contact, all answers and stable provider idempotency', async () => {
+    const { sendInternalNotification, buildResultEmailText } = await import('./resend');
+    const report = '<h2>Unique full report</h2><p>First action.</p><p>Final action &amp; detail.</p>';
+    await sendInternalNotification(submission, report);
+    const [mail, options] = send.mock.calls[0];
+    expect(mail.to).toBe('info@easyaiconsult.com');
+    expect(mail.replyTo).toBe(submission.email);
+    expect(mail.html).toContain(report);
+    expect(mail.text).toContain(buildResultEmailText(report));
+    for (const key of ['workSituation','searchVisibility','aiChallenge','desiredOutcome','timeDrain','privacyConcern','industry','leadResponse','websiteConversion'] as const) expect(mail.text).toContain(submission[key]);
+    expect(mail.text).toContain(`Submission ID: ${submission.id}`);
+    expect(options).toEqual({ idempotencyKey: `assessment-owner:${submission.id}:report` });
+    await sendInternalNotification(submission, report);
+    expect(send.mock.calls[1][1]).toEqual(options);
+  });
+  it('uses the configured isolated redirect and rejects unavailable delivery', async () => {
+    const { sendInternalNotification } = await import('./resend');
+    process.env.VERCEL_ENV = 'development';
+    await expect(sendInternalNotification(submission, '<p>Full report</p>')).rejects.toThrow('Email blocked');
+    expect(send).not.toHaveBeenCalled();
+    process.env.EMAIL_TEST_RECIPIENT = 'isolated@example.test';
+    await sendInternalNotification(submission, '<p>Full report</p>');
+    expect(send.mock.calls[0][0].to).toBe('isolated@example.test');
   });
 });

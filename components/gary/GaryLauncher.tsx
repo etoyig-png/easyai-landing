@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import GaryCharacter, { type GaryPose } from './GaryCharacter';
+import { OPEN_GARY_EVENT, type OpenGaryIntent } from '@/lib/gary/openGary';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
 // GaryRouteGate imports this renderer only after the page load and five-second delay.
@@ -22,8 +23,10 @@ function usePrefersReducedMotion(): boolean {
 }
 
 
-export default function GaryLauncher({ initialOpen = false }: { initialOpen?: boolean }) {
+export default function GaryLauncher({ initialOpen = false, initialIntent = null }: { initialOpen?: boolean; initialIntent?: OpenGaryIntent | null }) {
   const [open, setOpen] = useState(initialOpen);
+  const [intent, setIntent] = useState<OpenGaryIntent | null>(initialIntent);
+  const chatButton = useRef<HTMLButtonElement>(null);
   const [pose, setPose] = useState<GaryPose>('seated');
   const [routineFinished, setRoutineFinished] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
@@ -65,6 +68,16 @@ export default function GaryLauncher({ initialOpen = false }: { initialOpen?: bo
     setVideoPlaying(true);
   }, [initialOpen]);
 
+  useEffect(() => {
+    const handleOpenRequest = (event: Event) => {
+      const requested = (event as CustomEvent<{ intent?: unknown }>).detail?.intent;
+      setIntent(requested === 'contact' ? 'contact' : null);
+      setOpen(true);
+    };
+    window.addEventListener(OPEN_GARY_EVENT, handleOpenRequest);
+    return () => window.removeEventListener(OPEN_GARY_EVENT, handleOpenRequest);
+  }, []);
+
   // Opening the chat interrupts whatever part of the routine is still playing (jump/wave/point/
   // frustrated/idea/sign) — the visitor responded, so there's nothing left to demonstrate.
   // Closing it always resumes the safe seated state, never mid-routine.
@@ -82,6 +95,7 @@ export default function GaryLauncher({ initialOpen = false }: { initialOpen?: bo
       if (!(target instanceof Element) || !target.closest('a[data-open-gary]')) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
       event.preventDefault();
+      setIntent(null);
       setOpen(true);
     };
     document.addEventListener('click', openFromPage);
@@ -115,7 +129,8 @@ export default function GaryLauncher({ initialOpen = false }: { initialOpen?: bo
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          ref={chatButton}
+          onClick={() => { setIntent(null); setOpen(true); }}
           aria-label="Chat with Gary from Accounting"
           className="gary-chat-button flex flex-shrink-0 items-center justify-center rounded-full bg-green-600 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
           style={{ width: 'clamp(56px, 11vw, 64px)', height: 'clamp(56px, 11vw, 64px)' }}
@@ -156,7 +171,11 @@ export default function GaryLauncher({ initialOpen = false }: { initialOpen?: bo
         </div>
       )}
 
-      {open && <GaryPanel onClose={() => setOpen(false)} />}
+      {open && <GaryPanel
+        identity={<div className="flex min-w-0 items-center gap-2"><div className="h-16 w-16 flex-shrink-0" data-testid="gary-chat-character"><GaryCharacter pose="seated" idleGlanceActive={false} /></div><span className="text-sm font-semibold text-white">Gary from Accounting</span></div>}
+        initialIntent={intent}
+        onClose={() => { setOpen(false); setIntent(null); chatButton.current?.focus(); }}
+      />}
     </div>
   );
   return launcher;

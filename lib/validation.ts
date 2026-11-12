@@ -37,7 +37,7 @@ export const assessmentSubmissionSchema = z
     funnelCorrelationId: z.string().trim().max(200).optional(),
 
     consent: z.literal(true, {
-      errorMap: () => ({ message: 'You must agree to be contacted to continue' }),
+      error: 'You must agree to be contacted to continue',
     }),
 
     companyUrl: z.string().max(0).optional().or(z.literal('')),

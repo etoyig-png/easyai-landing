@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import type { AssessmentSubmission } from './validation';
+import { recordAssessmentSyncIntent } from './assessmentSync';
 
 const WINDOW_MS = 60 * 60 * 1000;
 const EMAIL_COOLDOWN_MS = 10 * 60 * 1000;
@@ -35,6 +36,8 @@ export async function admitAssessment(data: AssessmentSubmission, identity: stri
       email: data.email, websiteUrl: data.websiteUrl, noWebsite: data.noWebsite,
       funnelCorrelationId: data.funnelCorrelationId, ipAddress: identity,
     }, select: { id: true } });
+    // Same transaction: no submission is stored without recoverable Command Center sync work.
+    await recordAssessmentSyncIntent(tx, submission.id, data);
     return { kind: 'created', submission } as const;
   }, { isolationLevel: 'Serializable' });
 }
