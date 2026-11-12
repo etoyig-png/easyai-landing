@@ -1,0 +1,21 @@
+{
+  "cases": [
+    {
+      "width": 390,
+      "contactIntent": true,
+      "singleLauncher": true,
+      "approvedHumanIdentity": true,
+      "focusRestored": true,
+      "pass": true
+    },
+    {
+      "width": 1440,
+      "contactIntent": true,
+      "singleLauncher": true,
+      "approvedHumanIdentity": true,
+      "focusRestored": true,
+      "pass": true
+    }
+  ],
+  "pass": true
+}
