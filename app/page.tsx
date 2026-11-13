@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import SalesSections from '@/components/sales/SalesSections';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 import { Iphone } from '@/components/magicui/Iphone';
@@ -28,6 +29,7 @@ function AimLogo({ id, className = '' }: { id: string; className?: string }) {
 
 export default function HomePage() {
   return (
+    <>
     <div className="home-story" data-opening-pending>
       <noscript><style>{'.home-story[data-opening-pending] .discovery-brand{opacity:1!important}'}</style></noscript>
       <ScrollCraftMotion />
@@ -222,23 +224,8 @@ export default function HomePage() {
         <div id="gary-home-slot" className="gary-home-slot" />
       </section>
 
-      <section className="discovery-human story-guide">
-        <div className="human-conversation" role="img" aria-label="Two people discussing a tablet outdoors at a construction site">
-          <video muted loop playsInline preload="none" poster="/construction-conversation-poster.webp" data-conversation-video>
-            <source data-src="/construction-conversation.mp4" type="video/mp4" />
-          </video>
-        </div>
-        <p><span className="story-sentence" data-story-reveal>Technology starts the conversation.</span><strong className="story-sentence" data-story-reveal>People build the relationship.</strong></p>
-        <Link href="/ai-trust" className="story-link">Our approach to AI + Trust ↗</Link>
-        <Link href="/about" className="story-link">Meet Etoyi, founder of Easy AI ↗</Link>
-      </section>
-      <section id="free-assessment" className="discovery-close">
-        <h2 data-story-reveal>Your next customer<br />is looking.</h2>
-        <p data-story-reveal>Let’s help them find you.</p>
-        <Link href="/assessment" className="btn-green">Start Your Free Assessment</Link>
-        <a href="/contact" data-open-gary className="story-link">Need more information? Talk to Gary <span aria-hidden="true">↘</span></a>
-        <Link href="/assessment?intent=consultation" className="story-link">Start Your Consultation ↗</Link>
-      </section>
     </div>
+    <SalesSections />
+    </>
   );
 }

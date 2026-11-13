@@ -5,7 +5,7 @@ for (const [width, height] of [[360, 800], [390, 844], [412, 915], [768, 1024], 
   test(`homepage story and navigation at ${width}x${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Get Found. Get Chosen.');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Are customers finding your business? We help more of them find you.');
     await expect(page.locator('.story-chapter')).toHaveCount(3);
     await expect(page.locator('.product-art')).toHaveCount(3);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -16,7 +16,7 @@ for (const [width, height] of [[360, 800], [390, 844], [412, 915], [768, 1024], 
     }
     await page.locator('#free-assessment').scrollIntoViewIfNeeded();
     await expect(page.locator('#free-assessment h2')).toBeInViewport();
-    const assessment = page.locator('#free-assessment').getByRole('link', { name: 'Start Your Free Assessment' });
+    const assessment = page.locator('#free-assessment').getByRole('link', { name: 'CLICK HERE' });
     await expect(assessment).toHaveAttribute('href', '/assessment');
     await assessment.click();
     await expect(page).toHaveURL(/\/assessment$/);
@@ -26,7 +26,7 @@ for (const [width, height] of [[360, 800], [390, 844], [412, 915], [768, 1024], 
 
 test('new story has readable contrast and semantic landmarks', async ({ page }) => {
   await page.goto('/');
-  const result = await new AxeBuilder({ page }).include('.home-story').analyze();
+  const result = await new AxeBuilder({ page }).include('.home-story').include('#sales-sections').analyze();
   expect(result.violations).toEqual([]);
 });
 
@@ -38,11 +38,11 @@ test('keyboard focus and reduced-motion navigation remain usable', async ({ page
   await expect(link).toBeFocused();
   expect(await link.evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/#introduction$/);
-  const guideLink = page.locator('.story-guide a').first();
+  await expect(page).toHaveURL(/#free-assessment$/);
+  const guideLink = page.locator('.sx-trust-links a').first();
   await guideLink.focus();
   await expect(guideLink).toBeFocused();
-  expect(await guideLink.evaluate(el => getComputedStyle(el).outlineColor)).toBe('rgb(168, 214, 255)');
+  expect(await guideLink.evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
   expect(await page.locator('html').evaluate(el => getComputedStyle(el).scrollBehavior)).toBe('auto');
   expect(await page.locator('.story-chapter-copy').first().evaluate(el => getComputedStyle(el).animationName)).toBe('none');
 });
@@ -53,8 +53,8 @@ test('content and assessment links remain available without JavaScript', async (
   await page.goto('/');
   await expect(page.locator('.story-chapter h2')).toHaveCount(3);
   await page.locator('.discovery-brand a').first().click();
-  await expect(page).toHaveURL(/#introduction$/);
-  await expect(page.locator('#introduction p')).toBeInViewport();
+  await expect(page).toHaveURL(/#free-assessment$/);
+  await expect(page.locator('#free-assessment h2')).toBeInViewport();
   await expect(page.locator('#free-assessment a[href="/assessment"]')).toHaveAttribute('href', '/assessment');
   await context.close();
 });

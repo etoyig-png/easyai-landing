@@ -1,0 +1,58 @@
+[
+  {
+    "file": "before-1440-viewport.jpg",
+    "cloud_path": "/tmp/easyai-sales-reference/screenshots/before-1440-viewport.jpg",
+    "bytes": 83925,
+    "sha256": "0334a0b847e771666a18e9ba86cd8c4aa679954cecec987fbd8450d51036ae70",
+    "capture": "unaltered viewport"
+  },
+  {
+    "file": "before-1440-expanded-scroll.jpg",
+    "cloud_path": "/tmp/easyai-sales-reference/screenshots/before-1440-expanded-scroll.jpg",
+    "bytes": 616711,
+    "sha256": "5879f28bde4049ca328a84ce6c62e1509a9addcb8d862de8e271731f71e8f32f",
+    "capture": "expanded internal scroller for overview"
+  },
+  {
+    "file": "before-390-viewport.jpg",
+    "cloud_path": "/tmp/easyai-sales-reference/screenshots/before-390-viewport.jpg",
+    "bytes": 33193,
+    "sha256": "fe618e82dbec1104cc2e591de093bba84fcfce8d0684b52174fc796608e4c1eb",
+    "capture": "unaltered viewport"
+  },
+  {
+    "file": "before-390-expanded-scroll.jpg",
+    "cloud_path": "/tmp/easyai-sales-reference/screenshots/before-390-expanded-scroll.jpg",
+    "bytes": 382645,
+    "sha256": "ce7166501a606010f73830d801c359771a18e20a2435dd273e001dc83f8c45b5",
+    "capture": "expanded internal scroller for overview"
+  },
+  {
+    "file": "after-1440-viewport.jpg",
+    "cloud_path": "/tmp/easyai-sales-reference/screenshots/after-1440-viewport.jpg",
+    "bytes": 91625,
+    "sha256": "e4d7891ae94f60d917ad18d8391e3e71fc218a0fe4efe263bac09e0a58d2027a",
+    "capture": "unaltered viewport"
+  },
+  {
+    "file": "after-1440-expanded-scroll.jpg",
+    "cloud_path": "/tmp/easyai-sales-reference/screenshots/after-1440-expanded-scroll.jpg",
+    "bytes": 811274,
+    "sha256": "ccb975f09b2ba8517a6b010701d604dd5c8cc3bf79019fba2b17cd120101501c",
+    "capture": "expanded internal scroller for overview"
+  },
+  {
+    "file": "after-390-viewport.jpg",
+    "cloud_path": "/tmp/easyai-sales-reference/screenshots/after-390-viewport.jpg",
+    "bytes": 36070,
+    "sha256": "9f588a8aa84ed93fdb801f588804bdc90e7bd711fb2b2ea8be4dae94ce7c452b",
+    "capture": "unaltered viewport"
+  },
+  {
+    "file": "after-390-expanded-scroll.jpg",
+    "cloud_path": "/tmp/easyai-sales-reference/screenshots/after-390-expanded-scroll.jpg",
+    "bytes": 538888,
+    "sha256": "f76ba5e45daf36858fbcd0586fe04dbff731faf7d3e3ed3f0383117402e7b5f6",
+    "capture": "expanded internal scroller for overview"
+  }
+]
