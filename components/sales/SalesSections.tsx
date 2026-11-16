@@ -36,7 +36,7 @@ const leaks = [
 ];
 
 const steps = [
-  { n: '1', t: 'Take the free assessment', b: 'A few questions about your business. No credit card.' },
+  { n: '1', t: 'Get Your Company’s GAP Score.', b: 'A few questions about your business. No credit card.' },
   { n: '2', t: 'See exactly where you leak', b: 'Your GAP Score and a human-reviewed list of what’s costing you most.' },
   { n: '3', t: 'We fix the biggest leak first', b: 'Or you do it yourself. Your call. No pressure.' },
 ];
@@ -44,6 +44,26 @@ const steps = [
 export function SalesOpening() {
   return <div className="sx" id="sales-opening">
     <SalesMotion rootId="sales-opening" />
+      <section className="sx-section sx-search-cta" aria-labelledby="sales-search-heading">
+        <div className="sx-wrap">
+          <div className="sx-receipt-grid">
+            <div className="sx-receipt-explanation" data-reveal>
+              <h2 className="sx-h2">Missed calls and slow follow-ups cost you customers.</h2>
+              <p className="sx-lead">See where inquiries slip away, then use your GAP Score to choose what to improve first.</p>
+            </div>
+            <MissedOpportunityReceipt />
+          </div>
+          <div className="sx-search-stack" data-reveal>
+            <h2 className="sx-h2" id="sales-search-heading">Does your company show up when customers search?</h2>
+            <ul className="sx-assure">
+              <li>Free</li><li>No credit card</li><li>Reviewed by a real person</li>
+            </ul>
+            <div className="sx-ctas">
+              <Link href="/assessment" className="btn-green sx-btn sx-btn-primary sx-btn-xl">Start Your Journey Now <span aria-hidden="true">→</span></Link>
+            </div>
+          </div>
+        </div>
+      </section>
       <div className="sx-marquee" aria-hidden="true">
         <div className="sx-marquee-track">
           {[0, 1].map((copy) => (
@@ -56,20 +76,7 @@ export function SalesOpening() {
         </div>
       </div>
 
-      <section className="sx-section sx-search-cta" aria-labelledby="sales-search-heading">
-        <div className="sx-wrap sx-search-grid">
-          <MissedOpportunityReceipt />
-          <div data-reveal>
-            <h2 className="sx-h2" id="sales-search-heading">Does your company show up when customers search?</h2>
-            <div className="sx-ctas">
-              <Link href="/assessment" className="btn-green sx-btn sx-btn-primary sx-btn-xl">Start Your Journey Now <span aria-hidden="true">→</span></Link>
-            </div>
-            <ul className="sx-assure">
-              <li>Free</li><li>No credit card</li><li>Reviewed by a real person</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+
 
   </div>;
 }

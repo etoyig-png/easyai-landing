@@ -849,7 +849,7 @@ body:has(.home-story),body:has(.home-story) header,body:has(.home-story) footer 
 .gary-video-stage { position:relative; width:clamp(170px,24vw,220px); margin-left:auto; }
 .gary-concierge-video { display:block; width:100%; height:auto; background:transparent; }
 .gary-video-bubble { position:absolute; right:78%; bottom:70%; width:180px; padding:12px 14px; border-radius:14px; background:white; color:#111; font:600 14px/1.4 Arial,sans-serif; box-shadow:0 4px 18px #0003; }
-.gary-video-bubble::after { content:""; position:absolute; left:calc(100% - 14px); top:calc(100% - 22px); width:calc(clamp(34px, 6vw, 48px) + 14px); height:32px; background:white; clip-path:polygon(0 0,100% 100%,0 55%); }
+.gary-video-bubble::after { content:""; position:absolute; left:calc(100% - 18px); top:calc(100% - 22px); width:calc(clamp(34px, 6vw, 48px) + 2px); height:32px; background:white; clip-path:polygon(0 0,100% 100%,0 55%); }
 .gary-launcher > .flex.items-center { justify-content:flex-end; }
 @media(max-width:480px) { .gary-video-bubble { width:min(150px, calc(100vw - 210px)); font-size:12px; padding:10px; } }
 
