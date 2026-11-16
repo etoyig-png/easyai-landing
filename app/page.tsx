@@ -80,18 +80,10 @@ export default function HomePage() {
                 <text className="gap-subtitle" x="490" y="778" textLength="690" lengthAdjust="spacingAndGlyphs">Google + AI Presence</text>
               </svg>
             </span></div>
-          <div className="product-art gap-art device-art">
-            <div className="color-ribbon" />
-            <PhotographicDevice kind="laptop" className="laptop-device" screenClassName="laptop-screen">
-              <div className="device-toolbar"><i /><i /><i /><span>Your business. Discovered.</span></div>
-              <div className="gap-screen"><a href="/contact" data-open-gary className="gap-device-action" aria-label="Talk with Gary about your GAP Score">
-                <div className="gap-report-heading"><Image src="/gap-logo.png" alt="GAP — Google and AI Presence" width={1254} height={1254} sizes="100px" /><div><strong>BrightPath Home Services</strong><span>Google + AI Presence</span></div><span className="report-period">6-month overview</span></div>
-                <div className="report-summary"><div className="report-score"><span>GAP Score</span><strong>78<small>/100</small></strong><b>↑ 24 points</b></div><div><span>Search discovery</span><strong>+42%</strong><small>120 → 170 searches</small></div><div><span>Customer inquiries</span><strong>+28%</strong><small>18 → 23 inquiries</small></div></div>
-                <div className="report-charts"><div><strong className="report-chart-title">Visibility growth</strong><svg className="growth-chart" viewBox="0 0 460 190" aria-hidden="true"><path className="chart-grid" d="M30 25H440M30 80H440M30 135H440" /><path className="chart-area" d="M30 140L110 119L190 94L270 73L350 42L430 15V160H30Z" /><path className="chart-line" pathLength="1" d="M30 140L110 119L190 94L270 73L350 42L430 15" /><g className="chart-labels"><text x="30" y="185">Feb</text><text x="185" y="185">Apr</text><text x="350" y="185">Jun</text><text x="415" y="185">Jul</text></g></svg></div><div><strong className="report-chart-title">Presence breakdown</strong><div className="report-bar"><span>Google</span><i style={{ width:'82%' }} /><b>82</b></div><div className="report-bar"><span>AI visibility</span><i style={{ width:'74%' }} /><b>74</b></div><div className="report-bar"><span>Consistency</span><i style={{ width:'78%' }} /><b>78</b></div></div></div>
-                <span className="report-next">Explore your GAP Score ↗</span>
-              </a></div>
-            </PhotographicDevice>
-            <div className="floating-message message-search" data-story-reveal><span className="message-dot" /><span className="typed-line">Who should you call?</span></div>
+          <div className="product-art gap-art device-art gap-silver-composite">
+            <a href="/contact" data-open-gary className="gap-silver-link" aria-label="Talk with Gary about your GAP Score">
+              <Image src="/devices/silver-laptop-gap-approved.webp" alt="Silver laptop with the BrightPath example GAP dashboard and the caption Who should you call?" width={1618} height={972} sizes="(max-width: 767px) 100vw, 600px" quality={90} className="gap-silver-image" />
+            </a>
             <div className="floating-message message-answer" data-story-reveal><span className="message-dot mint" />Get Found. Get Chosen.</div>
           </div>
           </div>

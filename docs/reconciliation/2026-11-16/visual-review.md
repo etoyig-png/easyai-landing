@@ -14,7 +14,7 @@ Branch: fix/visual-review-20261116. Source-only review; no push or production de
 - What We Do expands existing custom-agent and workflow entries rather than duplicating them, adds marketing and BRIQ entries, and retains the existing service range.
 - New server-rendered /faq page is linked from What We Do. Seven native disclosure answers cover core services, assessment entry/next steps, marketing, custom agents, BRIQ, integrations and keeping useful current tools. No client FAQ library or outcome guarantee.
 - Gary greeting-tip CSS moves its endpoint left toward the cheek. No Gary state/controller/chat/API/provider/database code changed.
-- Replacement silver-laptop composite and its 50%-larger GAP logo are supplied separately for Toy’s visual review. The image preview is not installed into this source; the original approved laptop presentation is preserved pending review.
+- At checkpoint3ff2ee0, the replacement silver-laptop composite and its larger GAP logo were a separate image preview. Toy subsequently authorized installation; see the silver-laptop checkpoint below.
 
 ## Verification
 
@@ -46,3 +46,16 @@ One45-minute resume was expressly approved by Toy. The session expires2026-11-16
 Remote Git publication remains blocked by the previously verified missing authenticated Git transport. No push, merge, deployment or credential change performed.
 Formal Codex security preflight reference unavailable; no formal security-scan completion claim.
 Verdict: PASS for visual/source review, with stated background/resume limitation and Toy’s review pending before release.
+
+
+## Silver-laptop installation checkpoint
+
+Toy expressly requested installing the approved composite after reviewing the larger GAP logo. Baseline3ff2ee08962b48a5ce96a09cd3f4bf646b376a4a.
+Only app/page.tsx, narrowly scoped app/globals.css and public/devices/silver-laptop-gap-approved.webp change application behavior in this checkpoint.
+The approved composite contains the silver hardware, larger GAP mark, dashboard, circle and Who should you call bubble; native duplicates are removed only inside the GAP graphic.
+The Gary action link/accessibility label and original Get Found/Get Chosen floating message are preserved. Original hardware assets and the PhotographicDevice component remain for existing uses.
+Asset111808bytes; SHA256ae9339145b678f2e117b3e6808ffc5b812ae0e2f802d3f5c2cb57dbdd36528b1.
+Independent source reviewPASS, combined diffSHA2565231684f6c947897ca6649f9df25b0a5377cff37248839de80eb1fe4a09bd7ef.
+Final lint, TypeScript and production buildPASS. Homepage First Load JS remains118kB.
+Real connected Chrome: new image loaded through the live preview image-optimizer URL; desktopCSS1454 screenshot inspected; phoneCSS391 image loaded, fits container and no horizontal overflow.
+No Gary logic, assessment, database, provider, settings, dependency, push or production deployment changes.
