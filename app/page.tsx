@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import SalesSections from '@/components/sales/SalesSections';
+import SalesSections, { SalesOpening } from '@/components/sales/SalesSections';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 import { Iphone } from '@/components/magicui/Iphone';
@@ -35,9 +35,10 @@ export default function HomePage() {
       <ScrollCraftMotion />
       <section className="discovery-lead" aria-labelledby="opening-headline">
         <h1 id="opening-headline">Are customers finding your business? We help more of them find you.</h1>
-        <Link href="/assessment" className="btn-green">Start Your Free Assessment</Link>
+        <Link href="/assessment" className="btn-green">Start Your Journey Now</Link>
         <p className="discovery-promise">GET FOUND. GET DISCOVERED. GET MORE PROJECTS.</p>
       </section>
+      <SalesOpening />
 
       <section id="introduction" className="discovery-intro" data-sc-act="flow">
         <h2 className="discovery-how" data-story-reveal>HERE&apos;S HOW</h2>
@@ -161,7 +162,17 @@ export default function HomePage() {
         </section>
       </div>
 
-      <section className="discovery-opening" data-sc-act="flow" aria-label="Get discovered">
+      <section className="discovery-assessment" aria-label="Free business assessment">
+        <Link href="/assessment" className="btn-green">Start Your Journey Now</Link>
+        <a href="/contact" data-open-gary className="gary-invitation">
+          Need more information? Talk to Gary <span className="gary-invitation-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" focusable="false"><path d="m5 5 14 14M5 19h14V5" /></svg></span>
+        </a>
+        <p className="gary-invitation-note">See AIM, our AI Interaction Manager, in action with Gary.</p>
+        <div id="gary-home-slot" className="gary-home-slot" />
+      </section>
+
+    <SalesSections closingBrand={<>
+<section className="discovery-opening" data-sc-act="flow" aria-label="Get discovered">
         <div className="discovery-stage">
           <div className="discovery-reveal" aria-hidden="true" />
           <div className="opening-seed" aria-hidden="true" />
@@ -214,18 +225,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      <section className="discovery-assessment" aria-label="Free business assessment">
-        <Link href="/assessment" className="btn-green">Start Your Free Assessment</Link>
-        <a href="/contact" data-open-gary className="gary-invitation">
-          Need more information? Talk to Gary <span className="gary-invitation-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" focusable="false"><path d="m5 5 14 14M5 19h14V5" /></svg></span>
-        </a>
-        <p className="gary-invitation-note">See AIM, our AI Interaction Manager, in action with Gary.</p>
-        <div id="gary-home-slot" className="gary-home-slot" />
-      </section>
-
+    </>} />
     </div>
-    <SalesSections />
     </>
   );
 }

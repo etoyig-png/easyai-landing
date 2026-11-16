@@ -57,7 +57,7 @@ export default function Header() {
               min-h-[36px] keeps it a comfortable pointer target and the focus ring, green, and
               label are unchanged. */}
           <Link href="/assessment" className="btn-green text-xs px-3 py-1.5 min-h-[36px] leading-tight">
-            Start Your Free Assessment
+            Start Your Journey Now
           </Link>
         </div>
 
@@ -99,7 +99,7 @@ export default function Header() {
               onClick={() => setOpen(false)}
               className="btn-green w-full text-center py-3 block"
             >
-              Start Your Free Assessment
+              Start Your Journey Now
             </Link>
           </div>
         </nav>

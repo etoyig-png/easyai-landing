@@ -3,9 +3,9 @@
 import { useEffect } from 'react';
 
 /** Enhances server content; never imports Gary or calls an API. */
-export default function SalesMotion() {
+export default function SalesMotion({ rootId = 'sales-sections' }: { rootId?: string }) {
   useEffect(() => {
-    const root = document.getElementById('sales-sections');
+    const root = document.getElementById(rootId);
     if (!root || typeof IntersectionObserver === 'undefined') return;
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     let paused = document.querySelector('.motion-toggle')?.getAttribute('aria-pressed') === 'true';
@@ -86,6 +86,6 @@ export default function SalesMotion() {
       root.classList.remove('sx-motion');
       setBarVisible(true);
     };
-  }, []);
+  }, [rootId]);
   return null;
 }

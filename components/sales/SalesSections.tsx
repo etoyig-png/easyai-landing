@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import LeakCalculator from './LeakCalculator';
@@ -20,7 +21,7 @@ const leaks = [
   {
     n: '01', tag: 'They can’t find you', logo: { src: '/gap-logo.png', alt: 'GAP — Google and AI Presence', w: 1254, h: 1254, cls: 'is-square' },
     fix: 'GAP puts you in front of customers on Google, in local search and in AI answers.',
-    cta: 'Get my GAP Score', href: '/assessment', color: 'gold',
+    cta: 'Start Your Journey Now', href: '/assessment', color: 'gold',
   },
   {
     n: '02', tag: 'They find you, then leave', logo: { src: '/smartsite-logo.webp', alt: 'SmartSite', w: 2048, h: 682, cls: '' },
@@ -40,10 +41,9 @@ const steps = [
   { n: '3', t: 'We fix the biggest leak first', b: 'Or you do it yourself. Your call. No pressure.' },
 ];
 
-export default function SalesSections() {
-  return (
-    <div className="sx" id="sales-sections">
-      <SalesMotion />
+export function SalesOpening() {
+  return <div className="sx" id="sales-opening">
+    <SalesMotion rootId="sales-opening" />
       <div className="sx-marquee" aria-hidden="true">
         <div className="sx-marquee-track">
           {[0, 1].map((copy) => (
@@ -58,19 +58,26 @@ export default function SalesSections() {
 
       <section className="sx-section sx-search-cta" aria-labelledby="sales-search-heading">
         <div className="sx-wrap sx-search-grid">
+          <MissedOpportunityReceipt />
           <div data-reveal>
             <h2 className="sx-h2" id="sales-search-heading">Does your company show up when customers search?</h2>
             <div className="sx-ctas">
-              <Link href="/assessment" className="sx-btn sx-btn-primary sx-btn-xl">CLICK HERE <span aria-hidden="true">→</span></Link>
+              <Link href="/assessment" className="btn-green sx-btn sx-btn-primary sx-btn-xl">Start Your Journey Now <span aria-hidden="true">→</span></Link>
             </div>
             <ul className="sx-assure">
               <li>Free</li><li>No credit card</li><li>Reviewed by a real person</li>
             </ul>
           </div>
-          <MissedOpportunityReceipt />
         </div>
       </section>
 
+  </div>;
+}
+
+export default function SalesSections({ closingBrand }: { closingBrand: ReactNode }) {
+  return (
+    <div className="sx" id="sales-sections">
+      <SalesMotion />
       {/* ───────────── THREE LEAKS ───────────── */}
       <section className="sx-section" id="leaks">
         <div className="sx-wrap">
@@ -89,7 +96,7 @@ export default function SalesSections() {
                 <p>{l.fix}</p>
                 {l.gary
                   ? <a href={l.href} data-open-gary className="sx-leak-cta">{l.cta} <span aria-hidden="true">→</span></a>
-                  : <Link href={l.href} className="sx-leak-cta">{l.cta} <span aria-hidden="true">→</span></Link>}
+                  : <Link href={l.href} className="btn-green sx-btn sx-btn-primary">{l.cta} <span aria-hidden="true">→</span></Link>}
               </article>
             ))}
           </div>
@@ -124,7 +131,7 @@ export default function SalesSections() {
             ))}
           </ol>
           <div className="sx-center" data-reveal>
-            <Link href="/assessment" className="sx-btn sx-btn-primary sx-btn-xl">START HERE <span aria-hidden="true">→</span></Link>
+            <Link href="/assessment" className="btn-green sx-btn sx-btn-primary sx-btn-xl">Start Your Journey Now <span aria-hidden="true">→</span></Link>
           </div>
         </div>
       </section>
@@ -151,20 +158,21 @@ export default function SalesSections() {
         </div>
       </section>
 
+      {closingBrand}
       {/* ───────────── CLOSE ───────────── */}
       <section className="sx-close" id="free-assessment">
         <div className="sx-wrap sx-center">
           <h2 className="sx-h1 sx-close-h">Your next customer is searching <em>right now.</em></h2>
           <p className="sx-lead">Make sure they find you, not your competitor.</p>
           <div className="sx-ctas sx-ctas-center">
-            <Link href="/assessment" className="sx-btn sx-btn-primary sx-btn-xl">CLICK HERE <span aria-hidden="true">→</span></Link>
+            <Link href="/assessment" className="btn-green sx-btn sx-btn-primary sx-btn-xl">Start Your Journey Now <span aria-hidden="true">→</span></Link>
           </div>
         </div>
       </section>
 
       <div className="sx-sticky is-on" role="region" aria-label="Persistent free assessment">
         <span>Does your company show up when customers search?</span>
-        <Link href="/assessment" className="sx-btn sx-btn-primary">CLICK HERE <span aria-hidden="true">→</span></Link>
+        <Link href="/assessment" className="btn-green sx-btn sx-btn-primary">Start Your Journey Now <span aria-hidden="true">→</span></Link>
       </div>
     </div>
   );

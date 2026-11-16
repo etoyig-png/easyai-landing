@@ -44,8 +44,28 @@ describe('handoff state resolution', () => {
 
   it('takes the session advisory lock before reading state', async () => {
     const tx = makeTx(null);
-    await resolveHandoffState(tx, SESSION_ID, FIELDS, NOW);
+    let releaseLock!: () => void;
+    tx.$queryRaw.mockImplementationOnce(() => new Promise<void>(resolve => { releaseLock = resolve; }));
+    const pending = resolveHandoffState(tx, SESSION_ID, FIELDS, NOW);
     expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    const [sql, ...values] = tx.$queryRaw.mock.calls[0];
+    expect(Array.from(sql)).toEqual(['SELECT pg_advisory_xact_lock(hashtext(', '))::text']);
+    expect(values).toEqual([SESSION_ID]);
+    expect(tx.publicChatSession.findUniqueOrThrow).not.toHaveBeenCalled();
+    expect(tx.assessmentHandoff.findUnique).not.toHaveBeenCalled();
+    releaseLock();
+    await pending;
+    expect(tx.publicChatSession.findUniqueOrThrow).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not read or mutate handoff state when the lock query fails', async () => {
+    const tx = makeTx(null);
+    tx.$queryRaw.mockRejectedValueOnce(new Error('lock failed'));
+    await expect(resolveHandoffState(tx, SESSION_ID, FIELDS, NOW)).rejects.toThrow('lock failed');
+    expect(tx.publicChatSession.findUniqueOrThrow).not.toHaveBeenCalled();
+    expect(tx.publicChatSession.update).not.toHaveBeenCalled();
+    expect(tx.assessmentHandoff.findUnique).not.toHaveBeenCalled();
+    expect(tx.assessmentHandoff.upsert).not.toHaveBeenCalled();
   });
 
   describe('reusing an unexpired handoff', () => {

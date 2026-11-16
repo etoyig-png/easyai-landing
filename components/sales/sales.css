@@ -194,7 +194,8 @@
 }
 
 /* Integration only: original reference styles above remain inside this sales wrapper. */
-.sx .sx-search-grid { display:grid; grid-template-columns:1fr 1fr; gap:clamp(2rem,5vw,4.5rem); align-items:center; }
+.sx .sx-search-grid { display:grid; grid-template-columns:1fr; gap:2.5rem; justify-items:center; text-align:center; }
+.sx-search-cta .sx-ctas, .sx-search-cta .sx-assure { justify-content:center; }
 .sx .sx-marquee { margin-top:clamp(3rem,6vw,5rem); }
 .sx .sx-marquee-track { gap:0; }
 .sx .sx-marquee-group { display:flex; align-items:center; flex-shrink:0; gap:2.6rem; padding-right:2.6rem; }
@@ -221,3 +222,8 @@
   .sx .sx-receipt-lines li, .sx .sx-receipt-total { opacity:1!important; transform:none!important; }
   .sx .sx-marquee-track { animation:none!important; transform:none!important; }
 }
+
+/* Match the existing header assessment pill, including its halo. */
+.sx .sx-btn-primary { background:#39ef77; color:#050e1c; border-radius:9999px; box-shadow:0 0 15.6px 2.6px rgb(57 239 119 / .25),0 0 36.4px 7.8px rgb(57 239 119 / .15); }
+.sx .sx-btn-primary:hover { background:#2cdd6b; color:#050e1c; }
+.sx .sx-btn-primary.sx-btn-xl { min-height:72px; padding:1.2rem 2.8rem; font-size:clamp(1.1rem,2vw,1.5rem); }

@@ -1,0 +1,30 @@
+{
+  "baseline": "8790cd75977cc514f6cdfaed85f070f38fb7f344",
+  "before": {
+    "js": {
+      "raw": 828538,
+      "gzip": 261423
+    },
+    "css": {
+      "raw": 86003,
+      "gzip": 19192
+    }
+  },
+  "after": {
+    "js": {
+      "raw": 828550,
+      "gzip": 261451
+    },
+    "css": {
+      "raw": 86029,
+      "gzip": 19220
+    }
+  },
+  "gzip_change_percent": {
+    "js": 0.0107,
+    "css": 0.1459
+  },
+  "homepage_build_size": "6.43 kB",
+  "homepage_first_load_js": "118 kB",
+  "measurement_scope": "Sum of emitted static JS/CSS gzip bytes, not field web vitals or server/provider latency."
+}
