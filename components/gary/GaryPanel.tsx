@@ -100,7 +100,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
       const { redirectUrl } = (await response.json()) as { redirectUrl: string };
       window.location.href = redirectUrl;
     } catch {
-      setError("Couldn't open the assessment just now — try the button in the menu instead.");
+      setError("Couldn't open Start Your Journey just now — try the assessment button in the menu instead.");
       setPendingAction(null);
     }
   }
@@ -198,7 +198,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
               disabled={sending}
               className="btn-green min-h-[44px] w-full text-center text-sm"
             >
-              Start My Free Assessment
+              Start Your Journey
             </button>
             <button
               type="button"
@@ -218,7 +218,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
       <div role="status" aria-live="polite" aria-atomic="true">
         {pendingAction && (
           <p className="border-t border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-800">
-            {pendingAction === 'reply' ? 'Gary is typing...' : 'Opening the assessment...'}
+            {pendingAction === 'reply' ? 'Gary is typing...' : 'Opening Start Your Journey...'}
           </p>
         )}
       </div>

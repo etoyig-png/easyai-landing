@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { conversationPolicy } from './conversationPolicy';
 import { generateGaryReply } from './replyPipeline';
+import { GARY_BILLING_REPLY, GARY_PRICING_REPLY } from './pricingReply';
 import { validateGaryResponse } from './responseValidator';
 import type { ChatMessage, LlmProviderAdapter } from './llm/types';
 const initial = { knownAnswers: [], visitorTurnCount: 0, assessmentOfferCount: 0, lastVisitorSafetyClass: 'none' as const };
@@ -50,8 +51,9 @@ describe('three substantive business replies', () => {
     for (const question of ["I'm losing plumbing bookings", 'How much?', 'Monthly?']) {
       h.push({role:'user',content:question}); stages.push(conversationPolicy(initial,h).stage);
       const reply=await generateGaryReply(adapter('The monthly price is $99.'),initial,h);
-      expect(reply.usedFallback).toBe(true); expect(reply.text).not.toMatch(/\$|\b99\b/);
-      if(question!=="I'm losing plumbing bookings") expect(reply.text).toContain('verified pricing or billing terms');
+      if (question === 'How much?') expect(reply.text).toBe(GARY_PRICING_REPLY);
+      else if (question === 'Monthly?') expect(reply.text).toBe(GARY_BILLING_REPLY);
+      else { expect(reply.usedFallback).toBe(true); expect(reply.text).not.toMatch(/\$|\b99\b/); }
       offers.push(reply.offerAssessment); h.push({role:'assistant',content:reply.text});
     }
     expect(stages).toEqual([1,2,3]); expect(offers).toEqual([false,false,true]);
