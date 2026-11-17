@@ -39,8 +39,11 @@ export async function generateGaryReply(
     const validation = validateGaryResponse(extracted.text, { lastVisitorMessage });
     if (policy.offTopic && extracted.text.includes('?')) validation.violations.push('the application handles any visit question');
     if (policy.noQuestions && extracted.text.includes('?')) validation.violations.push('visitor requested no more questions');
-    if (policy.business && /^[^.!]*\?$/.test(extracted.text.trim())) validation.violations.push('clarification without a useful answer');
-    if (!policy.offer && (extracted.offerAssessment || /(?:take|try|start|complete|recommend|suggest)[^.!?]{0,50}assessment|assessment[^.!?]{0,50}(?:help|next step)/i.test(extracted.text))) validation.violations.push('assessment invitation is not appropriate now');
+    if ((policy.business || policy.assessmentInfo) && /^[^.!]*\?$/.test(extracted.text.trim())) validation.violations.push('clarification without a useful answer');
+    const invitation = policy.assessmentInfo
+      ? /(?:^(?:take|try|start|complete)\b|\b(?:you can|you should|I suggest|I recommend|let's|please|would you like to)\s+(?:take|try|start|complete)\b)[^.!?]{0,50}assessment/i.test(extracted.text)
+      : /(?:take|try|start|complete|recommend|suggest)[^.!?]{0,50}assessment|assessment[^.!?]{0,50}(?:help|next step)/i.test(extracted.text);
+    if (!policy.offer && (extracted.offerAssessment || invitation)) validation.violations.push('assessment invitation is not appropriate now');
     validation.valid = validation.violations.length === 0;
     return { extracted, validation };
   }
