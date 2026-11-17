@@ -2,21 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { hasPlayedLaunchAnimation, markLaunchAnimationPlayed } from '@/lib/gary/clientSession';
-import { ROUTINE_STEPS } from '@/lib/gary/routineSteps';
 import GaryCharacter, { type GaryPose } from './GaryCharacter';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
-// initial page rendering never downloads the heavier chat bundle. Gary's own character is plain
-// inline SVG + CSS (no image request, negligible byte size), so it doesn't need its own lazy
-// boundary — it renders as soon as the launch delay elapses, same as before.
+// This presentation adapter leaves the production panel and its request/session handling intact.
+// The panel remains deferred until a visitor opens it.
 const GaryPanel = dynamic(() => import('./GaryPanel'), { ssr: false });
-
-const LAUNCH_DELAY_MS = 5000;
-
-// Locked routine timing lives in lib/gary/routineSteps.ts (a plain .ts module, not this 'use
-// client' component) specifically so it can be imported directly by a Vitest unit test — see that
-// file's own comment for why that matters more than it might seem.
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -30,74 +21,59 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-const SIGN_RELATED_POSES: GaryPose[] = ['sign', 'signPoint', 'signWave', 'lowering'];
 
 export default function GaryLauncher() {
   const [visible, setVisible] = useState(false);
-  const [entering, setEntering] = useState(false);
   const [open, setOpen] = useState(false);
+  const pendingOpen = useRef(false);
+  const chatButton = useRef<HTMLButtonElement>(null);
   const [pose, setPose] = useState<GaryPose>('seated');
   const [routineFinished, setRoutineFinished] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
-  const timers = useRef<number[]>([]);
-
-  function clearScheduledTimers() {
-    timers.current.forEach((id) => window.clearTimeout(id));
-    timers.current = [];
-  }
-
-  function runRoutine() {
-    let elapsed = 0;
-    ROUTINE_STEPS.forEach((step) => {
-      const id = window.setTimeout(() => setPose(step.pose), elapsed);
-      timers.current.push(id);
-      elapsed += step.holdMs;
-    });
-    // Step 20: after lowering the sign, Gary sits beneath the chat button — the routine's own
-    // last pose ('lowering') is transient, so explicitly land back on 'seated' rather than
-    // leaving the sign-lowering pose as the permanent resting state.
-    const finishId = window.setTimeout(() => {
-      setPose('seated');
-      setRoutineFinished(true);
-    }, elapsed);
-    timers.current.push(finishId);
-  }
-
-  // Runs once, LAUNCH_DELAY_MS after mount: reveal the button + Gary, then either play the full
-  // locked routine (first time this session, motion allowed) or go straight to the seated
-  // resting state (repeat page load this session, or prefers-reduced-motion).
-  //
-  // Reduced motion is read directly from matchMedia here rather than through the reducedMotion
-  // state/closure above: this effect has an empty dependency array (runs once, at mount), so its
-  // callback closure would otherwise permanently capture whatever reducedMotion happened to be
-  // during the very first render — always false, since usePrefersReducedMotion's own effect
-  // hasn't had a chance to run and update state yet at that point. That stale-false capture is
-  // realistic, not just a test artifact: it means a real visitor with the OS/browser reduced-
-  // motion setting on would still see the full routine every time, which is exactly what this
-  // whole effect exists to prevent — an actual behavioral bug caught by testing this with
-  // page.emulateMedia(), not just a lint nitpick.
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const [videoTime, setVideoTime] = useState(0);
+  const [videoStarted, setVideoStarted] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [motionPaused, setMotionPaused] = useState(false);
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setVisible(true);
-      setEntering(true);
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const alreadyPlayed = hasPlayedLaunchAnimation();
-      if (prefersReducedMotion || alreadyPlayed) {
-        setPose('seated');
-        setRoutineFinished(true);
-        if (!alreadyPlayed) markLaunchAnimationPlayed();
-        return;
-      }
-      markLaunchAnimationPlayed();
-      runRoutine();
-    }, LAUNCH_DELAY_MS);
-    return () => {
-      window.clearTimeout(timer);
-      clearScheduledTimers();
+    const sync = (event: Event) => setMotionPaused((event as CustomEvent<boolean>).detail);
+    setMotionPaused(document.querySelector('.motion-toggle')?.getAttribute('aria-pressed') === 'true');
+    document.addEventListener('easyai:motion-paused', sync);
+    return () => document.removeEventListener('easyai:motion-paused', sync);
+  }, []);
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (motionPaused) video.pause();
+    else if (videoPlaying && !reducedMotion && !open) video.play().catch(() => {});
+  }, [motionPaused, videoPlaying, reducedMotion, open]);
+
+  async function playGary() {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    if (videoFailed) video.load();
+    setVideoFailed(false);
+    try { await video.play(); } catch { setVideoStarted(false); }
+  }
+
+  // Presentation starts after full page load plus the reviewed five-second delay.
+  // Early homepage CTA clicks queue only a generic open of the unchanged production panel.
+  useEffect(() => {
+    let timer: number | undefined;
+    const start = () => {
+      timer = window.setTimeout(() => {
+        setVisible(true);
+        if (pendingOpen.current) setOpen(true);
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (pendingOpen.current || reduced) setRoutineFinished(true);
+        else setVideoPlaying(true);
+      }, 5000);
     };
-    // Intentionally runs once on mount — the delay and once-per-session check are both evaluated
-    // at that single point, not re-derived on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+    return () => { window.removeEventListener('load', start); window.clearTimeout(timer); };
   }, []);
 
   // Opening the chat interrupts whatever part of the routine is still playing (jump/wave/point/
@@ -105,21 +81,34 @@ export default function GaryLauncher() {
   // Closing it always resumes the safe seated state, never mid-routine.
   useEffect(() => {
     if (!open) return;
-    clearScheduledTimers();
-    setEntering(false);
+    setVideoPlaying(false);
     setPose('seated');
     setRoutineFinished(true);
   }, [open]);
 
-  if (!visible) return null;
+  // Progressive enhancement: server-rendered contact links also work without JavaScript.
+  useEffect(() => {
+    const openFromPage = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('a[data-open-gary]')) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+      event.preventDefault();
+      pendingOpen.current = true;
+      if (visible) setOpen(true);
+    };
+    document.addEventListener('click', openFromPage);
+    return () => document.removeEventListener('click', openFromPage);
+  }, [visible]);
 
-  const idleGlanceActive = pose === 'seated' && routineFinished && !open && !reducedMotion;
+  const idleGlanceActive = pose === 'seated' && routineFinished && !open && !reducedMotion && !motionPaused;
   // Message behavior follows Gary's pose, never viewport geometry. Real conditional rendering
   // fully removes the intro bubble while Gary is holding or lowering the physical sign, ensuring
   // there is exactly one white message element at every screen size.
-  const showIntroBubble = !open && !SIGN_RELATED_POSES.includes(pose);
+  const showIntroBubble = !open && videoPlaying && videoStarted && !reducedMotion && !motionPaused && videoTime >= 2 && videoTime < 8;
 
-  return (
+  if (!visible) return null;
+
+  const launcher = (
     <div
       // gary-launcher--idle disables pointer-events on the whole container (re-enabled only on
       // the button, see globals.css) so an empty area of this box — which extends over both the
@@ -138,13 +127,9 @@ export default function GaryLauncher() {
           viewport. Gary remains directly beneath the button; mobile CSS only scales the cluster
           and never rearranges it. */}
       <div className="flex items-center gap-2">
-        {showIntroBubble && (
-          <div className="gary-speech-bubble" data-testid="gary-speech-bubble">
-            Hi! I&apos;m Gary from Accounting
-          </div>
-        )}
         <button
           type="button"
+          ref={chatButton}
           onClick={() => setOpen(true)}
           aria-label="Chat with Gary from Accounting"
           className="gary-chat-button flex flex-shrink-0 items-center justify-center rounded-full bg-green-600 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
@@ -158,25 +143,36 @@ export default function GaryLauncher() {
 
       {!open && (
         <div className="gary-decorative-cluster relative">
-          {(pose === 'sign' || pose === 'signPoint' || pose === 'signWave' || pose === 'lowering') && (
-            <div
-              className={`gary-sign-board${pose === 'lowering' ? ' is-lowering' : ''}`}
-              aria-hidden="false"
-            >
-              <span className="gary-sign-copy">The button. Up there.</span>
+          {videoPlaying && !reducedMotion ? (
+            <div className="gary-video-stage">
+              {!videoStarted && <div className="gary-video-placeholder" aria-hidden="true"><GaryCharacter pose="seated" idleGlanceActive={false} /></div>}
+              <video ref={videoRef} className="gary-concierge-video" data-started={videoStarted} src="/gary-concierge.webm?v=tracked2"
+                autoPlay={!motionPaused} loop muted playsInline preload="none"
+                aria-label="Gary waves, gets frustrated, and holds a sign pointing to the chat button."
+                onTimeUpdate={(event) => setVideoTime(event.currentTarget.currentTime)}
+                onPlaying={() => { setVideoStarted(true); setVideoFailed(false); }}
+                onPause={() => { if (!motionPaused) setVideoStarted(false); }}
+                onError={() => { setVideoStarted(false); setVideoFailed(true); }} />
+              {!videoStarted && !motionPaused && <div className="gary-video-recovery">
+                {videoFailed && <p role="status">Animation unavailable. You can still chat with Gary.</p>}
+                <button type="button" onClick={playGary}>{videoFailed ? 'Retry Gary animation' : 'Play Gary'}</button>
+              </div>}
+              {showIntroBubble && (
+                <div className="gary-video-bubble" data-testid="gary-speech-bubble">
+                  Hey I&apos;m Gary From Accounting, Im here to help.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="gary-character-wrap" aria-hidden="true">
+              <GaryCharacter pose={pose} idleGlanceActive={idleGlanceActive} />
             </div>
           )}
-          <div
-            className={`gary-character-wrap${entering ? ' gary-entering' : ''}`}
-            aria-hidden="true"
-            onAnimationEnd={() => setEntering(false)}
-          >
-            <GaryCharacter pose={pose} idleGlanceActive={idleGlanceActive} />
-          </div>
         </div>
       )}
 
-      {open && <GaryPanel onClose={() => setOpen(false)} />}
+      {open && <GaryPanel onClose={() => { setOpen(false); chatButton.current?.focus(); }} />}
     </div>
   );
+  return launcher;
 }

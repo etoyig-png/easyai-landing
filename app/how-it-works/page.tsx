@@ -5,8 +5,7 @@ export const metadata: Metadata = { title: 'How It Works' };
 
 /**
  * The complete public service range. Descriptions are outcome-first on purpose: they say what the
- * business gets, never which internal system delivers it. No proprietary product names appear
- * here or anywhere else visitor-facing.
+ * business gets, never which internal system delivers it. Core product names stay connected to plain-language business tasks.
  */
 const services: { n: string; title: string; body: string; comingSoon?: boolean }[] = [
   { n: '01', title: 'Online Visibility and Customer Discovery', body: 'Improve how customers find, understand, and choose your business across Google, local search, and Artificial Intelligence discovery.' },
@@ -14,16 +13,18 @@ const services: { n: string; title: string; body: string; comingSoon?: boolean }
   { n: '03', title: 'Digital and Phone Customer Response', body: 'Respond to customer questions, calls, and requests while guiding each person toward the appropriate next step.' },
   { n: '04', title: 'Business AI Assessment and Strategy', body: 'Identify growth opportunities, operational problems, useful technology, and the most practical improvements to make first.' },
   { n: '05', title: 'Ready-to-Configure AI Assistants', body: 'Configure existing Artificial Intelligence assistance for common repetitive or information-heavy business tasks.' },
-  { n: '06', title: 'Custom AI Assistants', body: 'Build specialized assistance around your actual process when an existing solution does not fit.' },
-  { n: '07', title: 'Workflow Automation', body: 'Connect repetitive tasks, customer follow-up, information movement, and business handoffs.' },
+  { n: '06', title: 'Custom AI Agent Builds', body: 'Scope and build an AI assistant around a clear business task, such as answering approved product questions or preparing a lead summary for a person to review. We assess fit, access and testing before recommending a build.' },
+  { n: '07', title: 'Workflow Automation & Integrations', body: 'Connect repetitive tasks using the tools your team already has where practical. Examples include moving an approved inquiry into your existing customer system or preparing a follow-up task for staff.' },
   { n: '08', title: 'Customer Relationship and Follow-Up Systems', body: 'Organize customer information, communication, follow-up, and revenue activity.', comingSoon: true },
   { n: '09', title: 'Custom Business Management Dashboards', body: 'Bring important information, priorities, projects, customer activity, and business systems into one organized view.' },
   { n: '10', title: 'Ongoing Implementation and Support', body: 'Help business owners configure, use, improve, and maintain approved technology and workflows over time.' },
+  { n: '11', title: 'Marketing & Ad Development', body: 'Develop clear messaging, ad concepts, scripts and creative variations for your audience. Scope, platform fit, human review and testing come before any campaign or media spend.' },
+  { n: '12', title: 'BRIQ: Brand IQ, the Company Brain', body: 'Organize approved business facts, service details, FAQs and brand guidance so people and AI assistants can work from consistent information. Access, updates and human review are part of the plan.' },
 ];
 
 const steps = [
   {
-    num: '01', title: 'Take the AI Opportunity Assessment or book a call',
+    num: '01', title: 'Get Your Company’s GAP Score.',
     body: 'Fill out a short form about your business, current tools, repetitive work, time drains, and goals. This is not the full consulting assessment — it\'s how we learn enough to make the conversation useful. You can also skip the form and book a consultation directly.',
   },
   {
@@ -64,6 +65,8 @@ export default function HowItWorksPage() {
           <p className="eyebrow-silver mb-3">The process</p>
           <h1 className="text-4xl md:text-5xl font-serif font-semibold mb-4">What Easy AI Does</h1>
           <p className="text-silver-light text-lg max-w-2xl">We help customers find you, understand you, and choose you. Getting found is only the first step, so we follow the customer through to a real conversation with your team.</p>
+          <p className="text-silver-light mt-5 max-w-3xl">Start with your assessment. Our core services are GAP for discovery, SmartSite for website conversations and lead capture, and AIM Digital / Voice for customer response. We discuss the right fit for your business before implementation.</p>
+          <Link href="/faq" className="inline-block mt-5 text-teal underline">Read our service FAQs →</Link>
         </div>
       </section>
 
@@ -133,7 +136,7 @@ export default function HowItWorksPage() {
         <div className="max-w-xl mx-auto px-4 sm:px-6">
           <h2 className="text-2xl font-serif font-semibold text-white mb-4">Ready to start?</h2>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/assessment" className="btn-green">Take the Assessment</Link>
+            <Link href="/assessment" className="btn-green">Start Your Journey Now</Link>
             <Link href="/assessment?intent=consultation" className="btn-ghost-white">Book a Consultation</Link>
           </div>
         </div>

@@ -1,0 +1,155 @@
+'use client';
+
+import Script from 'next/script';
+import { useEffect, useState } from 'react';
+import { mountTraceMotion } from '@/lib/trace-motion';
+
+type ScrollCraftInstance = { destroy: () => void };
+declare global {
+  interface Window {
+    ScrollCraft?: { mount: (root: Element, options: { scroller?: HTMLElement }) => ScrollCraftInstance };
+  }
+}
+
+/** Progressive enhancement only: the server-rendered journey is usable without this. */
+export default function ScrollCraftMotion() {
+  const [paused, setPaused] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [requested, setRequested] = useState(false);
+  useEffect(() => {
+    document.dispatchEvent(new CustomEvent('easyai:motion-paused', { detail: paused }));
+    return () => { if (paused) document.dispatchEvent(new CustomEvent('easyai:motion-paused', { detail: false })); };
+  }, [paused]);
+  useEffect(() => {
+    const preference = matchMedia('(prefers-reduced-motion: reduce)');
+    let active = true;
+    const root = document.querySelector('.home-story');
+    const revealStatic = () => {
+      if (!active || root?.hasAttribute('data-motion-ready')) return;
+      root?.removeAttribute('data-opening-pending');
+      root?.setAttribute('data-opening-complete', 'true');
+    };
+    // Never show the finished brand, then take it away for a late-loading intro.
+    const deadline = window.setTimeout(revealStatic, 2500);
+    const request = async () => {
+      if (preference.matches) { revealStatic(); return; }
+      // Start the opening only after its actual photograph can be painted.
+      const image = new window.Image();
+      image.src = '/devices/phone-photograph-crop.webp';
+      try { await image.decode(); } catch { revealStatic(); return; }
+      if (active && !preference.matches) setRequested(true);
+    };
+    request();
+    preference.addEventListener('change', request);
+    return () => { active = false; clearTimeout(deadline); preference.removeEventListener('change', request); };
+  }, []);
+  useEffect(() => {
+    const root = document.querySelector('.home-story');
+    if (!ready || !root || !window.ScrollCraft) return;
+    const scroller = root.closest<HTMLElement>('.site-scroll-frame') ?? undefined;
+    const preference = matchMedia('(prefers-reduced-motion: reduce)');
+    let instance: ScrollCraftInstance | undefined;
+    let traces: ReturnType<typeof mountTraceMotion> | undefined;
+    const scenes = Array.from(root.querySelectorAll('.product-scene, .discovery-intro, .discovery-human, .discovery-opening'));
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => entry.target.classList.toggle('scene-visible', entry.isIntersecting));
+    }, { root: scroller, threshold: 0.2 });
+    scenes.forEach(scene => observer.observe(scene));
+    const video = root.querySelector<HTMLVideoElement>('[data-conversation-video]');
+    let videoVisible = false;
+    const syncVideo = () => {
+      if (!video) return;
+      if (videoVisible && !preference.matches && !paused) {
+        const source = video.querySelector('source');
+        if (source && !source.src) { source.src = source.dataset.src!; video.load(); }
+        video.play().catch(() => { /* Poster remains visible when playback is unavailable. */ });
+      } else video.pause();
+    };
+    const videoObserver = new IntersectionObserver(entries => {
+      videoVisible = entries.some(entry => entry.isIntersecting);
+      syncVideo();
+    }, { root: scroller, threshold: .15 });
+    if (video) videoObserver.observe(video);
+    const update = () => {
+      syncVideo();
+      instance?.destroy();
+      traces?.destroy();
+      traces = undefined;
+      instance = undefined;
+      root.removeAttribute('data-motion-ready');
+      root.removeAttribute('data-opening-pending');
+      if (preference.matches || paused) root.setAttribute('data-opening-complete', 'true');
+      // Do not mount the engine for motion-off visitors, including live preference changes.
+      if (!preference.matches && !paused) {
+        instance = window.ScrollCraft?.mount(root, { scroller });
+        root.setAttribute('data-motion-ready', 'true');
+        traces = mountTraceMotion(root);
+      }
+    };
+    const opening = root.querySelector<HTMLElement>('.discovery-search');
+    const finishOpening = (event: Event) => {
+      if ((event as AnimationEvent).animationName === 'discovery-search') root.setAttribute('data-opening-complete', 'true');
+    };
+    root.addEventListener('animationend', finishOpening);
+    const movePhone = () => {
+      if (preference.matches || paused) return;
+      const section = opening?.closest('.discovery-opening');
+      const top = section?.getBoundingClientRect().top ?? 0;
+      const viewportHeight = scroller?.clientHeight ?? innerHeight;
+      const progress = Math.min(1, Math.max(0, (viewportHeight - top) / Math.max(1, viewportHeight + (section?.clientHeight ?? viewportHeight))));
+      opening?.style.setProperty('--phone-scroll-x', `${Math.sin(progress * Math.PI * 3) * 22}px`);
+      opening?.style.setProperty('--phone-scroll-angle', `${Math.sin(progress * Math.PI * 3) * 8}deg`);
+    };
+    window.addEventListener('scroll', movePhone, { passive: true, capture: true });
+    update();
+    preference.addEventListener('change', update);
+    return () => {
+      root.removeEventListener('animationend', finishOpening);
+      window.removeEventListener('scroll', movePhone, true);
+      preference.removeEventListener('change', update);
+      observer.disconnect();
+      videoObserver.disconnect();
+      video?.pause();
+      scenes.forEach(scene => scene.classList.remove('scene-visible'));
+      instance?.destroy();
+      traces?.destroy();
+      root.removeAttribute('data-motion-ready');
+    };
+  }, [ready, paused]);
+
+  useEffect(() => {
+    const root = document.querySelector('.home-story');
+    if (!root || !('IntersectionObserver' in window)) return;
+    const preference = matchMedia('(prefers-reduced-motion: reduce)');
+    const statements = root.querySelectorAll('[data-story-reveal]');
+    let observer: IntersectionObserver | undefined;
+    const update = () => {
+      observer?.disconnect();
+      root.removeAttribute('data-reveals-active');
+      if (preference.matches || paused) return;
+      root.setAttribute('data-reveals-active', 'true');
+      observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          const statement = entry.target.matches('[data-story-reveal]') ? entry.target : entry.target.querySelector('[data-story-reveal]');
+          statement?.classList.add('statement-visible');
+          observer?.unobserve(entry.target);
+        });
+      }, { root: root.closest('.site-scroll-frame'), threshold: .2, rootMargin: '0px 0px -18% 0px' });
+      statements.forEach(statement => observer?.observe(statement.closest('.identity-entry') ?? statement));
+    };
+    update();
+    preference.addEventListener('change', update);
+    return () => {
+      observer?.disconnect();
+      preference.removeEventListener('change', update);
+      root.removeAttribute('data-reveals-active');
+    };
+  }, [paused]);
+  return requested ? <>
+    <Script src="/scrollcraft/scrollcraft.js" strategy="afterInteractive" onReady={() => setReady(true)} />
+    <button type="button" className="motion-toggle" onClick={() => setPaused(value => !value)} aria-pressed={paused}>
+      {paused ? 'Resume motion' : 'Pause motion'}
+    </button>
+  </> : null;
+}

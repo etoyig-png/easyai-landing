@@ -20,9 +20,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <div className="site-scroll-frame" role="region" aria-label="Website content" tabIndex={0}>
+          <Header />
+          <main>{children}</main>
+          <Footer />
+        </div>
         <GaryRouteGate>
           <GaryLauncher />
         </GaryRouteGate>
