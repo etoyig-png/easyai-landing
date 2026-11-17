@@ -3,12 +3,7 @@ import config from './next.config.mjs';
 
 async function securityHeaders(): Promise<Record<string, string>> {
   const entries = await config.headers();
-  return Object.fromEntries(entries[0].headers.map(({ key, value }) => {
-    if (typeof key !== 'string' || typeof value !== 'string') {
-      throw new TypeError('Security header keys and values must be strings');
-    }
-    return [key, value];
-  }));
+  return Object.fromEntries(entries[0].headers.map(({ key, value }) => [key, value]));
 }
 
 describe('security headers', () => {

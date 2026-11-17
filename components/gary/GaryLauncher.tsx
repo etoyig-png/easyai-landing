@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import GaryCharacter, { type GaryPose } from './GaryCharacter';
-import { OPEN_GARY_EVENT, type OpenGaryIntent } from '@/lib/gary/openGary';
 
 // The chat panel (and its network/session logic) is only loaded once the visitor opens it —
-// GaryRouteGate imports this renderer only after the page load and five-second delay.
-// The chat panel remains a second deferred boundary until a visitor opens it.
+// This presentation adapter leaves the production panel and its request/session handling intact.
+// The panel remains deferred until a visitor opens it.
 const GaryPanel = dynamic(() => import('./GaryPanel'), { ssr: false });
 
 function usePrefersReducedMotion(): boolean {
@@ -23,9 +22,10 @@ function usePrefersReducedMotion(): boolean {
 }
 
 
-export default function GaryLauncher({ initialOpen = false, initialIntent = null }: { initialOpen?: boolean; initialIntent?: OpenGaryIntent | null }) {
-  const [open, setOpen] = useState(initialOpen);
-  const [intent, setIntent] = useState<OpenGaryIntent | null>(initialIntent);
+export default function GaryLauncher() {
+  const [visible, setVisible] = useState(false);
+  const [open, setOpen] = useState(false);
+  const pendingOpen = useRef(false);
   const chatButton = useRef<HTMLButtonElement>(null);
   const [pose, setPose] = useState<GaryPose>('seated');
   const [routineFinished, setRoutineFinished] = useState(false);
@@ -58,24 +58,22 @@ export default function GaryLauncher({ initialOpen = false, initialIntent = null
     try { await video.play(); } catch { setVideoStarted(false); }
   }
 
-  // The outer gate already waited for full page load plus five seconds. Do not wait twice.
+  // Presentation starts after full page load plus the reviewed five-second delay.
+  // Early homepage CTA clicks queue only a generic open of the unchanged production panel.
   useEffect(() => {
-    if (initialOpen || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setPose('seated');
-      setRoutineFinished(true);
-      return;
-    }
-    setVideoPlaying(true);
-  }, [initialOpen]);
-
-  useEffect(() => {
-    const handleOpenRequest = (event: Event) => {
-      const requested = (event as CustomEvent<{ intent?: unknown }>).detail?.intent;
-      setIntent(requested === 'contact' ? 'contact' : null);
-      setOpen(true);
+    let timer: number | undefined;
+    const start = () => {
+      timer = window.setTimeout(() => {
+        setVisible(true);
+        if (pendingOpen.current) setOpen(true);
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (pendingOpen.current || reduced) setRoutineFinished(true);
+        else setVideoPlaying(true);
+      }, 5000);
     };
-    window.addEventListener(OPEN_GARY_EVENT, handleOpenRequest);
-    return () => window.removeEventListener(OPEN_GARY_EVENT, handleOpenRequest);
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+    return () => { window.removeEventListener('load', start); window.clearTimeout(timer); };
   }, []);
 
   // Opening the chat interrupts whatever part of the routine is still playing (jump/wave/point/
@@ -95,18 +93,20 @@ export default function GaryLauncher({ initialOpen = false, initialIntent = null
       if (!(target instanceof Element) || !target.closest('a[data-open-gary]')) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
       event.preventDefault();
-      setIntent(null);
-      setOpen(true);
+      pendingOpen.current = true;
+      if (visible) setOpen(true);
     };
     document.addEventListener('click', openFromPage);
     return () => document.removeEventListener('click', openFromPage);
-  }, []);
+  }, [visible]);
 
   const idleGlanceActive = pose === 'seated' && routineFinished && !open && !reducedMotion && !motionPaused;
   // Message behavior follows Gary's pose, never viewport geometry. Real conditional rendering
   // fully removes the intro bubble while Gary is holding or lowering the physical sign, ensuring
   // there is exactly one white message element at every screen size.
   const showIntroBubble = !open && videoPlaying && videoStarted && !reducedMotion && !motionPaused && videoTime >= 2 && videoTime < 8;
+
+  if (!visible) return null;
 
   const launcher = (
     <div
@@ -130,7 +130,7 @@ export default function GaryLauncher({ initialOpen = false, initialIntent = null
         <button
           type="button"
           ref={chatButton}
-          onClick={() => { setIntent(null); setOpen(true); }}
+          onClick={() => setOpen(true)}
           aria-label="Chat with Gary from Accounting"
           className="gary-chat-button flex flex-shrink-0 items-center justify-center rounded-full bg-green-600 text-white shadow-lg transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
           style={{ width: 'clamp(56px, 11vw, 64px)', height: 'clamp(56px, 11vw, 64px)' }}
@@ -171,11 +171,7 @@ export default function GaryLauncher({ initialOpen = false, initialIntent = null
         </div>
       )}
 
-      {open && <GaryPanel
-        identity={<div className="flex min-w-0 items-center gap-2"><div className="h-16 w-16 flex-shrink-0" data-testid="gary-chat-character"><GaryCharacter pose="seated" idleGlanceActive={false} /></div><span className="text-sm font-semibold text-white">Gary from Accounting</span></div>}
-        initialIntent={intent}
-        onClose={() => { setOpen(false); setIntent(null); chatButton.current?.focus(); }}
-      />}
+      {open && <GaryPanel onClose={() => { setOpen(false); chatButton.current?.focus(); }} />}
     </div>
   );
   return launcher;

@@ -45,8 +45,7 @@ export async function resolveHandoffState(
   allowedFields: string[],
   now = Date.now(),
 ): Promise<HandoffState> {
-  // PostgreSQL returns void; use the existing contact-flow cast for Prisma deserialization.
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${sessionId}))::text`;
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${sessionId}))`;
   const currentSession = await tx.publicChatSession.findUniqueOrThrow({ where: { id: sessionId } });
   const existing = await tx.assessmentHandoff.findUnique({ where: { sessionId } });
 

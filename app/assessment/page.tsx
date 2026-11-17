@@ -1,5 +1,4 @@
 'use client';
-import { readAssessmentReceipt, storeAssessmentReceipt } from '@/lib/assessmentReceipt';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -67,7 +66,7 @@ function emailLooksValid(email: string) {
 
 export default function AssessmentPage() {
   return (
-    <Suspense fallback={<section className="min-h-screen bg-slate-50 py-16" aria-busy="true" aria-label="Loading assessment" />}>
+    <Suspense fallback={null}>
       <AssessmentPageInner />
     </Suspense>
   );
@@ -190,14 +189,9 @@ function AssessmentPageInner() {
     setSubmitError('');
     setSubmitting(true);
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      try {
-        const capability = readAssessmentReceipt()?.capability;
-        if (typeof capability === 'string' && /^[\w.-]{1,2048}$/.test(capability)) headers.Authorization = `Bearer ${capability}`;
-      } catch { /* Unavailable or corrupt storage must not block a fresh submission. */ }
       const res = await fetch('/api/assessment', {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workSituation: answers.workSituation,
           searchVisibility: answers.searchVisibility,
@@ -227,14 +221,6 @@ function AssessmentPageInner() {
         throw new Error(body.error ?? 'Something went wrong. Please try again.');
       }
 
-      const receipt = await res.json().catch(() => ({}));
-      if (receipt.duplicate && (!receipt.id || !receipt.statusCapability)) {
-        setSubmitError('We could not start a new assessment just now. If you already submitted, use your saved results in the original browser tab or try again later.');
-        setSubmitting(false);
-        return;
-      }
-      storeAssessmentReceipt(typeof receipt?.id === 'string' && typeof receipt?.statusCapability === 'string'
-        ? { id: receipt.id, capability: receipt.statusCapability, storedAt: Date.now() } : null);
       setStep(BUILDING_STEP);
       setTimeout(() => router.push('/assessment/complete'), 2200);
     } catch (err) {
@@ -279,8 +265,8 @@ function AssessmentPageInner() {
               <p className="text-sm text-slate-500 mb-6">Just two quick things before we start.</p>
               <div className="space-y-4">
                 <div>
-                  <label className="label" htmlFor="firstName">First name</label>
-                  <input id="firstName"
+                  <label className="label">First name</label>
+                  <input
                     className="input"
                     value={answers.firstName}
                     onChange={(e) => setAnswers((p) => ({ ...p, firstName: e.target.value }))}
@@ -289,8 +275,8 @@ function AssessmentPageInner() {
                   {contactErrors.firstName && <p className="text-xs text-red-600 mt-1">{contactErrors.firstName}</p>}
                 </div>
                 <div>
-                  <label className="label" htmlFor="businessName">Business name</label>
-                  <input id="businessName"
+                  <label className="label">Business name</label>
+                  <input
                     className="input"
                     value={answers.businessName}
                     onChange={(e) => setAnswers((p) => ({ ...p, businessName: e.target.value }))}
@@ -323,8 +309,8 @@ function AssessmentPageInner() {
               <h1 className="text-xl font-bold text-slate-900 mb-1">Almost there. Where should we send your plan?</h1>
               <div className="space-y-4">
                 <div>
-                  <label className="label" htmlFor="lastName">Last name</label>
-                  <input id="lastName"
+                  <label className="label">Last name</label>
+                  <input
                     className="input"
                     value={answers.lastName}
                     onChange={(e) => setAnswers((p) => ({ ...p, lastName: e.target.value }))}
@@ -332,8 +318,8 @@ function AssessmentPageInner() {
                   {contactErrors.lastName && <p className="text-xs text-red-600 mt-1">{contactErrors.lastName}</p>}
                 </div>
                 <div>
-                  <label className="label" htmlFor="email">Email address</label>
-                  <input id="email"
+                  <label className="label">Email address</label>
+                  <input
                     type="email"
                     className="input"
                     value={answers.email}
@@ -400,13 +386,12 @@ function AssessmentPageInner() {
             <div>
               <h1 className="text-xl font-bold text-slate-900 mb-4">One more thing</h1>
               <div className="bg-slate-100 rounded-xl p-5 mb-6">
-                <p id="report-email-label" className="text-sm text-slate-600 mb-3">We&rsquo;ll send your personalized Customer Opportunity Action Plan to:</p>
+                <p className="text-sm text-slate-600 mb-3">We&rsquo;ll send your personalized Customer Opportunity Action Plan to:</p>
                 {editingEmail ? (
                   <div className="flex gap-2">
                     <input
                       type="email"
                       className="input"
-                      aria-labelledby="report-email-label"
                       value={emailDraft}
                       onChange={(e) => setEmailDraft(e.target.value)}
                       autoFocus
@@ -521,9 +506,9 @@ function QuestionStep({
 
       {showOtherInput && (
         <div className="mt-4">
-          <label className="label" htmlFor="industryOther">Tell us what kind of business you run</label>
+          <label className="label">Tell us what kind of business you run</label>
           <div className="flex gap-2">
-            <input id="industryOther"
+            <input
               className="input"
               value={otherDraft}
               onChange={(e) => onOtherDraftChange(e.target.value)}

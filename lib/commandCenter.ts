@@ -1,4 +1,3 @@
-import { assertPreviewProviderIsolation } from '@/lib/previewIsolation';
 /**
  * Sends a status-only update to the Easy AI Command Center (separate deployment,
  * mr-life-command-center repo — POST /api/easy-ai/leads). Never send full assessment
@@ -15,7 +14,6 @@ export async function notifyCommandCenter(event: {
   if (!url || !secret) return; // not configured yet — no-op until wired up
 
   try {
-    assertPreviewProviderIsolation();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8_000);
     await fetch(url, {

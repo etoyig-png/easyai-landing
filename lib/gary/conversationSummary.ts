@@ -76,7 +76,6 @@ export async function buildGaryConversationSummary(adapter: LlmProviderAdapter, 
     systemPrompt: SUMMARY_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: buildTranscriptText(history) }],
     maxTokens: 800,
-    timeoutMs: PROVIDER_TIMEOUT_MS,
   }), PROVIDER_TIMEOUT_MS, 'summary provider');
 
   const parsed = parseSummary(result.text);
