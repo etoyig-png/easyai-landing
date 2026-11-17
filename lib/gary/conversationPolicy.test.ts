@@ -45,6 +45,64 @@ describe('three substantive business replies', () => {
   it('does not confuse an informational question with a start request', () => {
     expect(conversationPolicy(initial,[{role:'user',content:'What is the assessment?'}]).direct).toBe(false);
   });
+  it('retains the substantive business count across short price and billing follow-ups', async () => {
+    const h: ChatMessage[]=[]; const stages: number[]=[]; const offers: boolean[]=[];
+    for (const question of ["I'm losing plumbing bookings", 'How much?', 'Monthly?']) {
+      h.push({role:'user',content:question}); stages.push(conversationPolicy(initial,h).stage);
+      const reply=await generateGaryReply(adapter('The monthly price is $99.'),initial,h);
+      expect(reply.usedFallback).toBe(true); expect(reply.text).not.toMatch(/\$|\b99\b/);
+      if(question!=="I'm losing plumbing bookings") expect(reply.text).toContain('verified pricing or billing terms');
+      offers.push(reply.offerAssessment); h.push({role:'assistant',content:reply.text});
+    }
+    expect(stages).toEqual([1,2,3]); expect(offers).toEqual([false,false,true]);
+  });
+  it.each(['Hi!', 'Thanks', 'That makes sense', 'Got it', 'Sure', 'Why is the sky blue?'])('does not advance established business flow on a greeting, acknowledgment or detour: %s', (aside) => {
+    const h: ChatMessage[]=[{role:'user',content:'I am losing plumbing bookings'},{role:'assistant',content:'Review which callers are not offered an appointment.'},{role:'user',content:aside}];
+    expect(conversationPolicy(initial,h).stage).toBe(0);
+    h.push({role:'assistant',content:'We can return to your business when you are ready.'},{role:'user',content:'How much?'});
+    expect(conversationPolicy(initial,h).stage).toBe(2);
+  });
+  it('does not treat a short billing fragment without business context as a business answer', () => {
+    expect(conversationPolicy(initial,[{role:'user',content:'Monthly?'}]).stage).toBe(0);
+  });
+  it.each(['I want to understand what the assessment covers', 'How do I prepare for the assessment?', 'What does the assessment cover?', 'What is the assessment?'])('answers assessment information without a button or retry: %s', async (question) => {
+    const h: ChatMessage[]=[{role:'user',content:question}]; const policy=conversationPolicy(initial,h);
+    expect(policy.assessmentInfo).toBe(true);expect(policy.direct).toBe(false);expect(policy.offer).toBe(false);
+    const text='To prepare for the assessment, think about your goals and current challenges. The assessment can help identify practical next steps from your answers.';
+    const a=adapter(text);const reply=await generateGaryReply(a,initial,h);
+    expect(reply.text).toBe(text);expect(reply.usedFallback).toBe(false);expect(reply.offerAssessment).toBe(false);expect(a.generateChatCompletion).toHaveBeenCalledTimes(1);
+    const fallback=await generateGaryReply(adapter('I completely understand.'),initial,h);
+    expect(fallback.usedFallback).toBe(true);expect(fallback.text).not.toMatch(/couldn't produce|try again|\?/);expect(fallback.offerAssessment).toBe(false);expect(fallback.text).toContain('not a verified website audit');
+    if(question.includes('prepare'))expect(fallback.text).toContain('current tools');
+  });
+  it.each(['Send me the link to the assessment', 'Start the assessment', 'I want to take the assessment now', 'Where is the assessment?', 'How do I get to the assessment?', 'How do I access the assessment?', 'Can I have the assessment link?'])('retains immediate CTA for explicit access: %s', async (question) => {
+    const reply=await generateGaryReply(adapter('You can start the free assessment. [[OFFER_ASSESSMENT]]'),initial,[{role:'user',content:question}]);
+    expect(reply.offerAssessment).toBe(true);expect(reply.text).not.toContain('[[OFFER_ASSESSMENT]]');
+  });
+  it.each(["Don't start the assessment", 'Do not send me the assessment link', 'I am not ready to start the assessment'])('does not convert a negated start into access: %s', async (question) => {
+    const h: ChatMessage[]=[{role:'user',content:question}];
+    expect(conversationPolicy(initial,h).direct).toBe(false);expect(conversationPolicy(initial,h).offer).toBe(false);
+    const reply=await generateGaryReply(adapter('Start the assessment. [[OFFER_ASSESSMENT]]'),initial,h);
+    expect(reply.offerAssessment).toBe(false);
+  });
+  it('replaces repeated question-only information replies with a useful scope answer', async () => {
+    const a=adapter('What would you like to know about the assessment?');
+    const reply=await generateGaryReply(a,initial,[{role:'user',content:'What does the assessment cover?'}]);
+    expect(a.generateChatCompletion).toHaveBeenCalledTimes(2);expect(reply.usedFallback).toBe(true);
+    expect(reply.text).toContain('your business, goals and current challenges');expect(reply.text).not.toContain('?');expect(reply.offerAssessment).toBe(false);
+  });
+  it('does not turn an information-only sequence into an automatic third-answer button', async () => {
+    const h: ChatMessage[]=[];
+    for(const question of ['What is the assessment?', 'What does the assessment cover?', 'How do I prepare for the assessment?']) {
+      h.push({role:'user',content:question});
+      const reply=await generateGaryReply(adapter('It uses your business answers to identify practical next steps.'),initial,h);
+      expect(reply.offerAssessment).toBe(false); h.push({role:'assistant',content:reply.text});
+    }
+  });
+  it('does not let information intent bypass marker or real-invitation suppression', async () => {
+    const reply=await generateGaryReply(adapter('Start the assessment. [[OFFER_ASSESSMENT]]'),initial,[{role:'user',content:'What does the assessment cover?'}]);
+    expect(reply.usedFallback).toBe(true);expect(reply.offerAssessment).toBe(false);expect(reply.text).not.toContain('[[OFFER_ASSESSMENT]]');
+  });
   it('accepts useful natural wording without a fixed Feel phrase', async () => {
     const a=adapter('Start with the last five calls that did not become appointments. Check whether the caller was offered a clear booking option.');
     const reply=await generateGaryReply(a,initial,[{role:'user',content:specific[0]}]);

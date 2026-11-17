@@ -3,20 +3,26 @@ import type { ChatMessage } from './llm/types';
 import type { GaryConversationState } from './systemPrompt';
 
 const BUSINESS = /\b(SEO|search engine|business|scheduling|team|staff|operations|sales|leads?|clients?|customers?|book(?:ing|ings)?|plumb(?:er|ing)|strateg(?:y|ies)|marketing|visib(?:le|ility)|follow.up|website|site|GAP|AIM|SmartSite|workflow|admin(?:istration)?|delivery|revenue)\b/i;
-const FOLLOWUP = /\b(it|that|they|them|we|our|next|already|tried|going|same)\b/i;
+const FOLLOWUP = /\b(it|that|they|them|we|our|next|already|tried|going|same|how much|monthly|annually|yearly|pricing|costs?|prices?|per month|how long)\b/i;
+const ACKNOWLEDGMENT = /^\s*(?:hi|hello|hey|good morning|good afternoon|good evening|ok|okay|thanks|thank you|got it|understood|that makes sense|makes sense|sounds good|sure|yes|yep|no|nope)(?:[,! .]*(?:thanks|thank you))?[.!?\s]*$/i;
 const OFF_TOPIC = /\b(weather|sky|jokes?|trivia|sports?|recipes?|capital city|dinosaurs?|pizza|movies?|video games?|football|basketball|cats?|dogs?)\b/i;
 export const VISIT_QUESTION = "What brought you to the Easy AI website today?";
 const SOFT_DECLINE = /\b(?:no thanks|not interested|just advice|do not sell|don't sell|stop pitching)\b|\b(?:no|skip|decline|don't want|do not want|not ready for)\b[^.!?]{0,35}\bassessment\b/i;
 const HARD_STOP = /\b(?:stop (?:selling|pitching|asking)|do not sell|don't sell|just advice|no (?:more )?questions|leave me alone|never (?:ask|offer))\b/i;
-const ASK = /\b(?:start|take|begin|want|ready for|give me|send me|where is|how do i)\b[^.!?]{0,40}\bassessment\b/i;
-const ASK_LINK = /\bassessment\b[^.!?]{0,40}\b(?:link|button|please)\b|\b(?:link|button|help me with)\b[^.!?]{0,40}\bassessment\b/i;
+// Access requests require an action/destination, not a broad "want" or "how do I".
+const ASK = /\b(?:start|take|begin|open|launch)\s+(?:(?:the|a|an|my|free|business|AI|opportunity)\s+)*assessment\b|\bready for\s+(?:(?:the|a|free|business|AI)\s+)*assessment\b/i;
+const ASK_LINK = /\bassessment\s+(?:link|button)\b|\b(?:link|button)\b[^.!?]{0,40}\bassessment\b|\b(?:give|send|show) me\s+(?:(?:the|a|free|business|AI)\s+)*assessment\b|\bhelp me with\s+(?:(?:the|a|free|business|AI)\s+)*assessment\b/i;
+const ASK_ACCESS = /\bwhere is\s+(?:(?:the|a|free|business|AI)\s+)*assessment\b|\bhow (?:do|can) I (?:get to|access|open|start|take)\s+(?:(?:the|a|free|business|AI)\s+)*assessment\b/i;
+const NEGATED_ACCESS = /\b(?:do not|don't|not ready to|not asking to)\b[^.!?]{0,35}\b(?:start|take|begin|open|access|send|give|show)\b[^.!?]{0,40}\bassessment\b/i;
+const ASSESSMENT_INFORMATION = /\bassessment\b/i;
+const INFORMATION_VERBS = /\b(?:understand|explain|prepare|preparing|covers?|involves?|learn about|tell me about)\b|\bwhat (?:is|does|will)\b/i;
 const OLD_FALLBACK = /I want to make sure I get this right for you/i;
-export type ConversationPolicy = { business: boolean; stage: 0 | 1 | 2 | 3; offer: boolean; refused: boolean; direct: boolean; askWhy: boolean; noQuestions: boolean; offTopic: boolean; redirectTo: "ask" | "resume" | "none" };
+export type ConversationPolicy = { business: boolean; assessmentInfo: boolean; stage: 0 | 1 | 2 | 3; offer: boolean; refused: boolean; direct: boolean; askWhy: boolean; noQuestions: boolean; offTopic: boolean; redirectTo: "ask" | "resume" | "none" };
 
 /** Derive from persisted transcript; no new schema, hidden counter or provider call. */
 export function conversationPolicy(state: GaryConversationState, history: ChatMessage[]): ConversationPolicy {
   let context = false, count = 0, refused = false, pending = false;
-  let lastAssistant = '', business = false, direct = false, offTopic = false, visitQuestionAsked = false;
+  let lastAssistant = '', business = false, assessmentInfo = false, direct = false, offTopic = false, visitQuestionAsked = false;
   let softDeclines = 0, waitingForReason = false, restarted = false, askWhy = false, hardStop = false, noQuestions = false;
   for (const message of history) {
     if (message.role === 'assistant') {
@@ -26,12 +32,18 @@ export function conversationPolicy(state: GaryConversationState, history: ChatMe
       continue;
     }
     if (message.role !== 'user') continue;
-    const text = message.content;
+    const text = message.content.replace(/[’‘]/g, "'");
+    const acknowledgment = ACKNOWLEDGMENT.test(text);
     offTopic = OFF_TOPIC.test(text) && !BUSINESS.test(text);
     askWhy = false;
     if (/no (?:more )?questions|stop asking/i.test(text)) noQuestions = true;
-    direct = (ASK.test(text) || ASK_LINK.test(text)) && !SOFT_DECLINE.test(text) && !HARD_STOP.test(text);
-    const decline = SOFT_DECLINE.test(text) || (/^\s*(?:no|nope|not now|keep chatting)[.!\s]*$/i.test(text) && /assessment/i.test(lastAssistant));
+    const negatedAccess = NEGATED_ACCESS.test(text);
+    const informationQuestion = ASSESSMENT_INFORMATION.test(text) && INFORMATION_VERBS.test(text);
+    direct = !negatedAccess && !informationQuestion && (ASK.test(text) || ASK_LINK.test(text) || ASK_ACCESS.test(text)) && !SOFT_DECLINE.test(text) && !HARD_STOP.test(text);
+    // "What is the link ..." still explicitly requests access rather than an explanation.
+    if (!negatedAccess && /\b(?:where is|what(?:'s| is))\b[^.!?]{0,20}\b(?:link|button)\b[^.!?]{0,40}\bassessment\b/i.test(text) && !SOFT_DECLINE.test(text) && !HARD_STOP.test(text)) direct = true;
+    assessmentInfo = informationQuestion && !direct;
+    const decline = negatedAccess || SOFT_DECLINE.test(text) || (/^\s*(?:no|nope|not now|keep chatting)[.!\s]*$/i.test(text) && /assessment/i.test(lastAssistant));
     if (HARD_STOP.test(text)) { hardStop = true; refused = true; waitingForReason = false; }
     else if (decline) {
       softDeclines++; refused = true;
@@ -39,11 +51,11 @@ export function conversationPolicy(state: GaryConversationState, history: ChatMe
       else { hardStop = true; waitingForReason = false; }
     }
     let objection = false;
-    if (waitingForReason && !decline && !HARD_STOP.test(text) && !direct && !offTopic && !/^\s*(?:hi|hello|ok|okay|thanks|sure)[.!\s]*$/i.test(text)) {
+    if (waitingForReason && !decline && !HARD_STOP.test(text) && !direct && !offTopic && !acknowledgment && !assessmentInfo) {
       waitingForReason = false; restarted = true; refused = false; count = 0; objection = true;
     }
     if (direct) { refused = false; waitingForReason = false; }
-    business = !offTopic && (objection || BUSINESS.test(text) || (context && FOLLOWUP.test(text)));
+    business = !offTopic && !acknowledgment && !assessmentInfo && (objection || BUSINESS.test(text) || (context && FOLLOWUP.test(text)));
     if (business) context = true;
     pending = business && !decline && !askWhy && classifyVisitorMessageSafety(text) === 'none';
   }
@@ -52,11 +64,12 @@ export function conversationPolicy(state: GaryConversationState, history: ChatMe
   const canOffer = state.assessmentOfferCount === 0 || (restarted && state.assessmentOfferCount < 2);
   const harmlessDetour = safe && offTopic && !direct;
   const redirectTo = !harmlessDetour || hardStop || noQuestions ? "none" : context ? "resume" : visitQuestionAsked ? "none" : "ask";
-  return { business, stage, refused, direct, noQuestions, offTopic: harmlessDetour, redirectTo, askWhy: safe && askWhy, offer: safe && !refused && (!hardStop || direct) && (direct || (stage === 3 && canOffer)) };
+  return { business, assessmentInfo, stage, refused, direct, noQuestions, offTopic: harmlessDetour, redirectTo, askWhy: safe && askWhy, offer: safe && !refused && (!hardStop || direct) && (direct || (stage === 3 && canOffer)) };
 
 }
 
 export function conversationInstruction(p: ConversationPolicy): string {
+  if (p.assessmentInfo) return 'Answer the informational assessment question directly using approved public facts. Explain preparation or scope as requested, without an invitation, button marker or unnecessary follow-up. Do not imply a website audit or completed GAP Score.';
   if (p.offTopic) return 'This is a harmless detour. Give one short, playful reply to what they actually said. Be accurate or say you cannot verify, and do not mock anyone. Do not pitch the assessment. ' + (p.redirectTo === 'resume' ? 'Then briefly reconnect to the actual goal they already shared. Do not ask another question.' : 'Do not ask a question or add a redirect; the application handles that.');
   const phase = p.stage === 1 ? 'FEEL: briefly recognize the stated business difficulty, then give a concrete useful first step. Use natural wording, not a mandatory opening phrase.'
     : p.stage === 2 ? 'FELT: acknowledge why the concern or skepticism is reasonable without claiming other customers experienced it. In natural wording, give the next practical check, honoring corrections.'
@@ -65,6 +78,9 @@ export function conversationInstruction(p: ConversationPolicy): string {
 }
 
 export function safeConversationFallback(last: string, p: ConversationPolicy): string {
+  if (p.assessmentInfo) return /prepare|preparing/i.test(last)
+    ? 'To prepare, think about your business goal, current tools and recurring tasks or time drains. Answer from what you know, and leave passwords or confidential customer details out. The assessment uses your submitted answers; it is not a verified website audit.'
+    : 'The free Business AI Assessment uses your answers about your business, goals and current challenges to suggest practical next steps. It is not a verified website audit or a completed GAP Score.';
   if (p.offTopic) {
     const remark = /\bsky\b/i.test(last) && /\bblue\b/i.test(last) ? 'Air scatters blue light more strongly than red light. The sky didn’t even need a branding team.'
       : /\bweather\b/i.test(last) ? 'No live forecast on my desk, and I’d rather not cook the weather books.'
@@ -74,6 +90,7 @@ export function safeConversationFallback(last: string, p: ConversationPolicy): s
   if (/\bSEO\b|search engine optimi[sz]ation/i.test(last)) return 'SEO means search engine optimization: improving how search engines understand and show your website. For a local business, start with clear service pages, accurate business details and useful answers to customer questions.' + (p.offer ? ' The free Business AI Assessment is an optional next step.' : '');
   if (p.direct && p.offer) return 'You can start the free Business AI Assessment using the button below, or keep chatting if you prefer.';
   if (!p.business || p.stage === 0) return "I couldn't produce a reliable answer just now. You can try again or use /contact for human help.";
+  if (/\b(?:how much|monthly|annually|yearly|pricing|costs?|prices?|per month)\b/i.test(last)) return 'I do not have verified pricing or billing terms to quote. The right scope depends on the business problem and what needs to change; I cannot confirm a monthly plan.' + (p.offer ? ' The free Business AI Assessment is an optional starting point.' : '');
   const prefix = p.stage === 1 ? 'That sounds like a business problem worth narrowing down. ' : p.stage === 2 ? 'That concern makes sense. ' : 'A useful next step is to isolate where the customer journey stops. ';
   const answer = /\b(?:GAP|AIM|SmartSite)\b/i.test(last)
     ? 'GAP addresses discovery through Google and AI answers. AIM covers customer response. SmartSite addresses visits becoming inquiries, so that is the closest fit when visitors leave without contacting you.'
