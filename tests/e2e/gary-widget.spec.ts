@@ -97,6 +97,52 @@ test.describe('Gary widget', () => {
     await expect(dialog.getByText('Understood, thanks for sharing that.')).toBeVisible();
   });
 
+  test('keeps black composer text and a readable pending status visible after a long transcript', async ({ page }) => {
+    const reply = 'Check where calls stop turning into bookings. '.repeat(9).trim();
+    const dialog = await openGary(page, { text: reply });
+    const composer = dialog.getByRole('textbox', { name: 'Message Gary' });
+    const send = dialog.getByRole('button', { name: 'Send' });
+
+    for (let turn = 0; turn < 5; turn += 1) {
+      await composer.fill(`Business question ${turn + 1}`);
+      await send.click();
+      await expect(dialog.getByText(reply, { exact: true })).toHaveCount(turn + 1);
+    }
+    await composer.fill('What would you check next?');
+    await expect(composer).toHaveCSS('color', 'rgb(0, 0, 0)');
+    await expect(composer).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await expect(composer).toHaveValue('What would you check next?');
+
+    let finishReply!: () => void;
+    const gate = new Promise<void>((resolve) => { finishReply = resolve; });
+    await page.route('**/api/gary/message', async (route) => {
+      await gate;
+      await route.fulfill({
+        status: 200,
+        json: { sessionId: 'e2e-session-1', reply: { text: 'Try one practical next step.' } },
+      });
+    });
+    await send.click();
+    try {
+      const status = dialog.getByRole('status');
+      await expect(status).toHaveText('Gary is typing...');
+      await expect(status).toBeInViewport();
+      await expect(status.getByText('Gary is typing...')).toHaveCSS('color', 'rgb(30, 41, 59)');
+    } finally {
+      finishReply();
+    }
+    await expect(dialog.getByText('Try one practical next step.')).toBeVisible();
+    await expect(dialog.getByRole('status')).toBeEmpty();
+    await expect(composer).toBeEnabled();
+
+    await page.route('**/api/gary/message', (route) => route.fulfill({ status: 500, body: '' }));
+    await composer.fill('Try again');
+    await send.click();
+    await expect(dialog.getByText('Something went wrong.', { exact: false })).toBeVisible();
+    await expect(dialog.getByRole('status')).toBeEmpty();
+    await expect(composer).toBeEnabled();
+  });
+
   test('shows the assessment offer only when the reply signals it, with both actions available', async ({ page }) => {
     const dialog = await openGary(
       page,
@@ -107,6 +153,30 @@ test.describe('Gary widget', () => {
     await dialog.getByRole('button', { name: 'Send' }).click();
     await expect(dialog.getByRole('button', { name: 'Start My Free Assessment' })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Keep Chatting' })).toBeVisible();
+  });
+
+  test('Keep Chatting sends the selected option once and preserves the draft', async ({ page }) => {
+    const dialog = await openGary(page, { text: 'The assessment is optional.' }, true);
+    const composer = dialog.getByRole('textbox', { name: 'Message Gary' });
+    await composer.fill('How can I get more leads?');
+    await dialog.getByRole('button', { name: 'Send' }).click();
+    const keepChatting = dialog.getByRole('button', { name: 'Keep Chatting' });
+    await expect(keepChatting).toBeVisible();
+    await composer.fill('I am still typing');
+
+    const messages: string[] = [];
+    await page.route('**/api/gary/message', async (route) => {
+      messages.push(route.request().postDataJSON().message);
+      await route.fulfill({
+        status: 200,
+        json: { sessionId: 'e2e-session-1', reply: { text: 'No problem. What is holding you back, if you want to share?' } },
+      });
+    });
+    await keepChatting.click();
+    await expect(dialog.getByText('No problem. What is holding you back, if you want to share?')).toBeVisible();
+    await expect(composer).toHaveValue('I am still typing');
+    await expect(dialog.getByRole('button', { name: 'Start My Free Assessment' })).toHaveCount(0);
+    expect(messages).toEqual(['Keep chatting']);
   });
 
   test('accepting the assessment offer hands off to /assessment and Gary stops rendering there', async ({ page }) => {

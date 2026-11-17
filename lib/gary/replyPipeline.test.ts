@@ -36,7 +36,7 @@ describe('generateGaryReply', () => {
 
   it('strips the offer-assessment marker and sets offerAssessment', async () => {
     const adapter = fakeAdapter(['The assessment can help with that.[[OFFER_ASSESSMENT]]']);
-    const result = await generateGaryReply(adapter, baseState, [{ role: 'user', content: 'We lose leads.' }]);
+    const result = await generateGaryReply(adapter, baseState, [{ role: 'user', content: 'I want to take the assessment.' }]);
     expect(result.offerAssessment).toBe(true);
     expect(result.text).not.toContain('[[OFFER_ASSESSMENT]]');
   });

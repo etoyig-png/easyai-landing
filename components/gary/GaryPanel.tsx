@@ -32,7 +32,8 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
   const [options, setOptions] = useState<string[]>([]);
   const [offerAssessment, setOfferAssessment] = useState(false);
   const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'reply' | 'assessment' | null>(null);
+  const sending = pendingAction !== null;
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const initializedRef = useRef(false);
@@ -40,7 +41,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
   useFocusTrap(panelRef, true, onClose);
 
   async function sendToGary(payload: { message?: string; optionSelected?: string }) {
-    setSending(true);
+    setPendingAction('reply');
     setError(null);
     try {
       const response = await fetch('/api/gary/message', {
@@ -65,7 +66,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
     } catch {
       setError('Something went wrong. You can keep typing, or reach out directly if this keeps happening.');
     } finally {
-      setSending(false);
+      setPendingAction(null);
     }
   }
 
@@ -77,17 +78,18 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleSend(text: string, optionSelected?: string) {
+  function handleSend(text: string, optionSelected?: string, preserveDraft = false) {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
     setMessages((prev) => [...prev, { id: `visitor-${Date.now()}`, role: 'visitor', text: trimmed }]);
     setOptions([]);
-    setInput('');
+    if (!preserveDraft) setInput('');
     void sendToGary({ message: trimmed, optionSelected });
   }
 
   async function handleStartAssessment() {
-    setSending(true);
+    setPendingAction('assessment');
+    setError(null);
     try {
       const response = await fetch('/api/gary/handoff', {
         method: 'POST',
@@ -99,7 +101,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
       window.location.href = redirectUrl;
     } catch {
       setError("Couldn't open the assessment just now — try the button in the menu instead.");
-      setSending(false);
+      setPendingAction(null);
     }
   }
 
@@ -134,6 +136,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={handleStartOver}
+            disabled={sending}
             className="min-h-[44px] min-w-[44px] rounded px-2 text-xs font-medium text-silver-light hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
           >
             {confirmingStartOver ? 'Confirm?' : 'Start Over'}
@@ -163,7 +166,6 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         ))}
-        {sending && <p className="text-xs text-slate-400">Gary is typing...</p>}
         {error && <p className="text-xs text-red-600">{error}</p>}
 
         {options.length > 0 && (
@@ -200,12 +202,24 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="button"
-              onClick={() => setOfferAssessment(false)}
+              onClick={() => {
+                setOfferAssessment(false);
+                handleSend('Keep chatting', undefined, true);
+              }}
+              disabled={sending}
               className="min-h-[44px] text-sm text-slate-600 underline"
             >
               Keep Chatting
             </button>
           </div>
+        )}
+      </div>
+
+      <div role="status" aria-live="polite" aria-atomic="true">
+        {pendingAction && (
+          <p className="border-t border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-800">
+            {pendingAction === 'reply' ? 'Gary is typing...' : 'Opening the assessment...'}
+          </p>
         )}
       </div>
 
@@ -221,8 +235,9 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder="Type a message..."
+          aria-label="Message Gary"
           disabled={sending}
-          className="min-h-[44px] flex-1 rounded-lg border border-slate-300 px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
+          className="min-h-[44px] min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 text-sm text-black caret-black placeholder:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-silver"
         />
         <button
           type="submit"
