@@ -50,7 +50,7 @@ const NOT_BUT_PATTERN = /\bnot\b[^.!?]{0,80}?\bbut\b/i;
 // publicly recommend.
 const BRAND_BLOCKLIST: RegExp[] = [/\bCRR\b/i, /\bintelligent\s+website\b/i, /\bgo\s*high\s*level\b/i, /\bMerchynt\b/i];
 
-const PRICE_MENTION = /\$\d/;
+const PRICE_MENTION = /\$\s*\d|\b(?:\d[\d,.]*|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand)\s+(?:US\s+)?(?:dollars?|USD)\b|\bUSD\s+\d/i;
 
 const INJECTION_PATTERNS: RegExp[] = [/<script/i, /on\w+\s*=\s*["']/i, /javascript:/i];
 

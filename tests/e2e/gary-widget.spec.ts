@@ -151,7 +151,7 @@ test.describe('Gary widget', () => {
     );
     await dialog.getByPlaceholder('Type a message...').fill('I keep losing track of invoices.');
     await dialog.getByRole('button', { name: 'Send' }).click();
-    await expect(dialog.getByRole('button', { name: 'Start My Free Assessment' })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Start Your Journey' })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Keep Chatting' })).toBeVisible();
   });
 
@@ -175,7 +175,7 @@ test.describe('Gary widget', () => {
     await keepChatting.click();
     await expect(dialog.getByText('No problem. What is holding you back, if you want to share?')).toBeVisible();
     await expect(composer).toHaveValue('I am still typing');
-    await expect(dialog.getByRole('button', { name: 'Start My Free Assessment' })).toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: 'Start Your Journey' })).toHaveCount(0);
     expect(messages).toEqual(['Keep chatting']);
   });
 
@@ -183,7 +183,7 @@ test.describe('Gary widget', () => {
     const dialog = await openGary(page, { text: 'Here is the assessment link.' }, true);
     await dialog.getByPlaceholder('Type a message...').fill("Sure, let's do the assessment.");
     await dialog.getByRole('button', { name: 'Send' }).click();
-    await expect(dialog.getByRole('button', { name: 'Start My Free Assessment' })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Start Your Journey' })).toBeVisible();
 
     await page.route('**/api/gary/handoff', async (route) => {
       await route.fulfill({
@@ -192,7 +192,7 @@ test.describe('Gary widget', () => {
         body: JSON.stringify({ redirectUrl: '/assessment?token=e2e-fake-token&funnelCorrelationId=e2e-correlation' })
       });
     });
-    await dialog.getByRole('button', { name: 'Start My Free Assessment' }).click();
+    await dialog.getByRole('button', { name: 'Start Your Journey' }).click();
     await page.waitForURL('**/assessment**');
     await expect(page.getByRole('button', { name: 'Chat with Gary from Accounting' })).toHaveCount(0);
   });

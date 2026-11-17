@@ -2,8 +2,27 @@ import type { LlmProviderAdapter, ChatMessage } from './llm/types';
 import { buildGarySystemPrompt, type GaryConversationState } from './systemPrompt';
 import { validateGaryResponse } from './responseValidator';
 import { conversationPolicy, conversationInstruction, safeConversationFallback, VISIT_QUESTION } from './conversationPolicy';
+import { asksGaryPrice, GARY_BILLING_REPLY, GARY_PRICING_REPLY, isGaryBillingFollowUp } from './pricingReply';
 
 const OFFER_ASSESSMENT_MARKER = '[[OFFER_ASSESSMENT]]';
+const GENERIC_QUESTION = /^(?:what(?:'s| is) (?:going on|the problem)|what type of business do you run|what kind of business (?:is it|do you run)|could you (?:say|tell me) (?:a bit |a little )?more|can you tell me more|walk me through what's happening)\b/i;
+
+function questionTokens(text: string): string[] {
+  return text.toLowerCase().replace(/[’‘]/g, "'")
+    .split(/[^a-z0-9']+/).filter((word) => word.length > 2 && !/^(?:the|and|are|you|your|about|for|would|could|can|what|which|with)$/.test(word));
+}
+
+function equivalentQuestion(left: string, right: string): boolean {
+  const exact = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  if (exact(left) === exact(right)) return true;
+  const a = new Set(questionTokens(left)), b = new Set(questionTokens(right));
+  const shared = Array.from(a).filter((word) => b.has(word)).length;
+  return shared >= 3 && shared / (a.size + b.size - shared) >= 0.75;
+}
+
+function questionsIn(text: string): string[] {
+  return (text.match(/[^.!?]+\?/g) ?? []).map((question) => question.trim());
+}
 
 export interface GaryReply {
   text: string;
@@ -25,9 +44,18 @@ export async function generateGaryReply(
   history: ChatMessage[]
 ): Promise<GaryReply> {
   const policy = conversationPolicy(state, history);
+  const visitorMessages = history.filter((message) => message.role === 'user').map((message) => message.content);
+  const lastVisitorMessage = visitorMessages.at(-1) ?? '';
+  if (state.lastVisitorSafetyClass === 'none' && !policy.offTopic && asksGaryPrice(lastVisitorMessage, visitorMessages.slice(0, -1))) {
+    return { text: isGaryBillingFollowUp(lastVisitorMessage) ? GARY_BILLING_REPLY : GARY_PRICING_REPLY, offerAssessment: policy.offer, model: 'conversation-policy', usedFallback: false };
+  }
   if (policy.askWhy) return { text: 'No problem. What makes you hesitant about the assessment?', offerAssessment: false, model: 'conversation-policy', usedFallback: false };
-  const systemPrompt = buildGarySystemPrompt(state) + "\n\n" + conversationInstruction(policy);
-  const lastVisitorMessage = [...history].reverse().find((m) => m.role === 'user')?.content ?? '';
+  const priorQuestions = history.filter((message) => message.role === 'assistant').flatMap((message) => questionsIn(message.content));
+  const substantiveHistory = history.filter((message) => message.role === 'user' && message.content.trim().split(/\s+/).length >= 4).length;
+  const lateBusinessReply = (policy.substantiveReplyCount >= 3 || substantiveHistory >= 4) && (policy.business || policy.assessmentInfo);
+  const wordLimit = policy.offTopic ? 34 : lateBusinessReply ? 66 : policy.business ? 95 : 120;
+  const systemPrompt = buildGarySystemPrompt(state) + "\n\n" + conversationInstruction(policy)
+    + `\nAim well below ${wordLimit} words. Use a short direct answer and one practical next step. If the visitor already chose a direction or answered your question, act on that detail and do not ask them to choose again.`;
 
   // Visitor notes are data, never system-level authority. Preserve latest history after notes.
   const messages: ChatMessage[] = state.knownAnswers.length
@@ -40,15 +68,20 @@ export async function generateGaryReply(
     if (policy.offTopic && extracted.text.includes('?')) validation.violations.push('the application handles any visit question');
     if (policy.noQuestions && extracted.text.includes('?')) validation.violations.push('visitor requested no more questions');
     if ((policy.business || policy.assessmentInfo) && /^[^.!]*\?$/.test(extracted.text.trim())) validation.violations.push('clarification without a useful answer');
+    const replyQuestions = questionsIn(extracted.text);
+    if ((policy.business || policy.assessmentInfo || substantiveHistory >= 2) && replyQuestions.some((question) => GENERIC_QUESTION.test(question))) validation.violations.push('generic discovery question after the visitor gave context');
+    if (replyQuestions.some((question) => priorQuestions.some((prior) => equivalentQuestion(question, prior)))) validation.violations.push('repeated a question Gary already asked');
+    if (extracted.text.trim().split(/\s+/).length > wordLimit) validation.violations.push(`reply exceeds the ${wordLimit}-word limit for this turn`);
     const invitation = policy.assessmentInfo
       ? /(?:^(?:take|try|start|complete)\b|\b(?:you can|you should|I suggest|I recommend|let's|please|would you like to)\s+(?:take|try|start|complete)\b)[^.!?]{0,50}assessment/i.test(extracted.text)
       : /(?:take|try|start|complete|recommend|suggest)[^.!?]{0,50}assessment|assessment[^.!?]{0,50}(?:help|next step)/i.test(extracted.text);
-    if (!policy.offer && (extracted.offerAssessment || invitation)) validation.violations.push('assessment invitation is not appropriate now');
+    const brandedInvitation = /\b(?:click|select|tap|choose|try|use)\b[^.!?]{0,25}\bstart your journey\b|\bstart your journey\b[^.!?]{0,35}\b(?:button|optional next step)\b/i.test(extracted.text);
+    if (!policy.offer && (extracted.offerAssessment || invitation || brandedInvitation)) validation.violations.push('assessment invitation is not appropriate now');
     validation.valid = validation.violations.length === 0;
     return { extracted, validation };
   }
   function finish(text: string, model: string, usedFallback: boolean): GaryReply {
-    if (policy.offer && !/assessment/i.test(text)) text += ' The free Business AI Assessment is an optional next step.';
+    if (policy.offer && !/assessment|start your journey/i.test(text)) text += ' Start Your Journey is free and optional.';
     if (!validateGaryResponse(text, { lastVisitorMessage }).valid) {
       text = safeConversationFallback(lastVisitorMessage, policy);
       model = 'fallback'; usedFallback = true;
