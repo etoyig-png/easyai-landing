@@ -25,6 +25,12 @@ interface MessageApiResponse {
   offerAssessment?: boolean;
 }
 
+interface HistoryApiResponse {
+  messages: { role: 'visitor' | 'gary'; text: string }[];
+  options?: string[];
+  offerAssessment?: boolean;
+}
+
 export default function GaryPanel({ onClose }: { onClose: () => void }) {
   const pathname = usePathname();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -39,6 +45,15 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
   const initializedRef = useRef(false);
 
   useFocusTrap(panelRef, true, onClose);
+  // Browser Back restores this page from the back/forward cache with the button still in its
+  // "Opening Start Your Journey..." state. Reset it so the visitor can use Gary again.
+  useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (event.persisted) setPendingAction((current) => (current === 'assessment' ? null : current));
+    }
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
   const transcriptRef = useRef<HTMLDivElement>(null);
   // Keep the newest reply and the Start Your Journey button in view as the conversation grows.
   useEffect(() => {
@@ -79,10 +94,42 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
-    if (getStoredSessionId()) return; // resuming an existing session — nothing to send yet
+    const storedSessionId = getStoredSessionId();
+    if (storedSessionId) {
+      // Returning visitor: show the conversation they already had instead of an empty panel.
+      void loadHistory(storedSessionId);
+      return;
+    }
     void sendToGary({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function loadHistory(sessionId: string) {
+    setPendingAction('reply');
+    try {
+      const response = await fetch('/api/gary/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, sessionCapability: getStoredSessionCapability() }),
+      });
+      if (response.status === 403) {
+        // The stored session is gone or no longer ours: start a fresh conversation.
+        clearStoredSessionId();
+        setPendingAction(null);
+        void sendToGary({});
+        return;
+      }
+      if (!response.ok) return;
+      const data = (await response.json()) as HistoryApiResponse;
+      setMessages(data.messages.map((bubble, index) => ({ id: `history-${index}`, role: bubble.role, text: bubble.text })));
+      setOptions(data.options ?? []);
+      setOfferAssessment(Boolean(data.offerAssessment));
+    } catch {
+      // Keep the panel usable; the visitor can keep typing in the same session.
+    } finally {
+      setPendingAction((current) => (current === 'reply' ? null : current));
+    }
+  }
 
   function handleSend(text: string, optionSelected?: string, preserveDraft = false) {
     const trimmed = text.trim();

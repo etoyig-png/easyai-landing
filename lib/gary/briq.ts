@@ -23,6 +23,20 @@ export const EASY_AI_BRIQ = {
   unavailable: ['Unapproved prices, discounts, timelines, availability, guaranteed outcomes, client results, private knowledge and unverified integrations'],
 } as const;
 
+/**
+ * Third-party tools Gary may name when a visitor asks what to use. Company knowledge, owned by
+ * Toy: add a name here only after Easy AI approves recommending it publicly. While the list is
+ * empty Gary keeps describing capabilities instead of naming products.
+ */
+export const EASY_AI_APPROVED_TOOL_NAMES: readonly string[] = [];
+
+/** The tool-naming rule for Gary's prompt, derived from the approved list above. */
+export function toolNamingRule(approved: readonly string[] = EASY_AI_APPROVED_TOOL_NAMES): string {
+  return approved.length
+    ? `When it genuinely helps, you may name these Easy AI approved tools: ${approved.join(', ')}. Never name any other third-party AI tool, product or vendor; describe the type of capability instead.`
+    : 'Never name a specific third-party AI tool, product, or vendor, even if asked what to buy. Describe the type of capability instead.';
+}
+
 export function buildPublicBriqContext(): string {
   return `Easy AI BRIQ public knowledge (${EASY_AI_BRIQ.version}). Use only confirmed company facts. If information is absent or unconfirmed, acknowledge uncertainty and offer human help.\n${EASY_AI_BRIQ.facts.filter(fact => fact.status === 'public-approved').map(fact => fact.text).join('\n')}\nUnavailable: ${EASY_AI_BRIQ.unavailable.join('; ')}.`;
 }

@@ -45,6 +45,14 @@ export interface GaryReply {
   usedFallback: boolean;
 }
 
+// The correction pass sometimes makes the model narrate its own retry ("You're right. Let me try
+// again."). Visitors never asked for a retry, so drop that opening.
+const CORRECTION_LEAK = /^\s*(?:(?:you'?re (?:absolutely )?right|that'?s (?:fair|a fair point|fair feedback)|fair point|good catch|my (?:mistake|bad)|sorry(?: about that)?|apologies)[.!,]?\s*)*(?:let me (?:try (?:that |this )?again|restart|rephrase|redo (?:that|this)|start over|fix that)[.!:]?\s*)/i;
+export function stripCorrectionLeak(text: string): string {
+  const stripped = text.replace(CORRECTION_LEAK, '');
+  return stripped.trim() ? stripped.trimStart() : text;
+}
+
 function extractOfferMarker(rawText: string): { text: string; offerAssessment: boolean } {
   const offerAssessment = rawText.includes(OFFER_ASSESSMENT_MARKER);
   const text = rawText.split(OFFER_ASSESSMENT_MARKER).join('').trim();
@@ -114,9 +122,18 @@ export async function generateGaryReply(
       && extracted.text.trim().split(/\s+/).length <= Math.round(wordLimit * 1.3);
     return { extracted, validation, styleOnly };
   }
+  // One structured log line per canned reply, so Vercel logs show which rule causes them. Only
+  // rule names and policy labels are logged, never what the visitor or the model wrote.
+  function logFallback(stage: string, model: string, violations: string[]) {
+    console.warn('[gary-fallback]', JSON.stringify({ stage, model, topic: policy.topic, stage_of_flow: policy.stage, offTopic: policy.offTopic, scheduled: policy.offer, violations }));
+  }
   function finish(text: string, model: string, usedFallback: boolean): GaryReply {
-    if (policy.offer && !/assessment|start your journey/i.test(text)) text += ' ' + scheduledInvitation(policy.topic);
-    if (!validateGaryResponse(text, { lastVisitorMessage }).valid) {
+    text = stripCorrectionLeak(text);
+    // A joke stays a joke: on a scheduled detour the button still appears, but no pitch is added.
+    if (policy.offer && !policy.offTopic && !/assessment|start your journey/i.test(text)) text += ' ' + scheduledInvitation(policy.topic);
+    const finalCheck = validateGaryResponse(text, { lastVisitorMessage });
+    if (!finalCheck.valid) {
+      logFallback('final-check', model, finalCheck.violations);
       text = safeConversationFallback(lastVisitorMessage, policy);
       model = 'fallback'; usedFallback = true;
     }
@@ -152,6 +169,7 @@ export async function generateGaryReply(
 
   // Never show an unvalidated reply merely because the API returned text — fall back to a safe,
   // deterministic redirect instead.
+  logFallback('both-attempts-rejected', second.model, [...firstValidation.violations.map((v) => `1: ${v}`), ...secondValidation.violations.map((v) => `2: ${v}`)]);
   const fallback = safeConversationFallback(lastVisitorMessage, policy);
   return finish(fallback, 'fallback', true);
 }

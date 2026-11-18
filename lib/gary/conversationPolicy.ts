@@ -115,7 +115,7 @@ export function conversationPolicy(state: GaryConversationState, history: ChatMe
 export function conversationInstruction(p: ConversationPolicy): string {
   if (p.assessmentInfo) return 'Answer the informational assessment question directly using approved public facts. Explain preparation or scope as requested, without an invitation, button marker or unnecessary follow-up. Do not imply a website audit or completed GAP Score.';
   if (p.offTopic) return 'This is a harmless detour. Give one short reply to what they actually said with a real bit of tongue-in-cheek wit, polite and never mocking. Be accurate or say you cannot verify. For politics or religion, stay neutral and do not pick a side. ' + (p.redirectTo === 'resume' ? 'Then briefly reconnect to the actual goal they already shared. Do not ask another question.' : 'Do not ask a question or add a redirect; the application handles that.')
-    + (p.offer ? ' This reply is on the Start Your Journey schedule: after the detour, add one brief, friendly sentence inviting them to try Start Your Journey with the button below.' : ' Do not pitch the assessment.');
+    + ' Do not pitch the assessment or mention it in this reply; the application handles any button.';
   const phase = p.stage === 1 ? 'FEEL: briefly recognize the stated business difficulty, then give a concrete useful first step. Use natural wording, not a mandatory opening phrase.'
     : p.stage === 2 ? 'FELT: acknowledge why the concern or skepticism is reasonable without claiming other customers experienced it. In natural wording, give the next practical check, honoring corrections.'
     : p.stage === 3 ? 'FOUND: give a grounded practical direction. Use natural wording without repeating an earlier opening. Do not invent results or testimonials.' : 'Answer directly without a sales technique.';
@@ -136,7 +136,7 @@ export function safeConversationFallback(last: string, p: ConversationPolicy): s
       : /\b(?:movies?|tv shows?|netflix)\b/i.test(last) ? 'My screen time is mostly spreadsheets, so no hot takes from me there.'
       : /\b(?:pizza|recipes?|topping|food)\b/i.test(last) ? 'Gary from Accounting keeps his topping opinions strictly off the books.'
       : 'That one’s a little outside my accounting department.';
-    return p.redirectTo === 'resume' ? remark + (p.topic === 'response' ? ' Back to those missed responses: check who owns the next reply.' : p.topic === 'discovery' ? ' Back to getting found: start with the search result people actually see.' : ' Let’s get back to the business issue you raised.') : remark;
+    return p.redirectTo === 'resume' ? remark + ' Anyway, back to what you were working on.' : remark;
   }
   if (/\bSEO\b|search engine optimi[sz]ation/i.test(last)) return 'SEO means search engine optimization: improving how search engines understand and show your website. For a local business, start with clear service pages, accurate business details and useful answers to customer questions.' + (p.offer ? ' Start Your Journey below is an optional next step.' : '');
   if (p.direct && p.offer) return 'Here you go. Tap Start Your Journey below, or keep chatting if you prefer.';

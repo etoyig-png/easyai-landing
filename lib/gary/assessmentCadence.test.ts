@@ -67,7 +67,8 @@ describe('Start Your Journey schedule: replies 4, 9, 14, 19, 24, 29, 34', () => 
     const messages = Array.from({ length: 34 }, (_, index) => MIXED[index % MIXED.length]);
     const replies = await converse(messages);
     expect(replies.filter((reply) => reply.offer).map((reply) => reply.number)).toEqual(SCHEDULE);
-    for (const reply of replies.filter((item) => item.offer)) expect(reply.text).toMatch(/Start Your Journey/);
+    // Business replies on the schedule carry a short invitation; a scheduled joke gets the button only.
+    for (const reply of replies.filter((item) => item.offer && !/Super Bowl/.test(messages[item.number - 1]))) expect(reply.text).toMatch(/Start Your Journey/);
     for (const reply of replies.filter((item) => !item.offer)) expect(reply.text).not.toMatch(/Start Your Journey|free and optional/);
   });
 
@@ -79,7 +80,8 @@ describe('Start Your Journey schedule: replies 4, 9, 14, 19, 24, 29, 34', () => 
     const replies = await converse(['I run a plumbing company and we miss calls.', 'Mostly after 5pm.', 'ok', 'Who wins the Super Bowl?'], adapter);
     expect(replies[3]).toMatchObject({ number: 4, offer: true });
     expect(replies[3].text).toContain('fantasy league');
-    expect(replies[3].text).toMatch(/Start Your Journey/);
+    // The joke is not turned into a pitch; the button alone carries the offer.
+    expect(replies[3].text).not.toMatch(/Start Your Journey|assessment/i);
   });
 
   it('honors a direct link request immediately without shifting the schedule', async () => {
@@ -113,7 +115,13 @@ describe('Start Your Journey schedule: replies 4, 9, 14, 19, 24, 29, 34', () => 
     expect(replies.filter((reply) => reply.offer).map((reply) => reply.number)).toEqual([4, 9]);
   });
 
-  it.each(['What do you charge?', 'How much does Easy AI charge?', 'How much does this cost?'])('answers %s with the approved price statement', async (question) => {
+  it.each([
+    'What do you charge?', 'How much does Easy AI charge?', 'How much does this cost?',
+    'What would it cost to set something up?', 'What would it cost to set something like that up?',
+    'How much does it run?', 'How much does that run?', 'What does it cost?', 'What would something like this cost?',
+    'What does a setup like that cost?', 'Is this expensive?', 'What kind of budget would I need?',
+    'How much would it be to set this up?', 'What would setup cost?',
+  ])('answers %s with the approved price statement', async (question) => {
     const replies = await converse([question]);
     expect(replies[0].text).toBe(GARY_PRICING_REPLY);
   });
@@ -132,5 +140,27 @@ describe('Start Your Journey schedule: replies 4, 9, 14, 19, 24, 29, 34', () => 
   it('distinguishes explicit opt-outs from soft declines and unrelated "not interested" remarks', () => {
     for (const text of ['Stop asking me about the assessment', 'No more offers', "I don't want the assessment", 'Not interested.', 'Why do you keep pushing it?', 'Just advice, do not sell to me.']) expect(isStopOffersRequest(text)).toBe(true);
     for (const text of ['Maybe later', 'Not right now', 'Keep chatting', 'Our customers are not interested in discounts', 'Stop asking so many questions']) expect(isStopOffersRequest(text)).toBe(false);
+  });
+});
+
+describe("price intent does not swallow questions about the visitor's own losses", () => {
+  it.each(['What would it cost me to keep missing calls?', 'How much did missed calls cost us?', 'What is the cost of missing calls?', 'How much time will I save?'])('%s is not a pricing request', async (question) => {
+    const { asksGaryPrice } = await import('./pricingReply');
+    expect(asksGaryPrice(question)).toBe(false);
+  });
+});
+
+describe('correction leaks are removed before a visitor sees them', () => {
+  it.each([
+    ["You're right. Let me try again.\n\nSet up the after-hours message first.", 'Set up the after-hours message first.'],
+    ["That's fair feedback. Let me restart.\n\nAI can read data from Dentrix.", 'AI can read data from Dentrix.'],
+    ['Let me rephrase: check who owns the callback.', 'check who owns the callback.'],
+  ])('strips %j', async (raw, expected) => {
+    const { stripCorrectionLeak } = await import('./replyPipeline');
+    expect(stripCorrectionLeak(raw)).toBe(expected);
+  });
+  it('keeps normal text untouched', async () => {
+    const { stripCorrectionLeak } = await import('./replyPipeline');
+    expect(stripCorrectionLeak("You're right that after-hours calls matter most.")).toBe("You're right that after-hours calls matter most.");
   });
 });
