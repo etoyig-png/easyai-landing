@@ -15,6 +15,8 @@ export function asksGaryPrice(text: string, recentVisitorMessages: string[] = []
   if (isGaryBillingFollowUp(normalized)) {
     return recentVisitorMessages.slice(-2).some((message) => asksGaryPrice(message));
   }
+  // "What do you charge?", "How much does Easy AI charge?", "What would your team cost?"
+  if (/\b(?:what|how much) (?:do|does|would|will) (?:you|you guys|y'?all|easy ai|your (?:company|team|firm|agency|services?)) (?:charge|cost)\b(?!\s+(?:me|us|my|our)\b[^?]*\b(?:to lose|in lost|by missing)\b)/.test(normalized)) return true;
   if (/\b(?:how much (?:is|are) (?:it|that|this|(?:the|an?|your) (?:assessment|evaluation|service)|start your journey)|(?:do|would|will) you charge (?:for (?:it|that|this|(?:the|an?|your) (?:assessment|evaluation|service)|start your journey)|anything)|does (?:the|your) (?:assessment|evaluation|service) cost anything)\b/.test(normalized)) return true;
   return /\b(?:how much (?:does|would|will) (?:it|this|that|the (?:assessment|evaluation)|start your journey|a(?:n)? (?:assessment|evaluation)) cost(?!\s+(?:me|us|my|our)\b)|how much (?:do|would|will) (?:you charge|i pay)|(?:what(?:'s| is| are)|tell me|can you share)\s+(?:your|easy ai'?s)\s+(?:price|pricing|rates?|fees?|cost)|(?:price|pricing|fees?|cost) (?:for|of) (?:an? |the |your )?(?:assessment|evaluation|services?|start your journey)|(?:is|are) (?:your assessment|the assessment|start your journey) (?:actually |really )?free)\b/.test(normalized)
     || /^(?:(?:what(?:'s| is| are) (?:the )?(?:starting )?)?(?:pricing|cost|price|rates?|fees?)|is (?:it|that|this) (?:actually |really )?free)[?.!\s]*$/.test(normalized);

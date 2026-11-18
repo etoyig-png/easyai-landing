@@ -2,14 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { conversationPolicy } from './conversationPolicy';
 import { generateGaryReply } from './replyPipeline';
 import { GARY_BILLING_REPLY, GARY_PRICING_REPLY } from './pricingReply';
+import { GARY_STOP_OFFERS_REPLY } from './assessmentCadence';
 import { validateGaryResponse } from './responseValidator';
 import type { ChatMessage, LlmProviderAdapter } from './llm/types';
 const initial = { knownAnswers: [], visitorTurnCount: 0, assessmentOfferCount: 0, lastVisitorSafetyClass: 'none' as const };
 function adapter(text: string): LlmProviderAdapter { return { provider: 'openai', generateChatCompletion: vi.fn().mockResolvedValue({ text, model: 'mock' }) }; }
 const sales = ['Can you help my business?', 'Our sales strategy is struggling', 'It is going nowhere', 'We cannot attract new clients', 'How can we become more visible?'];
 const specific = ['Our plumbing business receives inquiries without bookings. What should we check first?', 'We call back within five minutes already. What is the next check?', 'I tried AI and thought it was a waste of time. Why choose this approach?', 'Compare GAP, AIM and SmartSite for a website receiving visits without inquiries.'];
-describe('three substantive business replies', () => {
-  it.each([['sales', sales, 2], ['plumbing', specific, 2]] as const)('enforces %s transcript even when both model attempts are invalid', async (_, questions, offerIndex) => {
+describe('business replies on the fixed Start Your Journey schedule', () => {
+  it.each([['sales', sales, 3], ['plumbing', specific, 3]] as const)('enforces %s transcript even when both model attempts are invalid', async (_, questions, offerIndex) => {
     const state = { ...initial }; const history: ChatMessage[] = []; const offers: number[] = [];
     for (const [index, question] of Array.from(questions.entries())) {
       history.push({ role: 'user', content: question });
@@ -20,6 +21,7 @@ describe('three substantive business replies', () => {
       expect(reply.text).not.toMatch(/could you say a bit more|what.*going on\?/i);
       expect(validateGaryResponse(reply.text, { lastVisitorMessage: question }).valid).toBe(true);
       if (reply.offerAssessment) { offers.push(index); state.assessmentOfferCount++; }
+      state.visitorTurnCount++;
       history.push({ role: 'assistant', content: reply.text });
       if (question.includes('five minutes')) expect(reply.text).toContain('response is already quick');
       if (question.includes('waste of time')) expect(reply.text).toContain('AI may not be the right answer');
@@ -56,7 +58,8 @@ describe('three substantive business replies', () => {
       else { expect(reply.usedFallback).toBe(true); expect(reply.text).not.toMatch(/\$|\b99\b/); }
       offers.push(reply.offerAssessment); h.push({role:'assistant',content:reply.text});
     }
-    expect(stages).toEqual([1,2,3]); expect(offers).toEqual([false,false,true]);
+    // Replies 1-3 are never on the schedule (first scheduled reply is 4).
+    expect(stages).toEqual([1,2,3]); expect(offers).toEqual([false,false,false]);
   });
   it.each(['Hi!', 'Thanks', 'That makes sense', 'Got it', 'Sure', 'Why is the sky blue?'])('does not advance established business flow on a greeting, acknowledgment or detour: %s', (aside) => {
     const h: ChatMessage[]=[{role:'user',content:'I am losing plumbing bookings'},{role:'assistant',content:'Review which callers are not offered an appointment.'},{role:'user',content:aside}];
@@ -110,10 +113,10 @@ describe('three substantive business replies', () => {
     const reply=await generateGaryReply(a,initial,[{role:'user',content:specific[0]}]);
     expect(reply.usedFallback).toBe(false);expect(a.generateChatCompletion).toHaveBeenCalledTimes(1);
   });
-  it('adds the native CTA by the third answer even when the model omits its marker', async () => {
+  it('adds a contextual Start Your Journey invitation on scheduled reply 4 even when the model omits it', async () => {
     const h: ChatMessage[] = [{role:'user',content:'Help with my business'}, {role:'assistant',content:'Start with the outcome your business needs to improve.'}, {role:'user',content:'Our sales strategy is struggling'}, {role:'assistant',content:'Review recent opportunities for the step where they stalled.'}, {role:'user',content:'It is going nowhere'}];
-    const reply=await generateGaryReply(adapter('Review the last lost opportunity and identify the next action that was missing.'),initial,h);
-    expect(reply.offerAssessment).toBe(true); expect(reply.text).toContain('optional');
+    const reply=await generateGaryReply(adapter('Review the last lost opportunity and identify the next action that was missing.'),{...initial,visitorTurnCount:3},h);
+    expect(reply.offerAssessment).toBe(true); expect(reply.text).toContain('Start Your Journey'); expect(reply.text).not.toContain('free and optional');
   });
   it('asks why once after Keep chatting, restarts on the reason, reoffers once, then respects another no', async () => {
     const state={...initial,assessmentOfferCount:1};
@@ -126,7 +129,8 @@ describe('three substantive business replies', () => {
       h.push({role:'user',content:question});
       expect(conversationPolicy(state,h).stage).toBe(index+1);
       const reply=await generateGaryReply(adapter('I completely understand.'),state,h);
-      expect(reply.offerAssessment).toBe(index===2);
+      // None of these replies is on the schedule (state stays at reply 1).
+      expect(reply.offerAssessment).toBe(false);
       if(reply.offerAssessment)state.assessmentOfferCount++;
       h.push({role:'assistant',content:reply.text});
     }
@@ -136,8 +140,11 @@ describe('three substantive business replies', () => {
   });
   it.each(['Stop selling. No questions.', 'Just advice, do not sell to me.', 'No more questions please'])('respects a hard refusal: %s', async (question) => {
     const h: ChatMessage[]=[{role:'assistant',content:'The free assessment is optional.'},{role:'user',content:question}];
-    const reply=await generateGaryReply(adapter('Start the assessment. [[OFFER_ASSESSMENT]]'),{...initial,assessmentOfferCount:1},h);
-    expect(reply.offerAssessment).toBe(false);expect(reply.text).not.toContain('?');
+    const reply=await generateGaryReply(adapter('Start the assessment. [[OFFER_ASSESSMENT]]'),{...initial,assessmentOfferCount:1,visitorTurnCount:3},h);
+    // "No more questions" is not an opt-out from offers, so scheduled reply 4 still shows the button.
+    expect(reply.offerAssessment).toBe(/sell/i.test(question) ? false : true);
+    if (/questions/i.test(question)) expect(reply.text).not.toContain('?');
+    if (/sell/i.test(question)) expect(reply.text.startsWith(GARY_STOP_OFFERS_REPLY.slice(0, 40))).toBe(true);
   });
   it('does not treat Keep chatting with no assessment offer as refusal', () => {
     expect(conversationPolicy(initial,[{role:'user',content:'Keep chatting'}]).askWhy).toBe(false);
