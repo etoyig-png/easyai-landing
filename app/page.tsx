@@ -11,6 +11,7 @@ import { globeVector, projectGlobe } from '@/lib/trace-motion';
 export const metadata: Metadata = {
   title: 'Easy AI | Get Found. Get Chosen.',
   description: 'Easy AI helps your business appear when customers search Google or ask Artificial Intelligence who to call. Explore GAP, SmartSite, and AIM.',
+  alternates: { canonical: '/' },
 };
 
 function RevealSentences({ text }: { text: string }) {

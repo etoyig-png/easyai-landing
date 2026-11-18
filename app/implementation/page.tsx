@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'Implementation & Custom Agents' };
+export const metadata: Metadata = { title: 'Implementation & Custom Agents', alternates: { canonical: '/implementation' } };
 
 const implServices = [
   { icon: '🔧', title: 'Tool setup & configuration', body: 'We install and configure approved tools for your business -- properly, not just out of the box.' },

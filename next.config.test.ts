@@ -54,3 +54,16 @@ describe('security headers', () => {
     expect(entries[0].source).toBe('/(.*)');
   });
 });
+
+describe('duplicate production address', () => {
+  it('permanently redirects the vercel.app production host to www.easyaiconsult.com, keeping the path', async () => {
+    const redirects = await config.redirects();
+    expect(redirects).toHaveLength(1);
+    expect(redirects[0]).toMatchObject({
+      source: '/:path*',
+      has: [{ type: 'host', value: 'easyai-landing-eight.vercel.app' }],
+      destination: 'https://www.easyaiconsult.com/:path*',
+      permanent: true,
+    });
+  });
+});

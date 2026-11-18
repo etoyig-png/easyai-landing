@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'AI Product Consulting' };
+export const metadata: Metadata = { title: 'AI Product Consulting', alternates: { canonical: '/ai-product-consulting' } };
 
 const solutionTypes = [
   { icon: '🤖', label: 'Existing AI products', body: 'Off-the-shelf tools that may already solve your problem -- often the fastest and lowest-risk path.' },

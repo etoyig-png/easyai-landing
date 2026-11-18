@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'Assessment Complete' };
+export const metadata: Metadata = { title: 'Assessment Complete', alternates: { canonical: '/assessment/complete' } };
 
 export default function AssessmentCompletePage() {
   return (

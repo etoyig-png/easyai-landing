@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'Service FAQs' };
+export const metadata: Metadata = { title: 'Service FAQs', alternates: { canonical: '/faq' } };
 
 const faqs = [
   { q: 'Where should I start?', a: 'Start with the assessment and your Company’s GAP Score. GAP, SmartSite and AIM Digital / Voice remain our core services. The assessment helps us discuss which customer-discovery, website or response problem to look at first.' },

@@ -21,7 +21,20 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
 ];
 
+// The project's production vercel.app address serves the same site as the real domain. Send it
+// (visitors and search engines) to www.easyaiconsult.com permanently so Google indexes one copy.
+// Preview deployments use different hostnames and are unaffected.
+export const DUPLICATE_PRODUCTION_HOSTS = ['easyai-landing-eight.vercel.app'];
+
 const nextConfig = {
+  async redirects() {
+    return DUPLICATE_PRODUCTION_HOSTS.map((host) => ({
+      source: '/:path*',
+      has: [{ type: 'host', value: host }],
+      destination: 'https://www.easyaiconsult.com/:path*',
+      permanent: true,
+    }));
+  },
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
