@@ -11,7 +11,8 @@ type Status = { kind: 'idle' } | { kind: 'sending' } | { kind: 'sent' } | { kind
  *
  * Success is only ever reported when the route confirms delivery.
  */
-export default function ContactForm() {
+/** The business address is passed in by the server page so this client component never imports email configuration. */
+export default function ContactForm({ fallbackEmail }: { fallbackEmail: string }) {
   const [formLoadedAt] = useState(() => Date.now());
   const [honeypot, setHoneypot] = useState('');
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
@@ -88,7 +89,14 @@ export default function ContactForm() {
         <label htmlFor="message" className={labelClass}>Message</label>
         <textarea id="message" required rows={5} value={fields.message} onChange={update('message')} className={`${inputClass} resize-y`} />
       </div>
-      {status.kind === 'error' && <p className="font-sans text-sm text-red-400">{status.message}</p>}
+      {status.kind === 'error' && (
+        <p className="font-sans text-sm text-red-400">
+          {status.message}{' '}
+          <span className="text-silver-light">
+            Or email us directly at <a href={`mailto:${fallbackEmail}`} className="underline text-white">{fallbackEmail}</a>.
+          </span>
+        </p>
+      )}
       <button type="submit" disabled={status.kind === 'sending'} className="btn-green w-full py-3 disabled:opacity-60">
         {status.kind === 'sending' ? 'Sending...' : 'Send Message'}
       </button>
