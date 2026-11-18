@@ -39,6 +39,12 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
   const initializedRef = useRef(false);
 
   useFocusTrap(panelRef, true, onClose);
+  const transcriptRef = useRef<HTMLDivElement>(null);
+  // Keep the newest reply and the Start Your Journey button in view as the conversation grows.
+  useEffect(() => {
+    const transcript = transcriptRef.current;
+    if (transcript) transcript.scrollTop = transcript.scrollHeight;
+  }, [messages, options, offerAssessment, error]);
 
   async function sendToGary(payload: { message?: string; optionSelected?: string }) {
     setPendingAction('reply');
@@ -152,7 +158,7 @@ export default function GaryPanel({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
+      <div ref={transcriptRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
         {messages.map((bubble) => (
           <div key={bubble.id} className={bubble.role === 'gary' ? 'flex justify-start' : 'flex justify-end'}>
             <div

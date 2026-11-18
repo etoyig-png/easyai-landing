@@ -7,7 +7,9 @@ const SENSITIVE_PATTERNS: RegExp[] = [
   // medical
   /\b(diagnos|symptom|medication|prescri|surgery|hospital|cancer|illness|disease|mental health|therapist|suicid)/i,
   // legal
-  /\b(lawsuit|sue|sued|attorney|lawyer|legal action|subpoena|court date|divorce|custody)/i,
+  // A law firm describing its intake, or a lawyer joke, is not a legal emergency; a personal
+  // legal matter is.
+  /\b(lawsuit|sue|sued|legal action|subpoena|court date|divorce|custody|legal advice|(?:need|hire|get|call) (?:a|an|my) (?:lawyer|attorney)|my (?:lawyer|attorney))/i,
   // financial emergency
   /\b(bankrupt|foreclosure|eviction|can'?t pay|behind on (rent|payroll|payments)|debt collector|repossess)/i,
   // employment risk

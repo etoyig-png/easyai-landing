@@ -95,6 +95,8 @@ export function validateGaryResponse(replyText: string, context: GaryValidationC
     if (brand.test(text)) violations.push('named a blocklisted third-party product');
   }
 
+  // The Start Your Journey button is the link; Gary must never claim otherwise.
+  if (/\b(?:can(?:no|')?t|cannot|unable to|not able to)\s+(?:directly\s+)?(?:send|share|give|provide|post)\s+(?:you\s+)?(?:any\s+|a\s+|the\s+)?links?\b/i.test(text)) violations.push('claimed Gary cannot send links');
   if (PRICE_MENTION.test(text)) violations.push('mentions a dollar figure — Gary never discusses pricing');
 
   for (const pattern of INJECTION_PATTERNS) {

@@ -1,10 +1,24 @@
 import type { LlmProviderAdapter, ChatMessage } from './llm/types';
 import { buildGarySystemPrompt, type GaryConversationState } from './systemPrompt';
 import { validateGaryResponse } from './responseValidator';
-import { conversationPolicy, conversationInstruction, safeConversationFallback, VISIT_QUESTION } from './conversationPolicy';
+import { conversationPolicy, conversationInstruction, isDirectAssessmentRequest, safeConversationFallback, VISIT_QUESTION } from './conversationPolicy';
+import {
+  GARY_DIRECT_LINK_REPLY,
+  GARY_STOP_OFFERS_REPLY,
+  isCrisisMessage,
+  isScheduledOfferReply,
+  isStopOffersRequest,
+  offersSuspended,
+  scheduledInvitation,
+  upcomingReplyNumber,
+} from './assessmentCadence';
 import { asksGaryPrice, GARY_BILLING_REPLY, GARY_PRICING_REPLY, isGaryBillingFollowUp } from './pricingReply';
 
 const OFFER_ASSESSMENT_MARKER = '[[OFFER_ASSESSMENT]]';
+const SOFT_VIOLATIONS = [
+  /^reply exceeds the \d+-word limit/,
+  /^the application handles any visit question$/,
+];
 const GENERIC_QUESTION = /^(?:what(?:'s| is) (?:going on|the problem)|what type of business do you run|what kind of business (?:is it|do you run)|could you (?:say|tell me) (?:a bit |a little )?more|can you tell me more|walk me through what's happening)\b/i;
 
 function questionTokens(text: string): string[] {
@@ -43,13 +57,29 @@ export async function generateGaryReply(
   state: GaryConversationState,
   history: ChatMessage[]
 ): Promise<GaryReply> {
-  const policy = conversationPolicy(state, history);
+  const basePolicy = conversationPolicy(state, history);
   const visitorMessages = history.filter((message) => message.role === 'user').map((message) => message.content);
   const lastVisitorMessage = visitorMessages.at(-1) ?? '';
-  if (state.lastVisitorSafetyClass === 'none' && !policy.offTopic && asksGaryPrice(lastVisitorMessage, visitorMessages.slice(0, -1))) {
-    return { text: isGaryBillingFollowUp(lastVisitorMessage) ? GARY_BILLING_REPLY : GARY_PRICING_REPLY, offerAssessment: policy.offer, model: 'conversation-policy', usedFallback: false };
+
+  // The assessment button is decided here, in code, on Toy's fixed schedule (replies 4, 9, 14,
+  // 19 ...), never by the model. An explicit link/start request shows it immediately without
+  // moving the schedule; an explicit "stop offering" suspends scheduled offers until renewed
+  // interest.
+  const direct = isDirectAssessmentRequest(lastVisitorMessage);
+  const stopRequestedNow = !direct && isStopOffersRequest(lastVisitorMessage);
+  const suspended = offersSuspended(history, isDirectAssessmentRequest);
+  const scheduled = isScheduledOfferReply(upcomingReplyNumber(state.visitorTurnCount)) && !suspended && !isCrisisMessage(lastVisitorMessage);
+  const offer = direct || scheduled;
+  const policy = { ...basePolicy, direct, offer };
+  const fixed = (text: string): GaryReply => ({ text, offerAssessment: offer, model: 'conversation-policy', usedFallback: false });
+
+  // The approved reply ends with a question; drop it if the visitor also asked for no questions.
+  if (stopRequestedNow) return fixed(basePolicy.noQuestions ? GARY_STOP_OFFERS_REPLY.replace(/\s*Is there anything else I can help you with\?$/, '') : GARY_STOP_OFFERS_REPLY);
+  if (direct) return fixed(GARY_DIRECT_LINK_REPLY);
+  if (!basePolicy.offTopic && !isCrisisMessage(lastVisitorMessage) && asksGaryPrice(lastVisitorMessage, visitorMessages.slice(0, -1))) {
+    return fixed(isGaryBillingFollowUp(lastVisitorMessage) ? GARY_BILLING_REPLY : GARY_PRICING_REPLY);
   }
-  if (policy.askWhy) return { text: 'No problem. What makes you hesitant about the assessment?', offerAssessment: false, model: 'conversation-policy', usedFallback: false };
+  if (policy.askWhy) return fixed('No problem. What makes you hesitant about it?');
   const priorQuestions = history.filter((message) => message.role === 'assistant').flatMap((message) => questionsIn(message.content));
   const substantiveHistory = history.filter((message) => message.role === 'user' && message.content.trim().split(/\s+/).length >= 4).length;
   const lateBusinessReply = (policy.substantiveReplyCount >= 3 || substantiveHistory >= 4) && (policy.business || policy.assessmentInfo);
@@ -78,10 +108,14 @@ export async function generateGaryReply(
     const brandedInvitation = /\b(?:click|select|tap|choose|try|use)\b[^.!?]{0,25}\bstart your journey\b|\bstart your journey\b[^.!?]{0,35}\b(?:button|optional next step)\b/i.test(extracted.text);
     if (!policy.offer && (extracted.offerAssessment || invitation || brandedInvitation)) validation.violations.push('assessment invitation is not appropriate now');
     validation.valid = validation.violations.length === 0;
-    return { extracted, validation };
+    // Style-only misses (a little long, a repeated or generic question) are not worth replacing a
+    // real answer with canned advice. Safety, pricing, product, naming and pitch rules still hard-fail.
+    const styleOnly = validation.violations.every((violation) => SOFT_VIOLATIONS.some((pattern) => pattern.test(violation)))
+      && extracted.text.trim().split(/\s+/).length <= Math.round(wordLimit * 1.3);
+    return { extracted, validation, styleOnly };
   }
   function finish(text: string, model: string, usedFallback: boolean): GaryReply {
-    if (policy.offer && !/assessment|start your journey/i.test(text)) text += ' Start Your Journey is free and optional.';
+    if (policy.offer && !/assessment|start your journey/i.test(text)) text += ' ' + scheduledInvitation(policy.topic);
     if (!validateGaryResponse(text, { lastVisitorMessage }).valid) {
       text = safeConversationFallback(lastVisitorMessage, policy);
       model = 'fallback'; usedFallback = true;
@@ -90,7 +124,7 @@ export async function generateGaryReply(
     return { text, model, usedFallback, offerAssessment: policy.offer };
   }
   const first = await adapter.generateChatCompletion({ systemPrompt, messages });
-  const { extracted: firstExtracted, validation: firstValidation } = inspect(first.text);
+  const { extracted: firstExtracted, validation: firstValidation, styleOnly: firstStyleOnly } = inspect(first.text);
 
   if (firstValidation.valid) {
     return finish(firstExtracted.text, first.model, false);
@@ -107,11 +141,14 @@ export async function generateGaryReply(
     },
   ];
   const second = await adapter.generateChatCompletion({ systemPrompt, messages: correctionMessages });
-  const { extracted: secondExtracted, validation: secondValidation } = inspect(second.text);
+  const { extracted: secondExtracted, validation: secondValidation, styleOnly: secondStyleOnly } = inspect(second.text);
 
   if (secondValidation.valid) {
     return finish(secondExtracted.text, second.model, false);
   }
+  // Prefer a real answer with only style misses over canned advice.
+  if (secondStyleOnly) return finish(secondExtracted.text, second.model, false);
+  if (firstStyleOnly) return finish(firstExtracted.text, first.model, false);
 
   // Never show an unvalidated reply merely because the API returned text — fall back to a safe,
   // deterministic redirect instead.
