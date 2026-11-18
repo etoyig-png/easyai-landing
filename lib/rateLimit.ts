@@ -78,7 +78,7 @@ export function looksLikeSpam(honeypot: string | undefined, formLoadedAt: number
 }
 
 const GARY_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const GARY_MAX_MESSAGES_PER_WINDOW = 60;
+const GARY_MAX_MESSAGES_PER_WINDOW = 300;
 
 /** Separate rate limit for Gary's chat — a real conversation sends many more requests than the one-shot assessment form, so it needs its own, higher ceiling rather than sharing isRateLimited's budget. */
 export async function isGaryRateLimited(ipAddress: string): Promise<boolean> {
