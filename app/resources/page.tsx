@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'Resources' };
+export const metadata: Metadata = { title: 'Resources', alternates: { canonical: '/resources' } };
 
 const articles = [
   {

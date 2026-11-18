@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'AI Trust & Human Control' };
+export const metadata: Metadata = { title: 'AI Trust & Human Control', alternates: { canonical: '/ai-trust' } };
 
 const trustPrinciples = [
   { icon: '👤', title: 'Human review is mandatory', body: 'AI drafts findings and recommendations. A human at EasyAI checks every item for real-world fit, data access, and client-facing risk before you see it. AI does not make final decisions.' },

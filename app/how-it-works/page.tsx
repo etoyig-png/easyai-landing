@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'How It Works' };
+export const metadata: Metadata = { title: 'How It Works', alternates: { canonical: '/how-it-works' } };
 
 /**
  * The complete public service range. Descriptions are outcome-first on purpose: they say what the

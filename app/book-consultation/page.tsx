@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'Book a Consultation' };
+export const metadata: Metadata = { title: 'Book a Consultation', alternates: { canonical: '/book-consultation' } };
 
 export default function BookConsultationPage() {
   return (

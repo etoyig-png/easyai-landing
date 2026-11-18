@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-export const metadata: Metadata = { title: 'About EasyAI' };
+export const metadata: Metadata = { title: 'About EasyAI', alternates: { canonical: '/about' } };
 
 export default function AboutPage() {
   return (
