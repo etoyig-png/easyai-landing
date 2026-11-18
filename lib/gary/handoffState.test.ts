@@ -46,6 +46,10 @@ describe('handoff state resolution', () => {
     const tx = makeTx(null);
     await resolveHandoffState(tx, SESSION_ID, FIELDS, NOW);
     expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    // Prisma cannot deserialize the void result, so the lock must be cast.
+    const sql = (tx.$queryRaw as unknown as { mock: { calls: [TemplateStringsArray][] } }).mock.calls[0][0].join('?');
+    expect(sql).toContain('pg_advisory_xact_lock');
+    expect(sql).toMatch(/\)\)::text$/);
   });
 
   describe('reusing an unexpired handoff', () => {
