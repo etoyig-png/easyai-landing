@@ -164,3 +164,14 @@ describe('correction leaks are removed before a visitor sees them', () => {
     expect(stripCorrectionLeak("You're right that after-hours calls matter most.")).toBe("You're right that after-hours calls matter most.");
   });
 });
+
+describe('soft declines from the independent live scorecard', () => {
+  it('asks why once after "maybe another day for the assessment" (cleaning scenario, reply 6)', async () => {
+    const replies = await converse(['We quote cleaning jobs by phone and it takes forever.', 'About 20 quotes a week.', 'ok', 'What would you set up first?', 'Sounds good.', 'I am good with the general plan, but maybe another day for the assessment.']);
+    expect(replies[5].text).toMatch(/hesitant/);
+  });
+  it.each(['Not today, thanks.', 'Maybe some other day for that.', 'Not this week for the assessment.'])('treats %s as a soft decline, not an opt-out', async (message) => {
+    const replies = await converse(['We miss calls after hours.', 'ok', 'thanks', 'What would you check first?', message]);
+    expect(replies[4].text).toMatch(/hesitant/);
+  });
+});

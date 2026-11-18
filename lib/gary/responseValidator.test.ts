@@ -90,3 +90,24 @@ describe('validateGaryResponse', () => {
     expect(result.violations.some((v) => v.includes('injected'))).toBe(true);
   });
 });
+
+describe('unsupported guarantees and invented results (independent live scorecard)', () => {
+  it.each([
+    'An automated reply could cut your inbox by half.',
+    'A shared checklist cuts the work by half for most offices.',
+    'There is zero risk in trying this.',
+    'This works for any small service business.',
+    'We guarantee more booked jobs.',
+    'This will reduce no-shows by 40%.',
+  ])('rejects: %s', (reply) => {
+    expect(validateGaryResponse(reply, { lastVisitorMessage: 'hi' }).violations).toContain('unsupported guarantee or result claim');
+  });
+  it.each([
+    "I can't guarantee results, but tracking callbacks for a week will show the pattern.",
+    'Start with the half of your calls that come in after 5pm.',
+    'A pilot keeps the risk low because a person approves every message.',
+    'Your no-show rate is 15%, so start with reminders.',
+  ])('allows: %s', (reply) => {
+    expect(validateGaryResponse(reply, { lastVisitorMessage: 'hi' }).violations).not.toContain('unsupported guarantee or result claim');
+  });
+});
