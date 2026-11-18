@@ -1,0 +1,40 @@
+name: Gary weekly check
+
+# Every Monday: one short live conversation with Gary on the real website, checking the
+# Start Your Journey button schedule and that the button opens the assessment. A failure turns
+# this workflow red and GitHub emails the repository owner. Optionally prints the funnel report
+# if the GARY_REPORT_DATABASE_URL secret (a read-only database connection) is configured.
+on:
+  schedule:
+    - cron: '0 14 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+      - run: node scripts/gary-live-check.mjs https://www.easyaiconsult.com
+
+  funnel-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.GARY_REPORT_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+          cache: npm
+      - if: ${{ env.DATABASE_URL != '' }}
+        run: npm ci && npx prisma generate && node scripts/gary-funnel-report.mjs 7
+      - if: ${{ env.DATABASE_URL == '' }}
+        run: echo "Funnel report skipped - add a read-only GARY_REPORT_DATABASE_URL repository secret to enable it."
