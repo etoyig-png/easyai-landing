@@ -81,3 +81,17 @@ describe('public Easy AI BRIQ boundary', () => {
     expect(prompt).not.toContain('short snarky reply');
   });
 });
+
+describe('approved tool names (Company IQ)', () => {
+  it('keeps the no-product-names rule while the approved list is empty', async () => {
+    const { toolNamingRule, EASY_AI_APPROVED_TOOL_NAMES } = await import('./briq');
+    expect(EASY_AI_APPROVED_TOOL_NAMES).toEqual([]);
+    expect(toolNamingRule()).toMatch(/Never name a specific third-party AI tool/);
+  });
+  it('allows only the approved names once Toy adds them', async () => {
+    const { toolNamingRule } = await import('./briq');
+    const rule = toolNamingRule(['Example Scheduler']);
+    expect(rule).toContain('Example Scheduler');
+    expect(rule).toMatch(/Never name any other third-party/);
+  });
+});

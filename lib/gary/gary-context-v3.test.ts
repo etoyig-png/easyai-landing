@@ -63,7 +63,7 @@ describe('anonymous contextual business flows', () => {
   });
   it('gives a harmless cat explanation with dry humor and context reentry',()=>{
     const q='Why do cats knead?';const p=conversationPolicy(initial,[{role:'user',content:'Calls keep going unanswered'},{role:'assistant',content:useful},{role:'user',content:q}]);
-    const text=safeConversationFallback(q,p);expect(text).toContain('nursing');expect(text).toContain('bakery shift');expect(text).toContain('missed responses');expect(p.offer).toBe(false);
+    const text=safeConversationFallback(q,p);expect(text).toContain('nursing');expect(text).toContain('bakery shift');expect(text).toContain('back to what you were working on');expect(p.offer).toBe(false);
   });
   it('keeps a second Keep chatting deferred without a hard stop or automatic later reoffer',()=>{
     const h:ChatMessage[]=[{role:'assistant',content:'The assessment is optional.'},{role:'user',content:'Keep chatting'},{role:'assistant',content:'What makes you hesitant?'},{role:'user',content:'It sounds like paperwork'},{role:'assistant',content:useful},{role:'user',content:'What next?'},{role:'assistant',content:useful},{role:'user',content:'Which one?'},{role:'assistant',content:'The assessment is optional.'},{role:'user',content:'Keep chatting'}];

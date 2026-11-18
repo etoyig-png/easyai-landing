@@ -100,3 +100,43 @@ describe('POST /api/gary/message assessment schedule (mocked database and model)
     expect(providerCalls.count).toBe(before);
   });
 });
+
+const { POST: HISTORY } = await import('../history/route');
+async function history(body: Record<string, unknown>) {
+  const response = await HISTORY(new NextRequest('http://localhost/api/gary/history', { method: 'POST', body: JSON.stringify(body), headers: { 'content-type': 'application/json' } }));
+  return { status: response.status, data: await response.json() };
+}
+
+describe('POST /api/gary/history (returning visitor sees their conversation)', () => {
+  beforeEach(() => { db.sessions.clear(); db.messages.length = 0; });
+
+  it('returns the same messages and button state the visitor saw before a refresh', async () => {
+    const { sessionId, sessionCapability } = (await send({})).data;
+    let lastFlag = false;
+    for (let reply = 1; reply <= 4; reply++) lastFlag = (await send({ sessionId, sessionCapability, message: `Message ${reply}: we miss calls after hours.` })).data.offerAssessment;
+    expect(lastFlag).toBe(true);
+    const restored = await history({ sessionId, sessionCapability });
+    expect(restored.status).toBe(200);
+    expect(restored.data.messages).toHaveLength(9); // greeting + 4 visitor + 4 Gary
+    expect(restored.data.messages[0]).toEqual({ role: 'gary', text: 'What would you like help with today?' });
+    expect(restored.data.messages.at(-2)).toEqual({ role: 'visitor', text: 'Message 4: we miss calls after hours.' });
+    expect(restored.data.offerAssessment).toBe(true);
+    await send({ sessionId, sessionCapability, message: 'ok' });
+    expect((await history({ sessionId, sessionCapability })).data.offerAssessment).toBe(false);
+  });
+
+  it('shows the opening shortcut options when nothing has been said yet', async () => {
+    const { sessionId, sessionCapability } = (await send({})).data;
+    const restored = await history({ sessionId, sessionCapability });
+    expect(restored.data.messages).toHaveLength(1);
+    expect(restored.data.options).toHaveLength(4);
+  });
+
+  it("refuses to show someone else's conversation without that session's signed capability", async () => {
+    const first = (await send({})).data;
+    const second = (await send({})).data;
+    const stolen = await history({ sessionId: first.sessionId, sessionCapability: second.sessionCapability });
+    expect(stolen.status).toBe(403);
+    expect(stolen.data.messages).toBeUndefined();
+  });
+});
