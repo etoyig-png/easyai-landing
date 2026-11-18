@@ -50,6 +50,15 @@ const NOT_BUT_PATTERN = /\bnot\b[^.!?]{0,80}?\bbut\b/i;
 // publicly recommend.
 const BRAND_BLOCKLIST: RegExp[] = [/\bCRR\b/i, /\bintelligent\s+website\b/i, /\bgo\s*high\s*level\b/i, /\bMerchynt\b/i];
 
+const OVERCLAIM_PATTERNS: RegExp[] = [
+  /\b(?:zero|no) risk\b|\brisk[- ]free\b/i,
+  /(?<!\b(?:can'?t|cannot|not|no|never|won'?t)\s)\bguarantee(?:s|d)?\b/i,
+  /\b(?:cut|cuts|cutting|reduce|reduces|slash(?:es)?|drop|drops|save|saves)\b[^.!?]{0,40}\b(?:by|in) half\b/i,
+  /\b(?:cut|cuts|reduce|reduces|slash(?:es)?|drop|drops|boost|boosts|increase|increases|double|doubles|triple|triples)\b[^.!?]{0,40}\bby \d{1,3}\s?(?:%|percent)/i,
+  /\bworks for (?:any|every|all)\b/i,
+  /\b(?:always|definitely|certainly) (?:works|will work|pays off)\b/i,
+];
+
 const PRICE_MENTION = /\$\s*\d|\b(?:\d[\d,.]*|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand)\s+(?:US\s+)?(?:dollars?|USD)\b|\bUSD\s+\d/i;
 
 const INJECTION_PATTERNS: RegExp[] = [/<script/i, /on\w+\s*=\s*["']/i, /javascript:/i];
@@ -97,6 +106,12 @@ export function validateGaryResponse(replyText: string, context: GaryValidationC
 
   // The Start Your Journey button is the link; Gary must never claim otherwise.
   if (/\b(?:can(?:no|')?t|cannot|unable to|not able to)\s+(?:directly\s+)?(?:send|share|give|provide|post)\s+(?:you\s+)?(?:any\s+|a\s+|the\s+)?links?\b/i.test(text)) violations.push('claimed Gary cannot send links');
+  // Unsupported guarantees and invented results (independent live scorecard: "cut your inbox by
+  // half", "zero risk", "works for any small service business"). Gary may describe what usually
+  // helps, never promise an outcome.
+  for (const pattern of OVERCLAIM_PATTERNS) {
+    if (pattern.test(text)) { violations.push('unsupported guarantee or result claim'); break; }
+  }
   if (PRICE_MENTION.test(text)) violations.push('mentions a dollar figure — Gary never discusses pricing');
 
   for (const pattern of INJECTION_PATTERNS) {

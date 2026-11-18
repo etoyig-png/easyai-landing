@@ -15,7 +15,7 @@ export function asksGaryPrice(text: string, recentVisitorMessages: string[] = []
   if (isGaryBillingFollowUp(normalized)) {
     return recentVisitorMessages.slice(-2).some((message) => asksGaryPrice(message));
   }
-  if (asksSetupCost(normalized)) return true;
+  if (asksSetupCost(normalized) || asksOfferingCost(normalized)) return true;
   // "What do you charge?", "How much does Easy AI charge?", "What would your team cost?"
   if (/\b(?:what|how much) (?:do|does|would|will) (?:you|you guys|y'?all|easy ai|your (?:company|team|firm|agency|services?)) (?:charge|cost)\b(?!\s+(?:me|us|my|our)\b[^?]*\b(?:to lose|in lost|by missing)\b)/.test(normalized)) return true;
   if (/\b(?:how much (?:is|are) (?:it|that|this|(?:the|an?|your) (?:assessment|evaluation|service)|start your journey)|(?:do|would|will) you charge (?:for (?:it|that|this|(?:the|an?|your) (?:assessment|evaluation|service)|start your journey)|anything)|does (?:the|your) (?:assessment|evaluation|service) cost anything)\b/.test(normalized)) return true;
@@ -38,4 +38,16 @@ const SETUP_COST = new RegExp(
 
 function asksSetupCost(normalized: string): boolean {
   return SETUP_COST.test(normalized) && !OWN_LOSS.test(normalized);
+}
+
+// Questions about what Easy AI's own offering costs: the assessment, the detailed evaluation or
+// review, and its discount. "What is the starting price of your detailed evaluation?", "Would
+// you discount that evaluation if we hire you?", "Is the initial assessment free, or will I need
+// a credit card?", "I mean the evaluation fee". The approved reply answers all of them.
+const OFFERING = /\b(?:evaluations?|reviews?|assessments?|start your journey|deeper look|audit)\b/;
+const MONEY = /\b(?:fees?|costs?|costing|prices?|priced|pricing|pay|paying|charge[sd]?|discount(?:s|ed)?|reduced?|lower(?:ed)?|free|credit card|card|quote|starting price|\$\s?\d+)\b|\$\s?\d+|\bhow much\b[^?.!]*\brun\b/;
+const NOT_ABOUT_MONEY = /\b(?:free time|free up|for free(?:dom)?|time to|how long|cost (?:me|us) (?:time|hours))\b/;
+
+function asksOfferingCost(normalized: string): boolean {
+  return OFFERING.test(normalized) && MONEY.test(normalized) && !NOT_ABOUT_MONEY.test(normalized) && !OWN_LOSS.test(normalized.replace(/\bbefore\b[^?.!]*/, ''));
 }
