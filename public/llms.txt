@@ -1,0 +1,16 @@
+# Easy AI
+
+> Easy AI is an artificial intelligence consulting and implementation company based in Tampa, Florida, serving clients remotely. It helps small and midsize businesses improve how customers find them online, turn website visits into inquiries, and respond to those inquiries.
+
+## Services
+
+- [Google + AI Presence (GAP)](https://www.easyaiconsult.com/#discovery): Assess how customers find a business through Google, local search, and artificial intelligence tools.
+- [SmartSite](https://www.easyaiconsult.com/#engagement): Build a business website that answers common questions and helps visitors take the next step.
+- [AIM Digital and Voice](https://www.easyaiconsult.com/#response): Use the AI Interaction Manager to help answer customer questions online or by phone and collect information for staff follow-up.
+
+## Business information
+
+- [About Easy AI](https://www.easyaiconsult.com/about): Company background and approach to artificial intelligence consulting.
+- [Business assessment](https://www.easyaiconsult.com/assessment): Get a GAP Score and identify which discovery, website, or response problem to address first.
+- [Service FAQs](https://www.easyaiconsult.com/faq): Answers to common questions about Easy AI and how to get started.
+- [Contact Easy AI](https://www.easyaiconsult.com/contact): Contact the team about services or next steps.
